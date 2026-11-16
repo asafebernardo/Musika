@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { getAppSettings } from "./appSettings.js";
 
 export const THEME_KEY = "coletanea-theme";
 export const ACCENT_KEY = "coletanea-accent";
@@ -133,7 +134,13 @@ const listeners = new Set();
 function readStoredTheme() {
   try {
     const stored = localStorage.getItem(THEME_KEY);
-    if (stored === "dark" || stored === "light") return stored;
+    if (
+      getAppSettings().allowAppearanceChanges &&
+      getAppSettings().allowedThemes.includes(stored) &&
+      ["dark", "light"].includes(stored)
+    ) {
+      return stored;
+    }
   } catch {
     /* ignore */
   }
@@ -154,12 +161,17 @@ function handleSystemThemeChange(event) {
 function readStoredAccent() {
   try {
     const stored = localStorage.getItem(ACCENT_KEY);
-    if (VALID_ACCENTS.has(stored)) return stored;
+    if (
+      getAppSettings().allowAppearanceChanges &&
+      VALID_ACCENTS.has(stored) &&
+      getAppSettings().allowedAccents.includes(stored)
+    ) {
+      return stored;
+    }
   } catch {
     /* ignore */
   }
-  const datasetAccent = document.documentElement.dataset.accent;
-  return VALID_ACCENTS.has(datasetAccent) ? datasetAccent : "verde";
+  return getAppSettings().accent;
 }
 
 function applyCssVariables(themeValue, accentValue) {
@@ -194,7 +206,13 @@ export function subscribeTheme(listener) {
 }
 
 export function setTheme(next) {
-  if (next !== "light" && next !== "dark") return;
+  if (
+    !getAppSettings().allowAppearanceChanges ||
+    !getAppSettings().allowedThemes.includes(next) ||
+    (next !== "light" && next !== "dark")
+  ) {
+    return;
+  }
   followsSystemTheme = false;
   current = next;
   try {
@@ -207,7 +225,13 @@ export function setTheme(next) {
 }
 
 export function setAccent(next) {
-  if (!VALID_ACCENTS.has(next)) return;
+  if (
+    !getAppSettings().allowAppearanceChanges ||
+    !VALID_ACCENTS.has(next) ||
+    !getAppSettings().allowedAccents.includes(next)
+  ) {
+    return;
+  }
   currentAccent = next;
   try {
     localStorage.setItem(ACCENT_KEY, next);
@@ -225,8 +249,9 @@ export function toggleTheme() {
 export function initTheme() {
   if (typeof document === "undefined") return;
   const storedTheme = readStoredTheme();
-  followsSystemTheme = storedTheme === null;
-  current = storedTheme || readSystemTheme();
+  const defaultTheme = getAppSettings().theme;
+  followsSystemTheme = storedTheme === null && defaultTheme === "system";
+  current = storedTheme || (defaultTheme === "system" ? readSystemTheme() : defaultTheme);
   currentAccent = readStoredAccent();
   applyCssVariables(current, currentAccent);
 

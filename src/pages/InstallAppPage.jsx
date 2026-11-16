@@ -7,8 +7,10 @@ import {
   useCanPromptInstall,
   useIsPwaInstalled,
 } from "@/lib/pwa.js";
+import { getAppSettings } from "@/lib/appSettings.js";
 
 export default function InstallAppPage() {
+  const { appName } = getAppSettings();
   const [showInstallHelp, setShowInstallHelp] = useState(false);
   const [installStatus, setInstallStatus] = useState("");
   const [installError, setInstallError] = useState("");
@@ -67,7 +69,7 @@ export default function InstallAppPage() {
           <section className="rounded-2xl border border-line bg-paper/60 p-4">
             <h2 className="text-sm font-semibold text-ink">Aplicativo já instalado</h2>
             <p className="mt-1 text-xs text-ink-soft">
-              A Coletânea já está disponível na tela inicial do dispositivo.
+              {appName} já está disponível na tela inicial do dispositivo.
             </p>
           </section>
         ) : (
@@ -76,7 +78,7 @@ export default function InstallAppPage() {
               <div className="min-w-0">
                 <h2 className="text-sm font-semibold text-ink">Aplicativo (PWA)</h2>
                 <p className="mt-0.5 text-xs text-ink-soft">
-                  Instale a coletânea no seu dispositivo para acesso rápido e offline
+                  Instale o {appName} no seu dispositivo para acesso rápido e offline
                 </p>
               </div>
               <button

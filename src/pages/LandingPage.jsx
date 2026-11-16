@@ -6,14 +6,16 @@ import {
   useCanPromptInstall,
   useIsPwaInstalled,
 } from "@/lib/pwa.js";
+import { getAppSettings } from "@/lib/appSettings.js";
 
 export default function LandingPage({ onEnterWeb }) {
+  const { appName, appLogoDataUrl } = getAppSettings();
   const canPrompt = useCanPromptInstall();
   const isInstalled = useIsPwaInstalled();
   const [showInstallHelp, setShowInstallHelp] = useState(false);
   const [installStatus, setInstallStatus] = useState("");
   const [installError, setInstallError] = useState("");
-  const logoSrc = `${import.meta.env.BASE_URL || "/"}logo.jfif`;
+  const logoSrc = appLogoDataUrl || `${import.meta.env.BASE_URL || "/"}logo.jfif`;
   const isMobile = isMobileDevice();
   const isIos = isIosDevice();
 
@@ -50,12 +52,12 @@ export default function LandingPage({ onEnterWeb }) {
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-8 text-center">
         <img
           src={logoSrc}
-          alt="Logo Coletânea de Louvor"
+          alt={`Logo ${appName}`}
           className="h-20 w-20 shrink-0 rounded-full border border-line bg-white object-cover shadow-sm landscape-mobile:h-14 landscape-mobile:w-14"
         />
 
         <h2 className="mt-4 text-xl font-semibold text-ink landscape-mobile:mt-2 landscape-mobile:text-lg">
-          Coletânea de Louvor
+          {appName}
         </h2>
         <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-ink-soft">
           Escolha como deseja utilizar a coletânea de músicas no seu dispositivo.
@@ -74,7 +76,7 @@ export default function LandingPage({ onEnterWeb }) {
             }`}
           >
             <DownloadIcon />
-            <span>Baixar Coletânea de Louvor</span>
+            <span>Baixar {appName}</span>
           </button>
           {!isMobile ? (
             <p id="install-unavailable" role="note" className="px-2 text-xs leading-relaxed text-ink-soft">

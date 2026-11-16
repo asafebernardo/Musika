@@ -1,7 +1,7 @@
 {
-  "name": "Coletânea de Louvor",
-  "short_name": "Coletânea",
-  "description": "Coletânea de músicas cristãs para uso no site, no formato de um app de celular.",
+  "name": "Musika",
+  "short_name": "Musika",
+  "description": "Músicas cristãs, letras e cifras em um só aplicativo.",
   "lang": "pt-BR",
   "start_url": "./?pwa=1",
   "scope": "./",

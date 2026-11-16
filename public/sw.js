@@ -1,4 +1,4 @@
-const CACHE_NAME = "coletanea-louvor-v4";
+const CACHE_NAME = "musika-v1";
 const PRECACHE_URLS = [
   "./",
   "./index.html",
@@ -44,18 +44,16 @@ self.addEventListener("fetch", (event) => {
     url.pathname.startsWith("/@") ||
     url.pathname.startsWith("/src/") ||
     url.pathname.startsWith("/node_modules/") ||
+    url.pathname.includes("/api/") ||
+    url.pathname.includes("/data/") ||
     url.pathname.includes("/audios/") ||
     request.headers.has("range")
   ) {
     return;
   }
 
-  // Network-first for API, static catalog json, and navigation requests (fallback to cache when offline)
-  if (
-    url.pathname.includes("/api/") ||
-    url.pathname.endsWith("/data/songs.json") ||
-    request.mode === "navigate"
-  ) {
+  // Network-first for navigation requests (fallback to the cached app shell when offline)
+  if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
         .then((response) => {

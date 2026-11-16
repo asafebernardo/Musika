@@ -1,53 +1,89 @@
-import { useState } from "react";
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import AppFrame from "@/components/AppFrame.jsx";
 import HomeLayout from "@/components/HomeLayout.jsx";
-import { isStandaloneMode } from "@/lib/pwa.js";
-import { canManageSongs } from "@/lib/songs.js";
+import { getAppSettings } from "@/lib/appSettings.js";
+import { useAuth } from "@/lib/auth.jsx";
+import { getAdminUrl, isAdminSite } from "@/lib/sites.js";
+import AdminPage from "@/pages/AdminPage.jsx";
 import AppInfoPage from "@/pages/AppInfoPage.jsx";
 import CatalogPage from "@/pages/CatalogPage.jsx";
 import CategoriesPage from "@/pages/CategoriesPage.jsx";
 import FavoritesPage from "@/pages/FavoritesPage.jsx";
 import InstallAppPage from "@/pages/InstallAppPage.jsx";
+import LoginPage from "@/pages/LoginPage.jsx";
 import LandingPage from "@/pages/LandingPage.jsx";
 import MissingPreviewsPage from "@/pages/MissingPreviewsPage.jsx";
 import PreviewsPage from "@/pages/PreviewsPage.jsx";
+import ProductLandingPage from "@/pages/ProductLandingPage.jsx";
+import RegisterPage from "@/pages/RegisterPage.jsx";
 import SettingsPage from "@/pages/SettingsPage.jsx";
 import SongFormPage from "@/pages/SongFormPage.jsx";
 import SongThemeAddPage from "@/pages/SongThemeAddPage.jsx";
 import SongThemePage from "@/pages/SongThemePage.jsx";
 import SongThemesPage from "@/pages/SongThemesPage.jsx";
 import SongPage from "@/pages/SongPage.jsx";
-
-const WEB_MODE_KEY = "coletanea-web-mode";
-
-function readEnteredWeb() {
-  if (isStandaloneMode()) return true;
-  try {
-    return sessionStorage.getItem(WEB_MODE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
+import UserDashboardPage from "@/pages/UserDashboardPage.jsx";
 
 export default function App() {
-  const canManage = canManageSongs();
-  const [enteredWeb, setEnteredWeb] = useState(readEnteredWeb);
+  const { user, loading } = useAuth();
+  const canManage = user?.role === "admin";
+  const appSettings = getAppSettings();
+  const canOpenMenu = (key) => canManage || appSettings.menuAccess[key];
+  const canOpenSongThemes = canManage || appSettings.songThemesEnabled;
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isPublicPath =
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname === "/cadastro" ||
+    pathname === "/inicio";
+  const isLocalPanelRoute =
+    pathname === "/admin" &&
+    (import.meta.env.DEV ||
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1");
 
-  const enterWebApp = () => {
-    try {
-      sessionStorage.setItem(WEB_MODE_KEY, "1");
-    } catch {
-      /* ignore */
-    }
-    setEnteredWeb(true);
-  };
+  if (isAdminSite() || isLocalPanelRoute) {
+    return (
+      <div className="h-dvh w-full overflow-hidden bg-paper text-ink">
+        <AdminPage />
+      </div>
+    );
+  }
 
-  if (!enteredWeb) {
+  if (pathname === "/admin") return <RedirectToAdminSite />;
+  if (loading && !isPublicPath) {
     return (
       <AppFrame>
-        <LandingPage onEnterWeb={enterWebApp} />
+        <AuthLoading />
+      </AppFrame>
+    );
+  }
+  if (!user && !isPublicPath) {
+    return <Navigate to="/login" replace state={{ from: { pathname } }} />;
+  }
+  if (user && (pathname === "/login" || pathname === "/cadastro")) {
+    return user.role === "admin" ? (
+      <RedirectToAdminSite />
+    ) : (
+      <Navigate to="/conta" replace />
+    );
+  }
+  if (pathname === "/") return <ProductLandingPage user={user} />;
+  if (pathname === "/login") return <LoginPage />;
+  if (pathname === "/cadastro") return <RegisterPage />;
+  if (pathname === "/conta") {
+    return user?.role === "admin" ? (
+      <RedirectToAdminSite />
+    ) : (
+      <UserDashboardPage user={user} />
+    );
+  }
+  if (pathname === "/inicio") {
+    return (
+      <AppFrame>
+        <LandingPage onEnterWeb={() => navigate("/app", { replace: true })} />
       </AppFrame>
     );
   }
@@ -55,45 +91,93 @@ export default function App() {
   return (
     <AppFrame>
       <Routes>
-        <Route
-          path="/inicio"
-          element={
-            <LandingPage
-              onEnterWeb={() => {
-                enterWebApp();
-                navigate("/", { replace: true });
-              }}
-            />
-          }
-        />
         <Route element={<HomeLayout />}>
-          <Route path="/" element={<CatalogPage />} />
+          <Route path="/app" element={<CatalogPage />} />
           <Route path="/mais" element={<CategoriesPage />} />
           <Route path="/categorias" element={<CategoriesPage />} />
-          <Route path="/favoritos" element={<FavoritesPage />} />
-          <Route path="/previsualizacao" element={<PreviewsPage />} />
+          <Route
+            path="/favoritos"
+            element={canOpenMenu("favorites") ? <FavoritesPage /> : <Navigate to="/app" replace />}
+          />
+          <Route
+            path="/previsualizacao"
+            element={canOpenMenu("previews") ? <PreviewsPage /> : <Navigate to="/app" replace />}
+          />
           <Route
             path="/admin/previews"
-            element={canManage ? <MissingPreviewsPage /> : <Navigate to="/mais" replace />}
+            element={
+              loading ? (
+                <AuthLoading />
+              ) : canManage ? (
+                <MissingPreviewsPage />
+              ) : (
+                <Navigate to="/app" replace />
+              )
+            }
           />
-          <Route path="/instalar" element={<InstallAppPage />} />
-          <Route path="/sobre" element={<AppInfoPage />} />
-          <Route path="/configuracoes" element={<SettingsPage />} />
-          <Route path="/temas" element={<SongThemesPage />} />
-          <Route path="/temas/:themeId/adicionar" element={<SongThemeAddPage />} />
-          <Route path="/temas/:themeId" element={<SongThemePage />} />
+          <Route
+            path="/instalar"
+            element={canOpenMenu("install") ? <InstallAppPage /> : <Navigate to="/app" replace />}
+          />
+          <Route
+            path="/sobre"
+            element={canOpenMenu("about") ? <AppInfoPage /> : <Navigate to="/app" replace />}
+          />
+          <Route
+            path="/configuracoes"
+            element={canOpenMenu("settings") ? <SettingsPage /> : <Navigate to="/app" replace />}
+          />
+          <Route
+            path="/temas"
+            element={canOpenSongThemes ? <SongThemesPage /> : <Navigate to="/app" replace />}
+          />
+          <Route
+            path="/temas/:themeId/adicionar"
+            element={canOpenSongThemes ? <SongThemeAddPage /> : <Navigate to="/app" replace />}
+          />
+          <Route
+            path="/temas/:themeId"
+            element={canOpenSongThemes ? <SongThemePage /> : <Navigate to="/app" replace />}
+          />
           <Route path="*" element={<CatalogPage />} />
         </Route>
         <Route
           path="/musicas/nova"
-          element={canManage ? <SongFormPage /> : <Navigate to="/" replace />}
+          element={
+            loading ? (
+              <AuthLoading />
+            ) : canManage ? (
+              <SongFormPage />
+            ) : (
+              <Navigate to="/app" replace />
+            )
+          }
         />
         <Route
           path="/musicas/:id/editar"
-          element={canManage ? <SongFormPage /> : <Navigate to="/" replace />}
+          element={
+            loading ? (
+              <AuthLoading />
+            ) : canManage ? (
+              <SongFormPage />
+            ) : (
+              <Navigate to="/app" replace />
+            )
+          }
         />
         <Route path="/musicas/:id" element={<SongPage />} />
       </Routes>
     </AppFrame>
   );
+}
+
+function AuthLoading() {
+  return <p className="p-6 text-center text-sm text-ink-soft">Verificando acesso…</p>;
+}
+
+function RedirectToAdminSite() {
+  useEffect(() => {
+    window.location.replace(getAdminUrl());
+  }, []);
+  return null;
 }

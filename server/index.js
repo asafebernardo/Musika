@@ -10,6 +10,18 @@ import {
   streamAudioFile,
   updateSong,
 } from "./songs-store.js";
+import {
+  handleAuthRequest,
+  isAdminRequest,
+  isAuthenticatedRequest,
+  isSameOriginRequest,
+} from "./auth-api.js";
+import {
+  getAppIcon,
+  getAppManifest,
+  getAppSettings,
+  updateAppSettings,
+} from "./app-settings-store.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = path.join(root, "dist");
@@ -19,6 +31,57 @@ const isProduction = process.env.NODE_ENV === "production";
 const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "50mb" }));
+app.use("/api", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
+
+app.use(async (req, res, next) => {
+  try {
+    const result = await handleAuthRequest({
+      method: req.method,
+      pathname: req.path,
+      headers: req.headers,
+      body: req.body,
+      secure: isProduction,
+    });
+    if (!result) return next();
+    for (const [name, value] of Object.entries(result.headers || {})) {
+      res.setHeader(name, value);
+    }
+    res.status(result.status).json(result.body);
+  } catch (error) {
+    next(error);
+  }
+});
+
+async function requireAdmin(req, res, next) {
+  try {
+    if (!isSameOriginRequest(req.headers, isProduction)) {
+      res.status(403).json({ error: "origem_invalida" });
+      return;
+    }
+    if (!(await isAdminRequest(req.headers))) {
+      res.status(403).json({ error: "acesso_negado" });
+      return;
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function requireAuthenticated(req, res, next) {
+  try {
+    if (!(await isAuthenticatedRequest(req.headers))) {
+      res.status(403).json({ error: "acesso_negado" });
+      return;
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
 
 function sendResult(res, result, successStatus = 200) {
   if (result?.error === "nao_encontrada") {
@@ -34,10 +97,63 @@ function sendResult(res, result, successStatus = 200) {
 }
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, app: "coletanea-louvor" });
+  res.json({ ok: true, app: "musika" });
 });
 
-app.get("/api/audios/:filename", async (req, res, next) => {
+app.get("/api/app-settings", async (_req, res, next) => {
+  try {
+    res.json(await getAppSettings());
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/app-manifest", async (_req, res, next) => {
+  try {
+    res.type("application/manifest+json").json(await getAppManifest());
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/app-icon", async (_req, res, next) => {
+  try {
+    const icon = await getAppIcon();
+    if (!icon) {
+      res.status(404).end();
+      return;
+    }
+    res.setHeader("Content-Type", icon.contentType);
+    res.setHeader("Cache-Control", "no-store");
+    res.end(icon.data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put("/api/admin/app-settings", requireAdmin, async (req, res, next) => {
+  try {
+    const result = await updateAppSettings(req.body);
+    if (result.error) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+    res.json(result.settings);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/data/songs.json", requireAuthenticated, async (_req, res, next) => {
+  try {
+    res.setHeader("Cache-Control", "no-store");
+    res.json(await listSongs());
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/audios/:filename", requireAuthenticated, async (req, res, next) => {
   try {
     await streamAudioFile(req.params.filename, req, res);
   } catch (error) {
@@ -45,7 +161,7 @@ app.get("/api/audios/:filename", async (req, res, next) => {
   }
 });
 
-app.get("/data/audios/:filename", async (req, res, next) => {
+app.get("/data/audios/:filename", requireAuthenticated, async (req, res, next) => {
   try {
     await streamAudioFile(req.params.filename, req, res);
   } catch (error) {
@@ -53,7 +169,7 @@ app.get("/data/audios/:filename", async (req, res, next) => {
   }
 });
 
-app.get("/api/songs", async (_req, res, next) => {
+app.get("/api/songs", requireAuthenticated, async (_req, res, next) => {
   try {
     res.json(await listSongs());
   } catch (error) {
@@ -61,7 +177,7 @@ app.get("/api/songs", async (_req, res, next) => {
   }
 });
 
-app.get("/api/songs/:id", async (req, res, next) => {
+app.get("/api/songs/:id", requireAuthenticated, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) {
@@ -79,7 +195,7 @@ app.get("/api/songs/:id", async (req, res, next) => {
   }
 });
 
-app.post("/api/songs", async (req, res, next) => {
+app.post("/api/songs", requireAdmin, async (req, res, next) => {
   try {
     sendResult(res, await createSong(req.body), 201);
   } catch (error) {
@@ -87,7 +203,7 @@ app.post("/api/songs", async (req, res, next) => {
   }
 });
 
-app.put("/api/songs/:id", async (req, res, next) => {
+app.put("/api/songs/:id", requireAdmin, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) {
@@ -100,7 +216,7 @@ app.put("/api/songs/:id", async (req, res, next) => {
   }
 });
 
-app.delete("/api/songs/:id", async (req, res, next) => {
+app.delete("/api/songs/:id", requireAdmin, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) {
@@ -135,5 +251,5 @@ app.use((error, _req, res, _next) => {
 });
 
 app.listen(port, "127.0.0.1", () => {
-  console.log(`Coletânea API em http://127.0.0.1:${port}`);
+  console.log(`Musika API em http://127.0.0.1:${port}`);
 });

@@ -8,79 +8,10 @@ import {
   updateSong,
 } from "@/api/songs.js";
 import ChordEditor from "@/components/ChordEditor.jsx";
-import { splitLyrics } from "@/components/Lyrics.jsx";
 import LyricEditor from "@/components/LyricEditor.jsx";
 import VocalArrangementEditor from "@/components/VocalArrangementEditor.jsx";
-import { packChordLines, syncChordLines } from "@/lib/chords.js";
-import { buildFullSongLyrics, hasMarkedVoices, packLyrics } from "@/lib/voices.js";
-
-const emptyForm = {
-  titulo: "",
-  audioArquivo: "",
-  audioNome: "",
-  audioDataUrl: "",
-  removeAudio: false,
-  letra: "",
-  refrao: "",
-  cronologica: false,
-  refraoPrimeiro: false,
-  somenteVozes: false,
-  vozesLetra: [],
-  vozesRefrao: [],
-  letraVozes: "",
-  vozesArranjo: [],
-  cifraLetra: [],
-  cifraRefrao: [],
-};
-
-function fieldsFromSong(song) {
-  const embedded = splitLyrics(song.letra || "");
-  const storedRefrao = String(song.refrao ?? "").trim();
-  const refrao = storedRefrao || embedded.refrao;
-  const letra = storedRefrao ? song.letra || "" : embedded.letra;
-  const cronologica = Boolean(song.cronologica) && Boolean(refrao);
-  const refraoPrimeiro = Boolean(song.refraoPrimeiro) && Boolean(refrao);
-  const vozesLetra = Array.isArray(song.vozesLetra) ? song.vozesLetra : [];
-  const vozesRefrao = Array.isArray(song.vozesRefrao) ? song.vozesRefrao : [];
-
-  const storedLetraVozes = String(song.letraVozes ?? "").trim();
-  const storedVozesArranjo = Array.isArray(song.vozesArranjo) ? song.vozesArranjo : [];
-  const hasLegacyVoices = hasMarkedVoices(vozesLetra) || hasMarkedVoices(vozesRefrao);
-  const built = hasLegacyVoices
-    ? buildFullSongLyrics({
-        letra,
-        refrao,
-        vozesLetra,
-        vozesRefrao,
-        cronologica,
-        refraoPrimeiro,
-      })
-    : { text: "", marks: [] };
-
-  const letraVozes = storedLetraVozes || built.text;
-  const vozesArranjo = storedLetraVozes ? storedVozesArranjo : built.marks;
-  const somenteVozes =
-    Boolean(song.somenteVozes) && (Boolean(letraVozes) || hasMarkedVoices(vozesArranjo));
-
-  return {
-    titulo: song.titulo || "",
-    audioArquivo: song.audioArquivo || "",
-    audioNome: song.audioNome || "",
-    audioDataUrl: "",
-    removeAudio: false,
-    letra,
-    refrao,
-    cronologica,
-    refraoPrimeiro,
-    somenteVozes,
-    vozesLetra,
-    vozesRefrao,
-    letraVozes,
-    vozesArranjo,
-    cifraLetra: syncChordLines(letra, song.cifraLetra),
-    cifraRefrao: syncChordLines(refrao, song.cifraRefrao),
-  };
-}
+import { syncChordLines } from "@/lib/chords.js";
+import { emptySongForm, fieldsFromSong, payloadFromSongForm } from "@/lib/songEditor.js";
 
 const VALID_TABS = new Set(["letra", "arranjo", "cifra", "info"]);
 
@@ -95,7 +26,7 @@ export default function SongFormPage() {
     editing && searchParams.get("returnTo") === "/admin/previews"
       ? "/admin/previews"
       : null;
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(emptySongForm);
   const [contentTab, setContentTab] = useState(
     VALID_TABS.has(initialTab) ? initialTab : "info",
   );
@@ -171,29 +102,7 @@ export default function SongFormPage() {
     }
     setSaving(true);
     setError("");
-    const baseLetra = form.letra.trim() ? form.letra : form.letraVozes;
-    const letraPack = packLyrics(baseLetra, []);
-    const refraoPack = packLyrics(form.refrao, []);
-    const vozesPack = packLyrics(form.letraVozes, form.vozesArranjo);
-    const hasArranjoVoices = Boolean(vozesPack.text);
-
-    const payload = {
-      titulo: form.titulo.trim(),
-      audioDataUrl: form.audioDataUrl || undefined,
-      audioNome: form.audioNome || undefined,
-      removeAudio: Boolean(form.removeAudio),
-      letra: letraPack.text,
-      refrao: refraoPack.text,
-      cronologica: Boolean(form.cronologica) && Boolean(refraoPack.text),
-      refraoPrimeiro: Boolean(form.refraoPrimeiro) && Boolean(refraoPack.text),
-      somenteVozes: Boolean(form.somenteVozes) && hasArranjoVoices,
-      vozesLetra: [],
-      vozesRefrao: [],
-      letraVozes: hasArranjoVoices ? vozesPack.text : "",
-      vozesArranjo: hasArranjoVoices ? vozesPack.marks : [],
-      cifraLetra: syncChordLines(letraPack.text, packChordLines(baseLetra, form.cifraLetra)),
-      cifraRefrao: syncChordLines(refraoPack.text, packChordLines(form.refrao, form.cifraRefrao)),
-    };
+    const payload = payloadFromSongForm(form);
     try {
       const saved = editing
         ? await updateSong(numericId, payload)
@@ -231,7 +140,7 @@ export default function SongFormPage() {
       ) : status === "missing" ? (
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-16 text-center">
           <p className="text-base font-medium">Música não encontrada</p>
-          <Link to="/" className="mt-3 inline-block text-sm font-medium text-pine hover:underline">
+          <Link to="/app" className="mt-3 inline-block text-sm font-medium text-pine hover:underline">
             Voltar à lista
           </Link>
         </div>

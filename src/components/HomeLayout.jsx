@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { canManageSongs } from "@/lib/songs.js";
+import { useAuth } from "@/lib/auth.jsx";
 import { getAccentHex, useAccent, useTheme } from "@/lib/theme.js";
 
 const barItem =
@@ -22,7 +22,8 @@ const MORE_PATHS = new Set([
 ]);
 
 export default function HomeLayout() {
-  const canManage = canManageSongs();
+  const { user } = useAuth();
+  const canManage = user?.role === "admin";
   const { pathname } = useLocation();
   const theme = useTheme();
   const accent = useAccent();
@@ -57,7 +58,7 @@ export default function HomeLayout() {
           className="grid shrink-0 grid-cols-2 border-t border-line bg-card pb-[env(safe-area-inset-bottom)]"
         >
           <NavLink
-            to="/"
+            to="/app"
             end
             className={({ isActive }) => `${barItem} ${isActive ? barOn : barOff}`}
             style={({ isActive }) => (isActive ? { color: activeColor } : undefined)}

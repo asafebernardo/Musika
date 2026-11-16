@@ -1,0 +1,334 @@
+import { useEffect, useState } from "react";
+import { request } from "@/api/songs.js";
+import { useAuth } from "@/lib/auth.jsx";
+import { getAppUrl } from "@/lib/sites.js";
+import { getAppSettings } from "@/lib/appSettings.js";
+import AdminContentPage from "@/pages/AdminContentPage.jsx";
+
+const emptyAccessForm = { name: "", email: "", password: "", setupToken: "" };
+
+export default function AdminPage() {
+  const { user, loading: authLoading, available, login, setupAdmin, logout, deleteAccount } = useAuth();
+  const { appName } = getAppSettings();
+  const [setupRequired, setSetupRequired] = useState(null);
+  const [setupError, setSetupError] = useState("");
+  const [form, setForm] = useState(emptyAccessForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [people, setPeople] = useState([]);
+  const [peopleLoading, setPeopleLoading] = useState(false);
+  const [peopleError, setPeopleError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    request("/api/auth/status")
+      .then((status) => {
+        if (active) setSetupRequired(status.setupRequired);
+      })
+      .catch(() => {
+        if (active) setSetupError("Não foi possível conectar à API de administração.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user || user.role !== "admin") return undefined;
+    let active = true;
+    setPeopleLoading(true);
+    setPeopleError("");
+    request("/api/admin/users")
+      .then((registeredPeople) => {
+        if (!active) return;
+        setPeople(registeredPeople);
+      })
+      .catch(() => {
+        if (active) setPeopleError("Não foi possível carregar os dados de gerenciamento.");
+      })
+      .finally(() => {
+        if (active) setPeopleLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  const updateForm = (field) => (event) => {
+    setForm((current) => ({ ...current, [field]: event.target.value }));
+  };
+
+  const submitAccess = async (event) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setFormError("");
+    try {
+      if (setupRequired) {
+        await setupAdmin(form);
+        setSetupRequired(false);
+        setForm(emptyAccessForm);
+      } else {
+        await login({ email: form.email, password: form.password });
+        setForm(emptyAccessForm);
+      }
+    } catch (error) {
+      setFormError(messageForAuthError(error));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const deleteOwnAccount = async () => {
+    if (!window.confirm("Excluir permanentemente sua conta de administrador?")) return;
+    setFormError("");
+    try {
+      await deleteAccount();
+      window.location.replace(getAppUrl());
+    } catch (error) {
+      setFormError(messageForAuthError(error));
+    }
+  };
+
+  const signOut = async () => {
+    setFormError("");
+    try {
+      await logout();
+    } catch {
+      setFormError("Não foi possível encerrar a sessão. Tente novamente.");
+    }
+  };
+
+  const showSetup = setupRequired === true;
+  const showRegistration = showSetup;
+  const accessPanel = (
+    <section className="max-w-4xl overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
+        <div className="border-b border-line px-5 py-4 sm:px-6">
+          <h2 className="text-base font-semibold text-ink">Pessoas e acessos</h2>
+          <p className="mt-1 text-sm text-ink-soft">
+            Lista somente para administradores. O painel não cadastra nem remove outras contas.
+          </p>
+        </div>
+        {peopleLoading ? (
+          <p className="px-5 py-6 text-sm text-ink-soft">Carregando pessoas…</p>
+        ) : people.length ? (
+          <ul className="divide-y divide-line">
+            {people.map((person) => (
+              <li key={person.id} className="flex items-center gap-4 px-5 py-4 sm:px-6">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pine/10 text-sm font-semibold text-pine">
+                  {person.name.slice(0, 1).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-ink">{person.name}</p>
+                  <p className="truncate text-sm text-ink-soft">{person.email}</p>
+                </div>
+                <span className="hidden rounded-full bg-paper px-3 py-1 text-xs font-medium text-ink-soft sm:inline-flex">
+                  {person.role === "admin" ? "Administrador" : "Pessoa"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="px-5 py-6 text-sm text-ink-soft">Nenhuma pessoa cadastrada.</p>
+        )}
+      {peopleError ? (
+        <p role="alert" className="border-t border-line px-5 py-4 text-sm text-danger">{peopleError}</p>
+      ) : null}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line bg-paper/60 px-5 py-4 sm:px-6">
+        <div>
+          <p className="text-sm font-medium">Excluir sua conta</p>
+          <p className="mt-1 text-xs text-ink-soft">
+            A exclusão encerra sua sessão. A última conta administradora não pode ser excluída.
+          </p>
+          {formError ? <p role="alert" className="mt-2 text-sm text-danger">{formError}</p> : null}
+        </div>
+        <button
+          type="button"
+          onClick={deleteOwnAccount}
+          className="h-10 rounded-lg border border-danger/30 px-4 text-sm font-medium text-danger hover:bg-danger-soft"
+        >
+          Excluir minha conta
+        </button>
+      </div>
+    </section>
+  );
+
+  if (user?.role === "admin") {
+    return (
+      <AdminContentPage
+        user={user}
+        onLogout={signOut}
+        accessPanel={accessPanel}
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <header className="flex h-16 shrink-0 items-center gap-3 border-b border-pine-dark bg-pine px-4 text-white shadow-sm sm:px-8">
+        <a
+          href={getAppUrl()}
+          aria-label={`Abrir ${appName}`}
+          className="-ml-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white/85 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
+          <span aria-hidden className="text-xl leading-none">‹</span>
+        </a>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">{appName}</p>
+          <h1 className="truncate text-lg font-semibold leading-tight">
+            {user?.role === "admin" ? "Painel de administração" : "Acesso administrativo"}
+          </h1>
+        </div>
+      </header>
+
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 lg:p-8">
+        {authLoading || (setupRequired === null && !setupError && available) ? (
+          <p className="py-12 text-center text-sm text-ink-soft">Carregando…</p>
+        ) : !available ? (
+          <p role="alert" className="rounded-2xl border border-line bg-paper p-4 text-sm text-danger">
+            A autenticação precisa da API Node.js. Inicie o servidor e tente novamente.
+          </p>
+        ) : user ? (
+            <section className="mx-auto w-full max-w-screen-lg rounded-2xl border border-line bg-card p-6 shadow-sm sm:p-8">
+              <p className="text-xs font-medium uppercase tracking-wide text-danger">Acesso restrito</p>
+              <h2 className="mt-1 text-lg font-semibold text-ink">{user.name}</h2>
+              <p className="text-sm text-ink-soft">
+                Somente administradores podem acessar este site.
+              </p>
+              <a
+                href={`${getAppUrl()}/conta`}
+                className="mt-4 inline-flex h-10 items-center rounded-xl bg-pine px-4 text-sm font-semibold text-white hover:bg-pine-dark"
+              >
+                Ir para meu painel
+              </a>
+              <button
+                type="button"
+                onClick={signOut}
+                className="ml-2 mt-4 rounded-lg border border-line bg-card px-3 py-2 text-sm font-medium hover:bg-paper"
+              >
+                Sair
+              </button>
+              {formError ? <p role="alert" className="mt-3 text-sm text-danger">{formError}</p> : null}
+            </section>
+        ) : setupError ? (
+          <p role="alert" className="rounded-2xl border border-line bg-paper p-4 text-sm text-danger">
+            {setupError}
+          </p>
+        ) : (
+          <section className="mx-auto w-full max-w-lg space-y-5 rounded-2xl border border-line bg-card p-6 shadow-sm sm:p-8">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-pine">
+                {showSetup ? "Configuração inicial" : "Área restrita"}
+              </p>
+              <h2 className="mt-1 text-xl font-semibold text-ink">
+                {showSetup ? "Criar administrador" : showRegistration ? "Cadastrar administrador" : "Entrar"}
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+                {showSetup
+                  ? "Cadastre a primeira conta para proteger o painel e gerenciar os acessos."
+                  : "Entre com o e-mail e a senha cadastrados pelo administrador."}
+              </p>
+            </div>
+
+            <form onSubmit={submitAccess} className="space-y-3">
+              {showRegistration ? (
+                <label className="block space-y-1">
+                  <span className="text-xs font-medium text-ink-soft">Nome</span>
+                  <input
+                    autoComplete="name"
+                    className="h-11 w-full rounded-xl border border-line bg-card px-3 outline-none focus:ring-2 focus:ring-pine"
+                    value={form.name}
+                    onChange={updateForm("name")}
+                    maxLength={80}
+                    required
+                  />
+                </label>
+              ) : null}
+              {showRegistration && import.meta.env.PROD ? (
+                <label className="block space-y-1">
+                  <span className="text-xs font-medium text-ink-soft">Chave de configuração</span>
+                  <input
+                    type="password"
+                    autoComplete="off"
+                    className="h-11 w-full rounded-xl border border-line bg-card px-3 outline-none focus:ring-2 focus:ring-pine"
+                    value={form.setupToken}
+                    onChange={updateForm("setupToken")}
+                    required
+                  />
+                </label>
+              ) : null}
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-ink-soft">E-mail</span>
+                <input
+                  type="email"
+                  autoComplete="username"
+                  className="h-11 w-full rounded-xl border border-line bg-card px-3 outline-none focus:ring-2 focus:ring-pine"
+                  value={form.email}
+                  onChange={updateForm("email")}
+                  maxLength={254}
+                  required
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-ink-soft">Senha</span>
+                <input
+                  type="password"
+                  autoComplete={showRegistration ? "new-password" : "current-password"}
+                  className="h-11 w-full rounded-xl border border-line bg-card px-3 outline-none focus:ring-2 focus:ring-pine"
+                  value={form.password}
+                  onChange={updateForm("password")}
+                  minLength={8}
+                  maxLength={128}
+                  required
+                />
+              </label>
+              {formError ? <p role="alert" className="text-sm text-danger">{formError}</p> : null}
+              <button
+                type="submit"
+                disabled={submitting}
+                className="h-11 w-full rounded-xl bg-pine px-4 text-sm font-semibold text-white hover:bg-pine-dark disabled:opacity-60"
+              >
+                {submitting
+                  ? "Aguarde…"
+                  : showRegistration
+                    ? "Criar administrador"
+                    : "Entrar"}
+              </button>
+            </form>
+
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function messageForAuthError(error) {
+  switch (error?.message) {
+    case "credenciais_invalidas":
+      return "E-mail ou senha incorretos.";
+    case "cadastro_restrito":
+      return "A configuração inicial já foi concluída.";
+    case "setup_token_nao_configurado":
+      return "Configure ADMIN_SETUP_TOKEN no servidor para criar o primeiro administrador.";
+    case "token_configuracao_invalido":
+      return "A chave de configuração está incorreta.";
+    case "nome_invalido":
+      return "Informe um nome com até 80 caracteres.";
+    case "email_invalido":
+      return "Informe um e-mail válido.";
+    case "senha_invalida":
+      return "A senha deve ter entre 8 e 128 caracteres.";
+    case "email_em_uso":
+      return "Já existe um cadastro com esse e-mail.";
+    case "papel_invalido":
+      return "Selecione um perfil de acesso válido.";
+    case "ultimo_administrador":
+      return "Não é possível remover o último administrador.";
+    case "nao_encontrada":
+      return "Esse cadastro não foi encontrado.";
+    case "acesso_negado":
+      return "Sua conta não tem permissão para essa ação.";
+    default:
+      return "Não foi possível concluir a operação. Verifique a conexão e tente novamente.";
+  }
+}

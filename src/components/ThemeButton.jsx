@@ -1,7 +1,16 @@
+import { getAppSettings } from "@/lib/appSettings.js";
 import { toggleTheme, useTheme } from "@/lib/theme.js";
 
 export default function ThemeButton({ className = "h-10 w-10" }) {
   const theme = useTheme();
+  const settings = getAppSettings();
+  if (
+    !settings.allowAppearanceChanges ||
+    !settings.allowedThemes.includes("light") ||
+    !settings.allowedThemes.includes("dark")
+  ) {
+    return null;
+  }
   const isDark = theme === "dark";
 
   return (

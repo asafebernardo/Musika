@@ -12,7 +12,7 @@
  * - direitosAutorais: Nota de reconhecimento e respeito aos direitos autorais.
  */
 export const APP_DESCRIPTION = {
-  titulo: "Coletânea de Louvor",
+  titulo: "Musika",
   versao: typeof __APP_VERSION_DATE__ !== "undefined" ? __APP_VERSION_DATE__ : "11.11.26",
   subtitulo: "Sobre o aplicativo",
   boasVindas: "Seja muito bem-vindo(a)!",

@@ -50,7 +50,7 @@ export default function SongInfoPage() {
       <header className="flex h-14 shrink-0 items-center border-b border-pine-dark bg-pine px-2 text-white shadow-sm landscape-mobile:h-11">
         <div className="flex w-full items-center gap-1">
           <Link
-            to={idOk ? `/musicas/${numericId}` : "/"}
+            to={idOk ? `/musicas/${numericId}` : "/app"}
             className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white/85 hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white landscape-mobile:h-8 landscape-mobile:w-8"
             aria-label="Voltar à música"
           >
@@ -89,7 +89,7 @@ export default function SongInfoPage() {
         ) : status === "missing" ? (
           <div className="px-6 py-16 text-center">
             <p className="text-base font-medium">Música não encontrada</p>
-            <Link to="/" className="mt-3 inline-block text-sm font-medium text-pine hover:underline">
+            <Link to="/app" className="mt-3 inline-block text-sm font-medium text-pine hover:underline">
               Voltar à lista
             </Link>
           </div>

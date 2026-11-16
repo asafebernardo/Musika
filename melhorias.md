@@ -1,1 +1,0 @@
-- Implementar PWA no app.

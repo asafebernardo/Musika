@@ -9,6 +9,7 @@ import {
   writeFontSize,
   writeShowChronological,
 } from "@/lib/songs.js";
+import { getAppSettings } from "@/lib/appSettings.js";
 import { ACCENT_OPTIONS, setAccent, setTheme, useAccent, useTheme } from "@/lib/theme.js";
 
 export default function SettingsPage() {
@@ -17,6 +18,7 @@ export default function SettingsPage() {
   const [showChronological, setShowChronological] = useState(readShowChronological);
   const theme = useTheme();
   const accent = useAccent();
+  const appSettings = getAppSettings();
 
   const changeFont = (delta) => {
     setFontSize((current) => {
@@ -45,6 +47,7 @@ export default function SettingsPage() {
 
       <div className="space-y-3 p-4">
         {/* Cor de destaque */}
+        {appSettings.allowAppearanceChanges ? (
         <section className="rounded-2xl border border-line bg-paper/60 p-4">
           <div className="space-y-3">
             <div>
@@ -58,7 +61,7 @@ export default function SettingsPage() {
               aria-label="Cor de destaque"
               className="flex flex-wrap items-center gap-3"
             >
-              {ACCENT_OPTIONS.map((option) => {
+              {ACCENT_OPTIONS.filter((option) => appSettings.allowedAccents.includes(option.id)).map((option) => {
                 const selected = accent === option.id;
                 return (
                   <button
@@ -96,6 +99,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </section>
+        ) : null}
 
         {/* Visualização padrão da música */}
         <section className="rounded-2xl border border-line bg-paper/60 p-4">
@@ -186,6 +190,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Alterar tema */}
+        {appSettings.allowAppearanceChanges ? (
         <section className="rounded-2xl border border-line bg-paper/60 p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -199,7 +204,7 @@ export default function SettingsPage() {
               role="group"
               aria-label="Tema do aplicativo"
             >
-              <button
+              {appSettings.allowedThemes.includes("light") ? <button
                 type="button"
                 aria-pressed={theme === "light"}
                 onClick={() => setTheme("light")}
@@ -211,8 +216,8 @@ export default function SettingsPage() {
               >
                 <SunIcon />
                 Claro
-              </button>
-              <button
+              </button> : null}
+              {appSettings.allowedThemes.includes("dark") ? <button
                 type="button"
                 aria-pressed={theme === "dark"}
                 onClick={() => setTheme("dark")}
@@ -224,10 +229,11 @@ export default function SettingsPage() {
               >
                 <MoonIcon />
                 Escuro
-              </button>
+              </button> : null}
             </div>
           </div>
         </section>
+        ) : null}
 
         {/* Habilitar e desabilitar cronologia */}
         <section className="rounded-2xl border border-line bg-paper/60 p-4">

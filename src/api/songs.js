@@ -1,4 +1,4 @@
-import { canManageSongs, withNumbers } from "@/lib/songs.js";
+import { withNumbers } from "@/lib/songs.js";
 
 /**
  * Cliente da API local com fallback estático para GitHub Pages.
@@ -28,6 +28,7 @@ async function readStaticCatalog() {
 
 export async function request(path, options = {}) {
   const response = await fetch(`${basePrefix}${path}`, {
+    credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),
@@ -65,9 +66,6 @@ async function getStaticSong(id) {
 }
 
 export async function listSongs() {
-  if (!canManageSongs()) {
-    return readStaticCatalog();
-  }
   try {
     return await request("/api/songs");
   } catch {
@@ -76,9 +74,6 @@ export async function listSongs() {
 }
 
 export async function getSong(id) {
-  if (!canManageSongs()) {
-    return getStaticSong(id);
-  }
   try {
     return await request(`/api/songs/${id}`);
   } catch (err) {

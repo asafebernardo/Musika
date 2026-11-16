@@ -11,6 +11,18 @@ import {
   streamAudioFile,
   updateSong,
 } from "./server/songs-store.js";
+import {
+  handleAuthRequest,
+  isAdminRequest,
+  isAuthenticatedRequest,
+  isSameOriginRequest,
+} from "./server/auth-api.js";
+import {
+  getAppIcon,
+  getAppManifest,
+  getAppSettings,
+  updateAppSettings,
+} from "./server/app-settings-store.js";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 
@@ -38,6 +50,7 @@ function readJsonBody(req) {
 function sendJson(res, status, payload) {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
   res.end(JSON.stringify(payload));
 }
 
@@ -60,8 +73,25 @@ function localSongsApiPlugin() {
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const url = new URL(req.url || "/", "http://localhost");
+        if (/^\/data\/users\.json(?:\..*)?$/i.test(url.pathname)) {
+          res.statusCode = 404;
+          res.end();
+          return;
+        }
+        if (url.pathname === "/data/songs.json" && req.method === "GET") {
+          if (!(await isAuthenticatedRequest(req.headers))) {
+            sendJson(res, 403, { error: "acesso_negado" });
+            return;
+          }
+          sendJson(res, 200, await listSongs());
+          return;
+        }
         const dataAudioMatch = url.pathname.match(/\/data\/audios\/([^/]+)$/);
         if (dataAudioMatch && (req.method === "GET" || req.method === "HEAD")) {
+          if (!(await isAuthenticatedRequest(req.headers))) {
+            sendJson(res, 403, { error: "acesso_negado" });
+            return;
+          }
           await streamAudioFile(decodeURIComponent(dataAudioMatch[1]), req, res);
           return;
         }
@@ -70,21 +100,94 @@ function localSongsApiPlugin() {
           return;
         }
         try {
+          if (url.pathname.startsWith("/api/auth/") || url.pathname.startsWith("/api/admin/users")) {
+            const body =
+              req.method === "POST" ? await readJsonBody(req) : {};
+            const result = await handleAuthRequest({
+              method: req.method,
+              pathname: url.pathname,
+              headers: req.headers,
+              body,
+            });
+            if (result) {
+              for (const [name, value] of Object.entries(result.headers || {})) {
+                res.setHeader(name, value);
+              }
+              sendJson(res, result.status, result.body);
+              return;
+            }
+          }
           if (req.method === "GET" && url.pathname === "/api/health") {
-            sendJson(res, 200, { ok: true, app: "coletanea-louvor" });
+            sendJson(res, 200, { ok: true, app: "musika" });
+            return;
+          }
+          if (req.method === "GET" && url.pathname === "/api/app-settings") {
+            sendJson(res, 200, await getAppSettings());
+            return;
+          }
+          if (req.method === "GET" && url.pathname === "/api/app-manifest") {
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "application/manifest+json; charset=utf-8");
+            res.setHeader("Cache-Control", "no-store");
+            res.end(JSON.stringify(await getAppManifest()));
+            return;
+          }
+          if (req.method === "GET" && url.pathname === "/api/app-icon") {
+            const icon = await getAppIcon();
+            if (!icon) {
+              res.statusCode = 404;
+              res.end();
+              return;
+            }
+            res.statusCode = 200;
+            res.setHeader("Content-Type", icon.contentType);
+            res.setHeader("Cache-Control", "no-store");
+            res.end(icon.data);
+            return;
+          }
+          if (req.method === "PUT" && url.pathname === "/api/admin/app-settings") {
+            if (
+              !isSameOriginRequest(req.headers) ||
+              !(await isAdminRequest(req.headers))
+            ) {
+              sendJson(res, 403, { error: "acesso_negado" });
+              return;
+            }
+            const body = await readJsonBody(req);
+            const result = await updateAppSettings(body);
+            if (result.error) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, result.settings);
             return;
           }
           if (req.method === "GET" && url.pathname === "/api/songs") {
+            if (!(await isAuthenticatedRequest(req.headers))) {
+              sendJson(res, 403, { error: "acesso_negado" });
+              return;
+            }
             sendJson(res, 200, await listSongs());
             return;
           }
           if (req.method === "POST" && url.pathname === "/api/songs") {
+            if (
+              !isSameOriginRequest(req.headers) ||
+              !(await isAdminRequest(req.headers))
+            ) {
+              sendJson(res, 403, { error: "acesso_negado" });
+              return;
+            }
             const body = await readJsonBody(req);
             sendStoreResult(res, await createSong(body), 201);
             return;
           }
           const audioMatch = url.pathname.match(/^\/api\/audios\/([^/]+)$/);
           if (audioMatch && (req.method === "GET" || req.method === "HEAD")) {
+            if (!(await isAuthenticatedRequest(req.headers))) {
+              sendJson(res, 403, { error: "acesso_negado" });
+              return;
+            }
             await streamAudioFile(decodeURIComponent(audioMatch[1]), req, res);
             return;
           }
@@ -92,6 +195,10 @@ function localSongsApiPlugin() {
           if (match) {
             const id = Number(match[1]);
             if (req.method === "GET") {
+              if (!(await isAuthenticatedRequest(req.headers))) {
+                sendJson(res, 403, { error: "acesso_negado" });
+                return;
+              }
               const song = await getSong(id);
               if (!song) {
                 sendJson(res, 404, { error: "nao_encontrada" });
@@ -101,11 +208,25 @@ function localSongsApiPlugin() {
               return;
             }
             if (req.method === "PUT") {
+              if (
+                !isSameOriginRequest(req.headers) ||
+                !(await isAdminRequest(req.headers))
+              ) {
+                sendJson(res, 403, { error: "acesso_negado" });
+                return;
+              }
               const body = await readJsonBody(req);
               sendStoreResult(res, await updateSong(id, body), 200);
               return;
             }
             if (req.method === "DELETE") {
+              if (
+                !isSameOriginRequest(req.headers) ||
+                !(await isAdminRequest(req.headers))
+              ) {
+                sendJson(res, 403, { error: "acesso_negado" });
+                return;
+              }
               const result = await deleteSong(id);
               if (result?.error) {
                 sendStoreResult(res, result);

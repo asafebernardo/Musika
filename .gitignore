@@ -3,3 +3,7 @@ dist
 .env
 *.log
 .DS_Store
+/data/users.json
+/data/users.json.*.tmp
+/data/app-settings.json
+/data/app-settings.json.tmp

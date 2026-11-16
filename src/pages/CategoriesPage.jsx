@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { canManageSongs } from "@/lib/songs.js";
+import { useAuth } from "@/lib/auth.jsx";
+import { getAppSettings } from "@/lib/appSettings.js";
 
 const MORE_OPTIONS = [
   {
@@ -7,6 +8,7 @@ const MORE_OPTIONS = [
     label: "Favoritos",
     description: "Músicas que você marcou como favoritas",
     to: "/favoritos",
+    permission: "favorites",
     icon: HeartIcon,
   },
   {
@@ -14,6 +16,7 @@ const MORE_OPTIONS = [
     label: "Temas",
     description: "Organizar músicas em listas próprias",
     to: "/temas",
+    permission: "songThemes",
     icon: CollectionIcon,
   },
   {
@@ -21,6 +24,7 @@ const MORE_OPTIONS = [
     label: "Pré-visualização",
     description: "Ouvir as músicas que têm demonstração",
     to: "/previsualizacao",
+    permission: "previews",
     icon: MusicIcon,
   },
   {
@@ -36,6 +40,7 @@ const MORE_OPTIONS = [
     label: "Aplicativo e versão web",
     description: "Instalar o app ou abrir a página estática",
     to: "/instalar",
+    permission: "install",
     icon: InstallIcon,
   },
   {
@@ -43,6 +48,7 @@ const MORE_OPTIONS = [
     label: "Informações",
     description: "Sobre a coletânea e o aplicativo",
     to: "/sobre",
+    permission: "about",
     icon: InfoIcon,
   },
   {
@@ -50,19 +56,36 @@ const MORE_OPTIONS = [
     label: "Configurações",
     description: "Tamanho da letra, tema e cores",
     to: "/configuracoes",
+    permission: "settings",
     icon: SettingsIcon,
   },
 ];
 
 export default function CategoriesPage() {
-  const canManage = canManageSongs();
-  const options = MORE_OPTIONS.filter((option) => !option.adminOnly || canManage);
+  const { user } = useAuth();
+  const canManage = user?.role === "admin";
+  const settings = getAppSettings();
+  const options = MORE_OPTIONS.map((option) => ({
+    ...option,
+    enabled: option.adminOnly
+      ? canManage
+      : canManage
+        ? true
+      : option.permission === "songThemes"
+        ? settings.songThemesEnabled
+        : settings.menuAccess[option.permission],
+  })).filter(
+    (option) =>
+      option.adminOnly
+        ? canManage
+        : option.enabled || settings.unavailableControlsBehavior === "locked",
+  );
 
   return (
     <>
       <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b border-pine-dark bg-pine px-4 text-white shadow-sm landscape-mobile:h-11">
         <Link
-          to="/"
+          to="/app"
           aria-label="Voltar para a lista de músicas"
           className="-ml-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white/85 hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white landscape-mobile:h-8 landscape-mobile:w-8"
         >
@@ -78,35 +101,70 @@ export default function CategoriesPage() {
       <ul>
         {options.map((option) => {
           const Icon = option.icon;
+          const content = (
+            <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[15px] font-medium text-ink">
+                  {option.label}
+                </span>
+                <span className="mt-0.5 block truncate text-xs leading-snug text-ink-soft">
+                  {option.description}
+                </span>
+              </span>
+              {option.enabled ? (
+                <span aria-hidden className="text-lg leading-none text-ink-soft">›</span>
+              ) : (
+                <span className="shrink-0 text-ink-soft" aria-label="Acesso bloqueado">
+                  <LockIcon />
+                </span>
+              )}
+            </span>
+          );
+          const classes = `flex min-h-14 w-full min-w-0 items-stretch gap-3 px-4 py-3 text-left ${
+            option.enabled ? "hover:bg-paper" : "cursor-not-allowed opacity-60"
+          }`;
           return (
             <li key={option.id} className="border-b border-line/80 last:border-b-0">
-              <Link
-                to={option.to}
-                className="flex min-h-14 w-full min-w-0 items-stretch gap-3 px-4 py-3 text-left hover:bg-paper"
-              >
+              {option.enabled ? (
+                <Link to={option.to} className={classes}>
                 <span className="flex w-[3ch] shrink-0 items-center justify-center self-center text-pine">
                   <Icon />
                 </span>
                 <span aria-hidden className="w-px shrink-0 bg-ink-soft/35" />
-                <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-medium text-ink">
-                      {option.label}
-                    </span>
-                    <span className="mt-0.5 block truncate text-xs leading-snug text-ink-soft">
-                      {option.description}
-                    </span>
+                  {content}
+                </Link>
+              ) : (
+                <div className={classes} aria-disabled="true">
+                  <span className="flex w-[3ch] shrink-0 items-center justify-center self-center text-ink-soft">
+                    <Icon />
                   </span>
-                  <span aria-hidden className="text-lg leading-none text-ink-soft">
-                    ›
-                  </span>
-                </span>
-              </Link>
+                  <span aria-hidden className="w-px shrink-0 bg-ink-soft/35" />
+                  {content}
+                </div>
+              )}
             </li>
           );
         })}
       </ul>
     </>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="4" y="10" width="16" height="11" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+    </svg>
   );
 }
 

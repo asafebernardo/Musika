@@ -4,10 +4,14 @@ import { listSongs, messageForSongError } from "@/api/songs.js";
 import FavoriteButton from "@/components/FavoriteButton.jsx";
 import MarqueeText from "@/components/MarqueeText.jsx";
 import { useFavorites } from "@/lib/favorites.js";
-import { canManageSongs, filterSongs, lyricExcerpt } from "@/lib/songs.js";
+import { filterSongs, lyricExcerpt } from "@/lib/songs.js";
+import { useAuth } from "@/lib/auth.jsx";
+import { getAppSettings } from "@/lib/appSettings.js";
 
 export default function CatalogPage() {
-  const canManage = canManageSongs();
+  const { user } = useAuth();
+  const { appName } = getAppSettings();
+  const canManage = user?.role === "admin";
   const [query, setQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [songs, setSongs] = useState([]);
@@ -55,7 +59,7 @@ export default function CatalogPage() {
       <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b border-pine-dark bg-pine px-4 text-white shadow-sm landscape-mobile:h-11">
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold leading-tight text-white landscape-mobile:text-base">
-            Coletânea de Louvor
+            {appName}
           </h1>
         </div>
         <button
@@ -114,7 +118,7 @@ export default function CatalogPage() {
           <p className="mx-auto mt-1 max-w-xs text-sm text-ink-soft">
             {songs.length === 0
               ? canManage
-                ? "A coletânea começa com o catálogo local. Inclua a primeira letra em Nova."
+                ? `O catálogo do ${appName} está vazio. Inclua a primeira música pelo painel.`
                 : "Nenhuma música disponível no catálogo."
               : "Tente outro número, título ou trecho da letra."}
           </p>

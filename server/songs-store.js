@@ -133,6 +133,7 @@ export async function streamAudioFile(filename, req, res) {
 
   res.setHeader("Content-Type", contentType);
   res.setHeader("Accept-Ranges", "bytes");
+  res.setHeader("Cache-Control", "private, no-store");
 
   if (range) {
     const parts = range.replace(/bytes=/, "").split("-");

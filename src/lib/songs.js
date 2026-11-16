@@ -1,19 +1,10 @@
+import { APP_SETTING_LIMITS, getAppSettings } from "./appSettings.js";
+
 export function fold(value) {
   return String(value ?? "")
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase();
-}
-
-/**
- * Permite criar, editar e apagar músicas apenas em ambiente local (localhost / dev),
- * ocultando o CRUD quando publicado no GitHub Pages.
- */
-export function canManageSongs() {
-  if (import.meta.env.DEV) return true;
-  if (typeof window === "undefined") return false;
-  const host = window.location.hostname;
-  return host === "localhost" || host === "127.0.0.1" || host === "[::1]";
 }
 
 function compareTitles(a, b) {
@@ -115,14 +106,13 @@ export function lyricExcerpt(song, query) {
 }
 
 const FONT_KEY = "coletanea-font-size";
-const FONT_MIN = 16;
-const FONT_MAX = 28;
-const FONT_DEFAULT = 18;
+const FONT_MIN = APP_SETTING_LIMITS.fontSize.min;
+const FONT_MAX = APP_SETTING_LIMITS.fontSize.max;
 
 export function readFontSize() {
   const raw = localStorage.getItem(FONT_KEY);
   const stored = Number(raw);
-  if (raw == null || raw === "" || !Number.isFinite(stored)) return FONT_DEFAULT;
+  if (raw == null || raw === "" || !Number.isFinite(stored)) return getAppSettings().fontSize;
   return Math.min(FONT_MAX, Math.max(FONT_MIN, stored));
 }
 
@@ -137,7 +127,7 @@ const DEFAULT_SONG_VIEWS = new Set(["letra", "vozes", "cifra"]);
 
 export function readDefaultSongView() {
   const stored = localStorage.getItem(DEFAULT_SONG_VIEW_KEY);
-  return DEFAULT_SONG_VIEWS.has(stored) ? stored : "letra";
+  return DEFAULT_SONG_VIEWS.has(stored) ? stored : getAppSettings().defaultSongView;
 }
 
 export function writeDefaultSongView(view) {
@@ -150,7 +140,7 @@ const CHRONO_KEY = "coletanea-cronologica";
 export function readShowChronological() {
   try {
     const raw = localStorage.getItem(CHRONO_KEY);
-    if (raw == null || raw === "") return false;
+    if (raw == null || raw === "") return getAppSettings().showChronological;
     return raw === "1";
   } catch {
     return false;

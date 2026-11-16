@@ -1,4 +1,15 @@
+import { getAppSettings } from "@/lib/appSettings.js";
+import { useAuth } from "@/lib/auth.jsx";
+
 export default function FavoriteButton({ favorite, onToggle, variant = "list" }) {
+  const { user } = useAuth();
+  if (
+    user?.role !== "admin" &&
+    !getAppSettings().menuAccess.favorites
+  ) {
+    return null;
+  }
+
   const sizeClass = variant === "header" ? "h-10 w-10" : "h-11 w-11";
   const colorClass =
     variant === "header"

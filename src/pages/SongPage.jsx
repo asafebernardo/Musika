@@ -6,6 +6,7 @@ import Lyrics from "@/components/Lyrics.jsx";
 import MarqueeText from "@/components/MarqueeText.jsx";
 import SongScroll from "@/components/SongScroll.jsx";
 import TransposeBar from "@/components/TransposeBar.jsx";
+import { getAppSettings } from "@/lib/appSettings.js";
 import {
   detectSongKey,
   songHasChords,
@@ -13,7 +14,6 @@ import {
   transposeKeyLabel,
 } from "@/lib/chords.js";
 import {
-  canManageSongs,
   fontLimits,
   readDefaultSongView,
   readFontSize,
@@ -21,6 +21,7 @@ import {
   writeFontSize,
   writeShowChronological,
 } from "@/lib/songs.js";
+import { useAuth } from "@/lib/auth.jsx";
 import { useFavorites } from "@/lib/favorites.js";
 import { getAccentHex, useAccent, useTheme } from "@/lib/theme.js";
 import { songHasVoices } from "@/lib/voices.js";
@@ -31,7 +32,13 @@ const barOn = "text-pine";
 const barOff = "text-ink-soft hover:text-ink";
 
 export default function SongPage() {
-  const canManage = canManageSongs();
+  const { user } = useAuth();
+  const appSettings = getAppSettings();
+  const { appName } = appSettings;
+  const canManage = user?.role === "admin";
+  const keepUnavailableControls =
+    canManage || appSettings.unavailableControlsBehavior === "locked";
+  const canListenPreviews = canManage || appSettings.menuAccess.previews;
   const { id } = useParams();
   const navigate = useNavigate();
   const numericId = Number(id);
@@ -60,14 +67,20 @@ export default function SongPage() {
   const accent = useAccent();
   const activeColor = getAccentHex(theme, accent);
   const hasAudio = Boolean(song?.audioArquivo);
+  const showAudioControl = canListenPreviews
+    ? hasAudio || canManage || appSettings.missingAudioBehavior !== "hidden"
+    : appSettings.unavailableControlsBehavior === "locked";
   const isFavorite = favoriteIds.includes(Number(song?.id));
   const audioUrl = hasAudio ? getAudioUrl(song.audioArquivo) : "";
   const progressPercent =
     audioDuration > 0 ? Math.min(100, Math.max(0, (audioTime / audioDuration) * 100)) : 0;
+  const hasChords = songHasChords(song);
   const hasVoices = songHasVoices(song);
   const lockLyricsToVoices = hasVoices && Boolean(song?.somenteVozes);
+  const showLyricsControl = !lockLyricsToVoices || keepUnavailableControls;
+  const showVoicesControl = hasVoices || keepUnavailableControls;
+  const showChordsControl = hasChords || keepUnavailableControls;
   const activeVoices = (showVoices || lockLyricsToVoices) && !showChords;
-  const hasChords = songHasChords(song);
   const currentView =
     showChords && hasChords ? "Cifra" : activeVoices ? "Vozes" : "Letra";
   const hasChronology = Boolean(song?.cronologica) && Boolean(String(song?.refrao || "").trim());
@@ -194,7 +207,7 @@ export default function SongPage() {
     setRemoving(true);
     try {
       await deleteSong(numericId);
-      navigate("/", { replace: true });
+      navigate("/app", { replace: true });
     } catch (err) {
       setError(messageForSongError(err));
       setRemoving(false);
@@ -207,7 +220,7 @@ export default function SongPage() {
       <header className="relative z-20 flex h-14 shrink-0 items-center border-b border-pine-dark bg-pine px-2 text-white shadow-sm landscape-mobile:h-11">
         <div className="flex w-full items-center gap-1">
           <Link
-            to="/"
+            to="/app"
             className="inline-flex h-10 w-10 landscape-mobile:h-8 landscape-mobile:w-8 shrink-0 items-center justify-center rounded-full text-white/85 hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             aria-label="Voltar à lista"
           >
@@ -227,7 +240,7 @@ export default function SongPage() {
                 </span>
               </h1>
             ) : (
-              <p className="text-sm font-medium text-white">Coletânea</p>
+              <p className="text-sm font-medium text-white">{appName}</p>
             )}
           </div>
           {song ? (
@@ -237,7 +250,7 @@ export default function SongPage() {
               variant="header"
             />
           ) : null}
-          {hasAudio ? (
+          {canListenPreviews && hasAudio ? (
             <button
               type="button"
               onClick={() => {
@@ -259,17 +272,26 @@ export default function SongPage() {
             >
               <MusicNoteIcon />
             </button>
-          ) : (
+          ) : showAudioControl ? (
             <button
               type="button"
               disabled
               aria-label="Demonstração de áudio indisponível"
+              title={
+                !canListenPreviews ||
+                appSettings.missingAudioBehavior === "locked"
+                  ? "Demonstração de áudio bloqueada"
+                  : "Demonstração de áudio indisponível"
+              }
               className="inline-flex h-10 w-10 landscape-mobile:h-8 landscape-mobile:w-8 shrink-0 cursor-not-allowed items-center justify-center rounded-full text-white/35"
             >
               <MusicNoteIcon />
+              {!canListenPreviews || appSettings.missingAudioBehavior === "locked" ? (
+                <LockIcon />
+              ) : null}
             </button>
-          )}
-          {hasAudio ? (
+          ) : null}
+          {canListenPreviews && hasAudio ? (
             <audio
               ref={audioRef}
               src={audioUrl}
@@ -299,7 +321,7 @@ export default function SongPage() {
         </div>
       </header>
 
-      {hasAudio && showTimeline ? (
+      {canListenPreviews && hasAudio && showTimeline ? (
         <div className="flex shrink-0 items-center gap-3 border-b border-line bg-card px-3 py-2 landscape-mobile:py-1.5">
           <button
             type="button"
@@ -350,7 +372,7 @@ export default function SongPage() {
         ) : status === "missing" ? (
           <div className="px-6 py-16 text-center">
             <p className="text-base font-medium">Música não encontrada</p>
-            <Link to="/" className="mt-3 inline-block text-sm font-medium text-pine hover:underline">
+            <Link to="/app" className="mt-3 inline-block text-sm font-medium text-pine hover:underline">
               Voltar à lista
             </Link>
           </div>
@@ -464,9 +486,10 @@ export default function SongPage() {
               role="group"
               aria-label="Visualização da música"
             >
-              <button
+              {showLyricsControl ? <button
                 type="button"
                 disabled={lockLyricsToVoices}
+                title={lockLyricsToVoices ? "Apenas vozes disponível nesta música" : undefined}
                 aria-pressed={!showChords && !activeVoices}
                 onClick={() => {
                   setShowChords(false);
@@ -481,10 +504,11 @@ export default function SongPage() {
                 }`}
               >
                 Letra
-              </button>
-              <button
+              </button> : null}
+              {showVoicesControl ? <button
                 type="button"
                 disabled={!hasVoices}
+                title={!hasVoices ? "Vozes indisponíveis nesta música" : undefined}
                 aria-pressed={activeVoices}
                 onClick={() => {
                   setShowChords(false);
@@ -497,10 +521,11 @@ export default function SongPage() {
                 }`}
               >
                 Vozes
-              </button>
-              <button
+              </button> : null}
+              {showChordsControl ? <button
                 type="button"
                 disabled={!hasChords}
+                title={!hasChords ? "Cifra indisponível nesta música" : undefined}
                 aria-pressed={showChords}
                 onClick={() => {
                   setShowChords(true);
@@ -511,7 +536,7 @@ export default function SongPage() {
                 }`}
               >
                 Cifra
-              </button>
+              </button> : null}
             </div>
           </div>
 
@@ -746,6 +771,24 @@ function MusicNoteIcon() {
       <path d="M9 18V5l12-2v13" />
       <circle cx="6" cy="18" r="3" />
       <circle cx="18" cy="16" r="3" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className="h-3.5 w-3.5 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="4" y="10" width="16" height="11" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
     </svg>
   );
 }
