@@ -1,22 +1,24 @@
 export const APP_SETTINGS_DEFAULTS = {
-  accent: "verde",
+  accent: "azul",
   allowedAccents: [
-    "verde",
-    "amarelo",
     "azul",
-    "laranja",
+    "marinho",
+    "turquesa",
+    "verde",
+    "indigo",
     "roxo",
     "rosa",
-    "cinza",
-    "turquesa",
     "vermelho",
-    "indigo",
+    "laranja",
+    "amarelo",
     "marrom",
+    "cinza",
   ],
   allowedThemes: ["light", "dark"],
   allowAppearanceChanges: true,
-  appIconDataUrl: "",
-  appLogoDataUrl: "",
+  appIconMode: "default",
+  appIconLightDataUrl: "",
+  appIconDarkDataUrl: "",
   appName: "Musika",
   defaultSongView: "letra",
   fontSize: 18,
@@ -39,18 +41,23 @@ export const APP_SETTING_LIMITS = {
 };
 
 const VALID_ACCENTS = new Set([
-  "verde",
-  "amarelo",
   "azul",
-  "laranja",
+  "marinho",
+  "turquesa",
+  "verde",
+  "indigo",
   "roxo",
   "rosa",
-  "cinza",
-  "turquesa",
   "vermelho",
-  "indigo",
+  "laranja",
+  "amarelo",
   "marrom",
+  "cinza",
 ]);
+const LEGACY_ACCENT_MAP = {
+  eletrico: "azul",
+  ciano: "turquesa",
+};
 const VALID_SONG_VIEWS = new Set(["letra", "vozes", "cifra"]);
 const VALID_THEMES = new Set(["system", "light", "dark"]);
 const VALID_USER_THEMES = new Set(["light", "dark"]);
@@ -64,9 +71,34 @@ let appSettings = { ...APP_SETTINGS_DEFAULTS };
 
 export function normalizeAppSettings(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const legacyBrandingImage =
+    (typeof value.appIconLightDataUrl === "string" && value.appIconLightDataUrl) ||
+    (typeof value.appBrandingLightDataUrl === "string" && value.appBrandingLightDataUrl) ||
+    (typeof value.appLogoDataUrl === "string" && value.appLogoDataUrl) ||
+    (typeof value.appIconDataUrl === "string" && value.appIconDataUrl) ||
+    "";
+  const iconLightDataUrl =
+    value.appIconLightDataUrl || value.appBrandingLightDataUrl || legacyBrandingImage;
+  const iconDarkDataUrl =
+    value.appIconDarkDataUrl ||
+    value.appBrandingDarkDataUrl ||
+    (typeof value.appLogoDataUrl === "string" && value.appLogoDataUrl) ||
+    (typeof value.appIconDataUrl === "string" && value.appIconDataUrl) ||
+    legacyBrandingImage;
+  const appIconMode =
+    value.appIconMode || (iconLightDataUrl || iconDarkDataUrl ? "custom" : "default");
+  const rawAccent = typeof value.accent === "string" ? (LEGACY_ACCENT_MAP[value.accent] || value.accent) : APP_SETTINGS_DEFAULTS.accent;
+  const rawAllowedAccents = Array.isArray(value.allowedAccents)
+    ? Array.from(new Set(value.allowedAccents.map((item) => LEGACY_ACCENT_MAP[item] || item)))
+    : APP_SETTINGS_DEFAULTS.allowedAccents;
   const settings = {
     ...APP_SETTINGS_DEFAULTS,
     ...value,
+    accent: rawAccent,
+    allowedAccents: rawAllowedAccents,
+    appIconMode,
+    appIconLightDataUrl: iconLightDataUrl,
+    appIconDarkDataUrl: iconDarkDataUrl,
     menuAccess: {
       ...APP_SETTINGS_DEFAULTS.menuAccess,
       ...(value.menuAccess && typeof value.menuAccess === "object" ? value.menuAccess : {}),
@@ -77,8 +109,9 @@ export function normalizeAppSettings(value) {
     typeof settings.appName !== "string" ||
     !settings.appName.trim() ||
     settings.appName.trim().length > 40 ||
-    !isValidImage(settings.appLogoDataUrl) ||
-    !isValidImage(settings.appIconDataUrl) ||
+    !["default", "custom"].includes(settings.appIconMode) ||
+    !isValidImage(settings.appIconLightDataUrl) ||
+    !isValidImage(settings.appIconDarkDataUrl) ||
     !Array.isArray(settings.allowedAccents) ||
     settings.allowedAccents.length === 0 ||
     !settings.allowedAccents.every((accent) => VALID_ACCENTS.has(accent)) ||
@@ -110,8 +143,9 @@ export function normalizeAppSettings(value) {
     allowedAccents: [...settings.allowedAccents],
     allowedThemes: [...settings.allowedThemes],
     allowAppearanceChanges: settings.allowAppearanceChanges,
-    appIconDataUrl: settings.appIconDataUrl,
-    appLogoDataUrl: settings.appLogoDataUrl,
+    appIconMode: settings.appIconMode,
+    appIconLightDataUrl: settings.appIconLightDataUrl,
+    appIconDarkDataUrl: settings.appIconDarkDataUrl,
     appName: settings.appName.trim(),
     defaultSongView: settings.defaultSongView,
     fontSize: settings.fontSize,
@@ -138,6 +172,15 @@ export function getAppSettings() {
   return appSettings;
 }
 
+export function getAppIconImage(settings = appSettings, theme = "light") {
+  if (settings.appIconMode === "default") return "";
+  const lightImage = settings.appIconLightDataUrl || "";
+  const darkImage = settings.appIconDarkDataUrl || "";
+  return theme === "dark"
+    ? darkImage || lightImage
+    : lightImage || darkImage;
+}
+
 export function setAppSettings(value) {
   const normalized = normalizeAppSettings(value);
   if (!normalized) throw new Error("configuracoes_invalidas");
@@ -145,9 +188,11 @@ export function setAppSettings(value) {
   return appSettings;
 }
 
-export function applyAppBranding() {
+export function applyAppBranding(theme) {
   if (typeof document === "undefined") return;
-  const { appName, appIconDataUrl, appLogoDataUrl } = appSettings;
+  const { appName, appIconLightDataUrl, appIconDarkDataUrl } = appSettings;
+  const activeTheme = theme || document.documentElement.dataset.theme || "light";
+  const iconDataUrl = getAppIconImage(appSettings, activeTheme);
   document.title = appName;
   const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
   if (appleTitle) appleTitle.setAttribute("content", appName);
@@ -155,14 +200,17 @@ export function applyAppBranding() {
     .querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]')
     .forEach((link) => {
       if (!link.dataset.defaultHref) link.dataset.defaultHref = link.getAttribute("href") || "";
-      link.setAttribute("href", appIconDataUrl || link.dataset.defaultHref);
+      link.setAttribute("href", iconDataUrl || link.dataset.defaultHref);
     });
   const manifest = document.querySelector('link[rel="manifest"]');
   if (manifest) {
     if (!manifest.dataset.defaultHref) manifest.dataset.defaultHref = manifest.getAttribute("href") || "";
     manifest.setAttribute(
       "href",
-      appName !== APP_SETTINGS_DEFAULTS.appName || appIconDataUrl || appLogoDataUrl
+      appName !== APP_SETTINGS_DEFAULTS.appName ||
+        appSettings.appIconMode === "custom" ||
+        appIconLightDataUrl ||
+        appIconDarkDataUrl
         ? `${window.location.origin}/api/app-manifest`
         : manifest.dataset.defaultHref,
     );

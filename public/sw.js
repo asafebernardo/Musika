@@ -1,9 +1,9 @@
-const CACHE_NAME = "musika-v1";
+const CACHE_NAME = "musika-v2";
 const PRECACHE_URLS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./logo.jfif",
+  "./icon.png",
   "./icon-192.png",
   "./icon-512.png",
 ];

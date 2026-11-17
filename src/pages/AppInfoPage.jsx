@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { APP_DESCRIPTION } from "@/data/appDescription.js";
+import { getAppIconImage, getAppSettings } from "@/lib/appSettings.js";
+import { useTheme } from "@/lib/theme.js";
 
 /**
  * Página "Informações" (em Mais+).
@@ -7,6 +9,8 @@ import { APP_DESCRIPTION } from "@/data/appDescription.js";
  * mensagem de boas-vindas, versículo em destaque e nota de direitos autorais.
  */
 export default function AppInfoPage() {
+  const settings = getAppSettings();
+  const theme = useTheme();
   const {
     titulo,
     versao,
@@ -17,7 +21,8 @@ export default function AppInfoPage() {
     mensagem,
     direitosAutorais,
   } = APP_DESCRIPTION;
-  const logoSrc = `${import.meta.env.BASE_URL || "/"}logo.jfif`;
+  const iconSrc =
+    getAppIconImage(settings, theme) || `${import.meta.env.BASE_URL || "/"}icon.png`;
 
   return (
     <>
@@ -39,9 +44,9 @@ export default function AppInfoPage() {
       <div className="flex flex-col items-center px-5 py-8 text-center">
         {/* Identidade e versão */}
         <img
-          src={logoSrc}
-          alt={`Logo ${titulo}`}
-          className="h-20 w-20 shrink-0 rounded-full border border-line bg-white object-cover shadow-sm"
+          src={iconSrc}
+          alt={`Ícone ${titulo}`}
+          className="h-20 w-20 shrink-0 rounded-2xl object-contain shadow-sm"
         />
 
         <h2 className="mt-4 text-xl font-semibold text-ink">{titulo}</h2>

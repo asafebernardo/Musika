@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { getAppSettings } from "@/lib/appSettings.js";
+import { getAppIconImage, getAppSettings } from "@/lib/appSettings.js";
 import { getAdminUrl } from "@/lib/sites.js";
+import { useTheme } from "@/lib/theme.js";
 
 const FEATURES = [
   {
@@ -21,14 +22,17 @@ const FEATURES = [
 ];
 
 export default function ProductLandingPage({ user }) {
-  const { appName, appLogoDataUrl } = getAppSettings();
-  const logoSrc = appLogoDataUrl || `${import.meta.env.BASE_URL || "/"}logo.jfif`;
+  const settings = getAppSettings();
+  const { appName } = settings;
+  const theme = useTheme();
+  const iconSrc =
+    getAppIconImage(settings, theme) || `${import.meta.env.BASE_URL || "/"}icon.png`;
 
   return (
     <main className="min-h-dvh overflow-hidden bg-card text-ink">
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 py-5 sm:px-8 lg:px-12">
         <Link to="/" className="inline-flex items-center gap-3" aria-label={`${appName}, página inicial`}>
-          <img src={logoSrc} alt="" className="h-10 w-10 rounded-full object-cover" />
+          <img src={iconSrc} alt="" className="h-10 w-10 rounded-xl object-contain" />
           <span className="text-lg font-bold tracking-tight">{appName}</span>
         </Link>
         <nav className="flex items-center gap-2 sm:gap-3" aria-label="Acesso à conta">
@@ -132,10 +136,10 @@ export default function ProductLandingPage({ user }) {
               aria-hidden
               className="absolute -inset-5 rounded-[2.5rem] bg-pine/5 blur-2xl sm:-inset-8"
             />
-            <div className="relative overflow-hidden rounded-[2rem] border border-line bg-card p-5 shadow-[0_30px_90px_-40px_rgba(20,45,33,0.38)] sm:p-8">
+            <div className="relative overflow-hidden rounded-[2rem] border border-line bg-card p-5 shadow-[0_30px_90px_-40px_rgba(15,23,42,0.35)] sm:p-8">
               <div className="flex items-center justify-between border-b border-line pb-4">
                 <div className="flex items-center gap-3">
-                  <img src={logoSrc} alt="" className="h-11 w-11 rounded-full object-cover" />
+                  <img src={iconSrc} alt="" className="h-11 w-11 rounded-xl object-contain" />
                   <div>
                     <p className="text-sm font-bold text-ink">{appName}</p>
                     <p className="text-xs text-ink-soft">Catálogo de louvores</p>

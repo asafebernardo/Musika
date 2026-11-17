@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth.jsx";
-import { getAppSettings } from "@/lib/appSettings.js";
+import { getAppIconImage, getAppSettings } from "@/lib/appSettings.js";
+import { useTheme } from "@/lib/theme.js";
 
 export default function UserDashboardPage({ user }) {
   const { logout, deleteAccount } = useAuth();
-  const { appName, appLogoDataUrl } = getAppSettings();
+  const settings = getAppSettings();
+  const { appName } = settings;
+  const theme = useTheme();
+  const appIconImage =
+    getAppIconImage(settings, theme) || `${import.meta.env.BASE_URL || "/"}icon.png`;
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -75,8 +80,8 @@ export default function UserDashboardPage({ user }) {
         <section className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)]">
           <div className="rounded-3xl border border-line bg-card p-6 shadow-sm sm:p-8">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pine/10 text-pine">
-              {appLogoDataUrl ? (
-                <img src={appLogoDataUrl} alt="" className="h-12 w-12 rounded-2xl object-cover" />
+              {appIconImage ? (
+                <img src={appIconImage} alt="" className="h-12 w-12 rounded-2xl object-contain" />
               ) : (
                 <MusicIcon />
               )}

@@ -6,16 +6,20 @@ import {
   useCanPromptInstall,
   useIsPwaInstalled,
 } from "@/lib/pwa.js";
-import { getAppSettings } from "@/lib/appSettings.js";
+import { getAppIconImage, getAppSettings } from "@/lib/appSettings.js";
+import { useTheme } from "@/lib/theme.js";
 
 export default function LandingPage({ onEnterWeb }) {
-  const { appName, appLogoDataUrl } = getAppSettings();
+  const settings = getAppSettings();
+  const { appName } = settings;
+  const theme = useTheme();
   const canPrompt = useCanPromptInstall();
   const isInstalled = useIsPwaInstalled();
   const [showInstallHelp, setShowInstallHelp] = useState(false);
   const [installStatus, setInstallStatus] = useState("");
   const [installError, setInstallError] = useState("");
-  const logoSrc = appLogoDataUrl || `${import.meta.env.BASE_URL || "/"}logo.jfif`;
+  const iconSrc =
+    getAppIconImage(settings, theme) || `${import.meta.env.BASE_URL || "/"}icon.png`;
   const isMobile = isMobileDevice();
   const isIos = isIosDevice();
 
@@ -51,9 +55,9 @@ export default function LandingPage({ onEnterWeb }) {
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-8 text-center">
         <img
-          src={logoSrc}
-          alt={`Logo ${appName}`}
-          className="h-20 w-20 shrink-0 rounded-full border border-line bg-white object-cover shadow-sm landscape-mobile:h-14 landscape-mobile:w-14"
+          src={iconSrc}
+          alt={`Ícone ${appName}`}
+          className="h-20 w-20 shrink-0 rounded-2xl object-contain landscape-mobile:h-14 landscape-mobile:w-14"
         />
 
         <h2 className="mt-4 text-xl font-semibold text-ink landscape-mobile:mt-2 landscape-mobile:text-lg">

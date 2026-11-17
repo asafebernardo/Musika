@@ -116,9 +116,9 @@ app.get("/api/app-manifest", async (_req, res, next) => {
   }
 });
 
-app.get("/api/app-icon", async (_req, res, next) => {
+app.get("/api/app-icon", async (req, res, next) => {
   try {
-    const icon = await getAppIcon();
+    const icon = await getAppIcon(req.query.theme === "dark" ? "dark" : "light");
     if (!icon) {
       res.status(404).end();
       return;

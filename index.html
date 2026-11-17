@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f3efe6" />
+    <meta name="theme-color" content="#f4f7fb" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Musika" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="icon" href="./logo.jfif" />
-    <link rel="apple-touch-icon" href="./logo.jfif" />
+    <link rel="icon" href="./icon.png" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
     <script>
       (function () {
         try {
@@ -22,10 +22,10 @@
                 : "light";
           }
           document.documentElement.dataset.theme = theme;
-          var accent = localStorage.getItem("coletanea-accent") || "verde";
+          var accent = localStorage.getItem("coletanea-accent") || "azul";
           document.documentElement.dataset.accent = accent;
           var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute("content", theme === "dark" ? "#000000" : "#f3efe6");
+          if (meta) meta.setAttribute("content", theme === "dark" ? "#0b1120" : "#f4f7fb");
         } catch (e) {}
       })();
     </script>

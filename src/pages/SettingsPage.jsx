@@ -46,20 +46,20 @@ export default function SettingsPage() {
       </header>
 
       <div className="space-y-3 p-4">
-        {/* Cor de destaque */}
+        {/* Cor de destaque / Paleta */}
         {appSettings.allowAppearanceChanges ? (
         <section className="rounded-2xl border border-line bg-paper/60 p-4">
           <div className="space-y-3">
             <div>
-              <h2 className="text-sm font-semibold text-ink">Cor de destaque</h2>
+              <h2 className="text-sm font-semibold text-ink">Paleta de cores</h2>
               <p className="mt-0.5 text-xs text-ink-soft">
-                Personalize a cor principal dos botões, ícones e cifras do aplicativo
+                Personalize a paleta do aplicativo (cor principal, secundária, fundo e textos)
               </p>
             </div>
             <div
               role="radiogroup"
-              aria-label="Cor de destaque"
-              className="flex flex-wrap items-center gap-3"
+              aria-label="Paleta de cores"
+              className="grid grid-cols-2 gap-2"
             >
               {ACCENT_OPTIONS.filter((option) => appSettings.allowedAccents.includes(option.id)).map((option) => {
                 const selected = accent === option.id;
@@ -72,27 +72,24 @@ export default function SettingsPage() {
                     aria-label={option.label}
                     title={option.label}
                     onClick={() => setAccent(option.id)}
-                    style={{ backgroundColor: option.swatch }}
-                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/15 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink ${
+                    className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine ${
                       selected
-                        ? "scale-110 ring-2 ring-ink ring-offset-2 ring-offset-card"
-                        : " opacity-85 hover:scale-105 hover:opacity-100"
+                        ? "border-pine bg-card ring-2 ring-pine/30 shadow-sm"
+                        : "border-line bg-card/60 hover:bg-card"
                     }`}
                   >
-                    {selected ? (
-                      <svg
-                        viewBox="0 0 20 20"
-                        aria-hidden
-                        className="h-4 w-4 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="m4.5 10.5 3.5 3.5 7.5-7.5" />
-                      </svg>
-                    ) : null}
+                    <span
+                      aria-hidden
+                      className="inline-flex h-6 w-11 shrink-0 overflow-hidden rounded-md border border-black/15"
+                    >
+                      <span style={{ backgroundColor: option.swatch }} className="h-full flex-1" />
+                      <span style={{ backgroundColor: option.secondarySwatch || option.swatch }} className="h-full flex-1" />
+                      <span style={{ backgroundColor: option.paperSwatch || "#f4f7fb" }} className="h-full flex-1" />
+                      <span style={{ backgroundColor: option.textSwatch || "#0f172a" }} className="h-full w-2" />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-xs font-medium text-ink">
+                      {option.label}
+                    </span>
                   </button>
                 );
               })}

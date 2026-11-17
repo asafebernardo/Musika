@@ -4,92 +4,308 @@
 
 :root {
   color-scheme: light;
+
+  /* 1. Azul Principal (Primary - Royal / Marinho Profundo) */
+  --color-primary: #1e3a8a;
+  --color-primary-hover: #2563eb;
+  --color-primary-deep: #172554;
+
+  /* 2. Azul Secundário / Acento (Secondary / Accent - Ciano & Azul Elétrico) */
+  --color-secondary: #0284c7;
+  --color-accent: #0ea5e9;
+  --color-accent-soft: #e0f2fe;
+
+  /* 3. Neutros Frios de Fundo, Superfície, Bordas e Texto (Azul-Gelo & Chumbo) */
+  --bg-primary: #f4f7fb;
+  --bg-surface: #ffffff;
+  --border-subtle: #d8e2f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+
+  /* Canais RGB para utilitários Tailwind (com suporte a opacidade) */
+  --paper: 244 247 251;       /* #F4F7FB - Azul-Gelo extremamente sutil */
+  --card: 255 255 255;        /* #FFFFFF - Branco puro para superfícies e cards */
+  --ink: 15 23 42;            /* #0F172A - Azul-Escuro / Chumbo (contraste 16.4:1 AAA) */
+  --ink-soft: 71 85 105;      /* #475569 - Azul-Acinzentado (contraste 6.8:1 AA / 7.5:1 AAA) */
+  --line: 216 226 240;        /* #D8E2F0 - Divisores em azul-gelo suave */
+  --pine: 30 58 138;          /* #1E3A8A - Azul Principal (contraste 10.36:1 AAA com branco) */
+  --pine-dark: 37 99 235;     /* #2563EB - Azul Elétrico para hover/interação (5.17:1 AA) */
+  --secondary: 2 132 199;     /* #0284C7 - Azul Ciano Secundário */
+  --accent: 14 165 233;       /* #0EA5E9 - Azul Ciano Vibrante para detalhes */
+  --danger: 185 28 28;        /* #B91C1C - Alerta acessível */
+  --danger-soft: 254 242 242; /* #FEF2F2 - Fundo suave de alerta */
+  --voice-men: 29 78 216;     /* #1D4ED8 - Azul Royal para voz masculina */
+  --voice-women: 2 132 199;   /* #0284C7 - Azul Ciano para voz feminina */
+}
+
+:root[data-accent="azul"] {
+  --pine: 30 58 138;
+  --pine-dark: 37 99 235;
+  --paper: 244 247 251;
+  --card: 255 255 255;
+  --ink: 15 23 42;
+  --ink-soft: 71 85 105;
+  --line: 216 226 240;
+}
+
+:root[data-accent="marinho"] {
+  --pine: 23 37 84;
+  --pine-dark: 2 132 199;
+  --paper: 240 246 252;
+  --card: 255 255 255;
+  --ink: 12 25 44;
+  --ink-soft: 67 86 112;
+  --line: 210 224 240;
+}
+
+:root[data-accent="turquesa"] {
+  --pine: 15 118 110;
+  --pine-dark: 13 148 136;
+  --paper: 242 251 249;
+  --card: 255 255 255;
+  --ink: 15 41 38;
+  --ink-soft: 70 102 98;
+  --line: 209 235 230;
+}
+
+:root[data-accent="verde"] {
+  --pine: 30 77 58;
+  --pine-dark: 21 128 61;
+  --paper: 243 248 245;
+  --card: 255 255 255;
+  --ink: 18 36 28;
+  --ink-soft: 75 99 88;
+  --line: 213 230 220;
+}
+
+:root[data-accent="indigo"] {
+  --pine: 55 48 163;
+  --pine-dark: 79 70 229;
+  --paper: 245 245 252;
+  --card: 255 255 255;
+  --ink: 22 20 51;
+  --ink-soft: 82 79 115;
+  --line: 220 220 240;
+}
+
+:root[data-accent="roxo"] {
+  --pine: 94 53 126;
+  --pine-dark: 126 34 206;
+  --paper: 248 245 251;
+  --card: 255 255 255;
+  --ink: 34 20 46;
+  --ink-soft: 99 80 115;
+  --line: 228 217 237;
+}
+
+:root[data-accent="rosa"] {
+  --pine: 156 47 93;
+  --pine-dark: 190 24 93;
+  --paper: 252 245 248;
+  --card: 255 255 255;
+  --ink: 43 18 29;
+  --ink-soft: 115 76 93;
+  --line: 237 216 225;
+}
+
+:root[data-accent="vermelho"] {
+  --pine: 153 27 27;
+  --pine-dark: 220 38 38;
+  --paper: 252 245 245;
+  --card: 255 255 255;
+  --ink: 43 17 17;
+  --ink-soft: 115 77 77;
+  --line: 237 216 216;
+}
+
+:root[data-accent="laranja"] {
+  --pine: 154 52 18;
+  --pine-dark: 194 65 12;
+  --paper: 252 247 244;
+  --card: 255 255 255;
+  --ink: 41 22 14;
+  --ink-soft: 112 84 72;
+  --line: 235 220 211;
+}
+
+:root[data-accent="amarelo"] {
+  --pine: 133 77 14;
+  --pine-dark: 161 98 7;
+  --paper: 251 248 241;
+  --card: 255 255 255;
+  --ink: 38 27 13;
+  --ink-soft: 107 91 69;
+  --line: 232 223 200;
+}
+
+:root[data-accent="marrom"] {
+  --pine: 92 58 33;
+  --pine-dark: 121 80 43;
   --paper: 243 239 230;
   --card: 255 253 248;
   --ink: 28 25 21;
   --ink-soft: 109 102 92;
   --line: 230 222 208;
-  --pine: 30 77 58;
-  --pine-dark: 22 57 43;
-  --danger: 122 51 44;
-  --danger-soft: 248 236 232;
-  --voice-men: 29 78 158;
-  --voice-women: 184 52 116;
-}
-
-:root[data-accent="amarelo"] {
-  --pine: 161 106 18;
-  --pine-dark: 128 83 12;
-}
-
-:root[data-accent="azul"] {
-  --pine: 30 68 118;
-  --pine-dark: 21 50 89;
-}
-
-:root[data-accent="laranja"] {
-  --pine: 176 74 28;
-  --pine-dark: 138 56 19;
-}
-
-:root[data-accent="roxo"] {
-  --pine: 94 53 126;
-  --pine-dark: 71 38 97;
-}
-
-:root[data-accent="rosa"] {
-  --pine: 156 47 93;
-  --pine-dark: 120 34 71;
 }
 
 :root[data-accent="cinza"] {
-  --pine: 68 80 94;
-  --pine-dark: 50 60 72;
+  --pine: 51 65 85;
+  --pine-dark: 71 85 105;
+  --paper: 245 247 250;
+  --card: 255 255 255;
+  --ink: 15 23 42;
+  --ink-soft: 82 96 117;
+  --line: 220 226 236;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --paper: 0 0 0;
-  --card: 18 18 18;
-  --ink: 245 245 245;
-  --ink-soft: 163 163 163;
-  --line: 42 42 42;
-  --pine: 46 122 90;
-  --pine-dark: 32 92 68;
-  --danger: 248 164 158;
-  --danger-soft: 68 32 30;
-  --voice-men: 147 197 253;
-  --voice-women: 249 168 212;
-}
 
-:root[data-theme="dark"][data-accent="amarelo"] {
-  --pine: 202 138 4;
-  --pine-dark: 161 106 18;
+  --color-primary: #2563eb;
+  --color-primary-hover: #3b82f6;
+  --color-primary-deep: #1e3a8a;
+  --color-secondary: #0ea5e9;
+  --color-accent: #38bdf8;
+  --color-accent-soft: #0c4a6e;
+  --bg-primary: #0b1120;
+  --bg-surface: #111c33;
+  --border-subtle: #1e293b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+
+  --paper: 11 17 32;          /* #0B1120 - Azul Meia-Noite profundo */
+  --card: 17 28 51;           /* #111C33 - Superfície Azul Marinho Noturno */
+  --ink: 241 245 249;         /* #F1F5F9 - Branco-Gelo suave */
+  --ink-soft: 148 163 184;    /* #94A3B8 - Azul-Acinzentado claro (6.4:1 AA) */
+  --line: 30 41 59;           /* #1E293B - Borda em azul-ardósia escuro */
+  --pine: 37 99 235;          /* #2563EB - Azul Elétrico Principal */
+  --pine-dark: 29 78 216;     /* #1D4ED8 - Azul Royal Hover */
+  --secondary: 14 165 233;    /* #0EA5E9 - Azul Ciano */
+  --accent: 56 189 248;       /* #38BDF8 - Ciano Luminoso */
+  --danger: 248 113 113;
+  --danger-soft: 69 10 10;
+  --voice-men: 96 165 250;    /* #60A5FA - Azul Celeste */
+  --voice-women: 56 189 248;  /* #38BDF8 - Azul Ciano Claro */
 }
 
 :root[data-theme="dark"][data-accent="azul"] {
-  --pine: 59 118 196;
-  --pine-dark: 42 91 158;
+  --pine: 37 99 235;
+  --pine-dark: 29 78 216;
+  --paper: 11 17 32;
+  --card: 17 28 51;
+  --ink: 241 245 249;
+  --ink-soft: 148 163 184;
+  --line: 30 41 59;
 }
 
-:root[data-theme="dark"][data-accent="laranja"] {
-  --pine: 214 98 44;
-  --pine-dark: 176 74 28;
+:root[data-theme="dark"][data-accent="marinho"] {
+  --pine: 30 64 175;
+  --pine-dark: 2 132 199;
+  --paper: 8 13 26;
+  --card: 15 23 42;
+  --ink: 240 246 252;
+  --ink-soft: 141 162 192;
+  --line: 30 41 59;
+}
+
+:root[data-theme="dark"][data-accent="turquesa"] {
+  --pine: 13 148 136;
+  --pine-dark: 15 118 110;
+  --paper: 7 23 22;
+  --card: 15 38 36;
+  --ink: 240 253 250;
+  --ink-soft: 138 181 176;
+  --line: 25 59 56;
+}
+
+:root[data-theme="dark"][data-accent="verde"] {
+  --pine: 46 122 90;
+  --pine-dark: 32 92 68;
+  --paper: 9 20 15;
+  --card: 17 34 26;
+  --ink: 239 247 243;
+  --ink-soft: 143 176 160;
+  --line: 29 56 44;
+}
+
+:root[data-theme="dark"][data-accent="indigo"] {
+  --pine: 79 70 229;
+  --pine-dark: 67 56 202;
+  --paper: 13 12 29;
+  --card: 22 21 48;
+  --ink: 242 242 250;
+  --ink-soft: 152 149 189;
+  --line: 38 36 77;
 }
 
 :root[data-theme="dark"][data-accent="roxo"] {
   --pine: 139 92 184;
   --pine-dark: 110 68 150;
+  --paper: 19 11 26;
+  --card: 31 19 43;
+  --ink: 246 242 250;
+  --ink-soft: 172 151 189;
+  --line: 51 32 69;
 }
 
 :root[data-theme="dark"][data-accent="rosa"] {
   --pine: 198 75 128;
   --pine-dark: 163 54 101;
+  --paper: 26 11 18;
+  --card: 41 18 29;
+  --ink: 250 240 245;
+  --ink-soft: 189 149 167;
+  --line: 69 31 49;
+}
+
+:root[data-theme="dark"][data-accent="vermelho"] {
+  --pine: 180 55 47;
+  --pine-dark: 146 40 34;
+  --paper: 25 11 11;
+  --card: 41 19 19;
+  --ink: 250 242 242;
+  --ink-soft: 189 151 151;
+  --line: 69 32 32;
+}
+
+:root[data-theme="dark"][data-accent="laranja"] {
+  --pine: 214 98 44;
+  --pine-dark: 176 74 28;
+  --paper: 24 14 9;
+  --card: 38 23 16;
+  --ink: 250 244 240;
+  --ink-soft: 186 160 147;
+  --line: 66 40 28;
+}
+
+:root[data-theme="dark"][data-accent="amarelo"] {
+  --pine: 202 138 4;
+  --pine-dark: 161 106 18;
+  --paper: 23 18 8;
+  --card: 36 28 13;
+  --ink: 250 246 237;
+  --ink-soft: 184 171 143;
+  --line: 61 48 23;
+}
+
+:root[data-theme="dark"][data-accent="marrom"] {
+  --pine: 151 100 50;
+  --pine-dark: 117 74 37;
+  --paper: 20 16 12;
+  --card: 33 27 21;
+  --ink: 245 242 237;
+  --ink-soft: 168 159 147;
+  --line: 56 46 36;
 }
 
 :root[data-theme="dark"][data-accent="cinza"] {
-  --pine: 112 132 156;
-  --pine-dark: 88 106 128;
+  --pine: 100 116 139;
+  --pine-dark: 71 85 105;
+  --paper: 12 16 23;
+  --card: 21 28 40;
+  --ink: 241 245 249;
+  --ink-soft: 148 163 184;
+  --line: 36 47 64;
 }
 
 html,

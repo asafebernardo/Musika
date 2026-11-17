@@ -203,8 +203,8 @@ export default function LyricEditor({
       {showVoiceTools ? (
         <>
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <PaintButton label="Homens" tone="bg-[#1d4e9e]" disabled={!canPaint} onPaint={() => apply("homens")} />
-            <PaintButton label="Mulheres" tone="bg-[#b4236a]" disabled={!canPaint} onPaint={() => apply("mulheres")} />
+            <PaintButton label="Homens" tone="bg-[#1d4ed8]" disabled={!canPaint} onPaint={() => apply("homens")} />
+            <PaintButton label="Mulheres" tone="bg-[#0284c7]" disabled={!canPaint} onPaint={() => apply("mulheres")} />
             <button
               type="button"
               className={`h-8 rounded-full border border-line px-3 text-xs text-ink-soft hover:text-ink ${

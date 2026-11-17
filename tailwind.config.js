@@ -13,6 +13,16 @@ export default {
           DEFAULT: "rgb(var(--pine) / <alpha-value>)",
           dark: "rgb(var(--pine-dark) / <alpha-value>)",
         },
+        primary: {
+          DEFAULT: "rgb(var(--pine) / <alpha-value>)",
+          hover: "rgb(var(--pine-dark) / <alpha-value>)",
+        },
+        secondary: {
+          DEFAULT: "rgb(var(--secondary) / <alpha-value>)",
+        },
+        accent: {
+          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+        },
         danger: {
           DEFAULT: "rgb(var(--danger) / <alpha-value>)",
           soft: "rgb(var(--danger-soft) / <alpha-value>)",

@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   APP_SETTINGS_DEFAULTS,
+  getAppIconImage,
   normalizeAppSettings,
 } from "../src/lib/appSettings.js";
 
@@ -37,15 +38,30 @@ export function getAppSettings() {
   return withLock(readSettingsFile);
 }
 
-export async function getAppIcon() {
-  const { appIconDataUrl } = await getAppSettings();
-  if (!appIconDataUrl) return null;
-  return decodeIcon(appIconDataUrl);
+export async function getAppIcon(theme = "light") {
+  const settings = await getAppSettings();
+  const iconDataUrl = getAppIconImage(settings, theme);
+  if (!iconDataUrl) return null;
+  return decodeIcon(iconDataUrl);
 }
 
 export async function getAppManifest() {
-  const { appName, appIconDataUrl } = await getAppSettings();
-  const icon = appIconDataUrl ? decodeIcon(appIconDataUrl) : null;
+  const settings = await getAppSettings();
+  const { appName } = settings;
+  const icons = ["light", "dark"].flatMap((theme) => {
+    const iconDataUrl = getAppIconImage(settings, theme);
+    if (!iconDataUrl) return [];
+    const icon = decodeIcon(iconDataUrl);
+    return [
+      {
+        src: `/api/app-icon?theme=${theme}`,
+        sizes: "any",
+        type: icon.contentType,
+        purpose: "any",
+        media: `(prefers-color-scheme: ${theme})`,
+      },
+    ];
+  });
   return {
     name: appName,
     short_name: appName.slice(0, 12),
@@ -54,23 +70,22 @@ export async function getAppManifest() {
     start_url: "/?pwa=1",
     scope: "/",
     display: "standalone",
-    background_color: "#f3efe6",
-    theme_color: "#f3efe6",
-    icons: icon
-      ? [{ src: "/api/app-icon", sizes: "any", type: icon.contentType, purpose: "any" }]
+    background_color: "#f4f7fb",
+    theme_color: "#f4f7fb",
+    icons: icons.length
+      ? icons
       : [
-          { src: "/logo.jfif", sizes: "2048x2048", type: "image/jpeg", purpose: "any" },
           {
             src: "/icon-192.png",
             sizes: "192x192",
             type: "image/png",
-            purpose: "any maskable",
+            purpose: "any",
           },
           {
             src: "/icon-512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any maskable",
+            purpose: "any",
           },
         ],
   };
