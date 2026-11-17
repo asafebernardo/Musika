@@ -210,6 +210,9 @@ export default function UserProfileMenu({
   onLogout,
   externalOpenSection = null,
   onExternalSectionHandled,
+  inline = false,
+  activeTab: controlledActiveTab = null,
+  onTabChange,
 }) {
   const { user: authUser, updateAccount } = useAuth();
   const user = propUser || authUser;
@@ -585,216 +588,16 @@ export default function UserProfileMenu({
     await persistUpdates({ invoices: updatedInvoices }, "Nova fatura gerada na lista.");
   };
 
-  return (
-    <div ref={menuContainerRef} className="relative flex shrink-0 items-center gap-2 sm:gap-2.5">
-      {/* Botão do Perfil que abre a Caixa de Opções */}
-      <button
-        type="button"
-        onClick={() => setMenuOpen((prev) => !prev)}
-        aria-haspopup="menu"
-        aria-expanded={menuOpen}
-        aria-label="Abrir menu Minha Conta"
-        className={`group inline-flex h-10 items-center gap-2.5 rounded-xl border px-2.5 py-1.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine sm:px-3 ${
-          menuOpen
-            ? "border-pine bg-pine/5 ring-2 ring-pine/20"
-            : "border-line bg-card hover:bg-paper"
-        }`}
-      >
-        {profileForm.avatarUrl ? (
-          <img
-            src={profileForm.avatarUrl}
-            alt={fullName}
-            className="h-7 w-7 shrink-0 rounded-full border border-line object-cover"
-          />
-        ) : (
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-pine text-xs font-bold text-white">
-            {initials}
-          </span>
-        )}
-        <div className="min-w-0 max-w-28 text-left sm:max-w-44">
-          <p className="truncate text-xs font-semibold leading-tight text-ink">
-            {fullName || "Minha Conta"}
-          </p>
-          <p className="hidden truncate text-[11px] leading-tight text-ink-soft sm:block">
-            Minha Conta · Opções
-          </p>
-        </div>
-        <ChevronDownIcon
-          className={`h-4 w-4 shrink-0 text-ink-soft transition-transform duration-150 ${
-            menuOpen ? "rotate-180 text-pine" : "group-hover:text-ink"
-          }`}
-        />
-      </button>
+  const currentTab = inline ? controlledActiveTab || activeModalTab || "perfil" : activeModalTab;
+  const selectTab = (tabId) => {
+    setActiveModalTab(tabId);
+    setFeedback({ type: "", text: "" });
+    setSelectedInvoice(null);
+    if (onTabChange) onTabChange(tabId);
+  };
 
-      {/* Botão Sair ao lado do menu de perfil */}
-      {onLogout ? (
-        <button
-          type="button"
-          onClick={onLogout}
-          className="h-10 shrink-0 rounded-xl border border-line bg-card px-3 text-xs font-medium text-ink transition-colors hover:bg-paper sm:px-3.5 sm:text-sm"
-        >
-          Sair
-        </button>
-      ) : null}
-
-      {/* Caixa de Opções do Perfil (Dropdown) */}
-      {menuOpen ? (
-        <div
-          role="menu"
-          aria-label="Opções da minha conta"
-          className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-1.5rem)] origin-top-right overflow-hidden rounded-2xl border border-line bg-card shadow-2xl ring-1 ring-black/5"
-        >
-          {/* Cabeçalho da Caixa de Opções */}
-          <div className="border-b border-line bg-paper/60 p-4">
-            <div className="flex items-center gap-3">
-              {profileForm.avatarUrl ? (
-                <img
-                  src={profileForm.avatarUrl}
-                  alt={fullName}
-                  className="h-11 w-11 shrink-0 rounded-full border border-line object-cover"
-                />
-              ) : (
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-pine text-sm font-bold text-white">
-                  {initials}
-                </span>
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-ink">{fullName}</p>
-                <p className="truncate text-xs text-ink-soft">{profileForm.email}</p>
-                <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-pine/10 px-2 py-0.5 text-[10px] font-semibold text-pine">
-                  <span className="h-1.5 w-1.5 rounded-full bg-pine" />
-                  {subscriptionState.planName}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Lista de Opções de Configuração do Usuário */}
-          <div className="p-1.5">
-            <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-soft">
-              Configurações da Minha Conta
-            </p>
-            {MENU_OPTIONS.map((option) => {
-              const Icon = option.icon;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => openSectionFromMenu(option.id)}
-                  className="flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
-                >
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pine/10 text-pine">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-xs font-semibold text-ink">{option.label}</span>
-                    <span className="mt-0.5 block text-[11px] leading-snug text-ink-soft">
-                      {option.description}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {onLogout ? (
-            <div className="border-t border-line bg-paper/40 p-1.5">
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onLogout();
-                }}
-                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium text-danger transition-colors hover:bg-danger-soft"
-              >
-                <span>Encerrar sessão ({appName})</span>
-                <span aria-hidden>→</span>
-              </button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {/* Modal Completo de Configuração da Conta, Plano, Faturas e Pagamento */}
-      {activeModalTab ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Configurações da Minha Conta"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-xs sm:p-5"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setActiveModalTab(null);
-          }}
-        >
-          <div className="flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-line bg-card text-ink shadow-2xl">
-            {/* Topo do Modal */}
-            <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line bg-paper/60 px-5 py-4 sm:px-7">
-              <div className="flex items-center gap-3 min-w-0">
-                {profileForm.avatarUrl ? (
-                  <img
-                    src={profileForm.avatarUrl}
-                    alt={fullName}
-                    className="h-10 w-10 shrink-0 rounded-full border border-line object-cover"
-                  />
-                ) : (
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pine text-sm font-bold text-white">
-                    {initials}
-                  </span>
-                )}
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-pine">
-                    Minha Conta · {appName}
-                  </p>
-                  <h2 className="truncate text-base font-semibold text-ink sm:text-lg">
-                    {fullName || "Configurações do Usuário"}
-                  </h2>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveModalTab(null)}
-                className="inline-flex h-9 items-center rounded-xl border border-line bg-card px-3.5 text-xs font-semibold text-ink hover:bg-paper"
-              >
-                Fechar ✕
-              </button>
-            </div>
-
-            {/* Corpo do Modal com Navegação Lateral / Abas */}
-            <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[230px_minmax(0,1fr)]">
-              {/* Menu de Abas */}
-              <nav
-                aria-label="Seções da conta"
-                className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-line bg-paper/40 p-3 md:flex-col md:overflow-y-auto md:border-b-0 md:border-r"
-              >
-                {MENU_OPTIONS.map((item) => {
-                  const Icon = item.icon;
-                  const active = activeModalTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveModalTab(item.id);
-                        setFeedback({ type: "", text: "" });
-                        setSelectedInvoice(null);
-                      }}
-                      className={`flex shrink-0 items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition-colors ${
-                        active
-                          ? "bg-pine text-white shadow-xs"
-                          : "text-ink-soft hover:bg-paper hover:text-ink"
-                      }`}
-                    >
-                      <Icon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-
-              {/* Área de Conteúdo da Aba Selecionada */}
-              <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
+  const tabContent = (
+    <>
                 {feedback.text ? (
                   <div
                     role="status"
@@ -809,7 +612,7 @@ export default function UserProfileMenu({
                 ) : null}
 
                 {/* 1. ABA MEU PERFIL E CONTATO */}
-                {activeModalTab === "perfil" ? (
+                {currentTab === "perfil" ? (
                   <form onSubmit={handleSaveProfile} className="space-y-6">
                     <div>
                       <h3 className="text-base font-semibold text-ink">
@@ -939,7 +742,7 @@ export default function UserProfileMenu({
                 ) : null}
 
                 {/* 2. ABA PLANO PAGO ATUAL */}
-                {activeModalTab === "plano" ? (
+                {currentTab === "plano" ? (
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-base font-semibold text-ink">Plano Pago Atual</h3>
@@ -1099,7 +902,7 @@ export default function UserProfileMenu({
                 ) : null}
 
                 {/* 3. ABA FATURAS E RECIBOS */}
-                {activeModalTab === "faturas" ? (
+                {currentTab === "faturas" ? (
                   <div className="space-y-6">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
@@ -1267,7 +1070,7 @@ export default function UserProfileMenu({
                 ) : null}
 
                 {/* 4. ABA CADASTRO DE DADOS DE PAGAMENTO (FATURAMENTO) */}
-                {activeModalTab === "dados-pagamento" ? (
+                {currentTab === "dados-pagamento" ? (
                   <form onSubmit={handleSaveBillingDetails} className="space-y-6">
                     <div>
                       <h3 className="text-base font-semibold text-ink">
@@ -1484,7 +1287,7 @@ export default function UserProfileMenu({
                 ) : null}
 
                 {/* 5. ABA FORMA DE PAGAMENTO */}
-                {activeModalTab === "forma-pagamento" ? (
+                {currentTab === "forma-pagamento" ? (
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-base font-semibold text-ink">Forma de Pagamento</h3>
@@ -1737,6 +1540,267 @@ export default function UserProfileMenu({
                     ) : null}
                   </div>
                 ) : null}
+    </>
+  );
+
+  if (inline) {
+    return (
+      <div className="mx-auto w-full max-w-5xl space-y-5">
+        <section className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-card p-5 sm:p-6">
+          <div className="flex min-w-0 items-center gap-3.5">
+            {profileForm.avatarUrl ? (
+              <img
+                src={profileForm.avatarUrl}
+                alt={fullName}
+                className="h-12 w-12 shrink-0 rounded-full border border-line object-cover"
+              />
+            ) : (
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-pine text-base font-bold text-white">
+                {initials}
+              </span>
+            )}
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="truncate text-base font-semibold text-ink">
+                  {fullName || "Minha Conta"}
+                </h3>
+                <span className="inline-flex items-center gap-1 rounded-full bg-pine/10 px-2.5 py-0.5 text-[11px] font-semibold text-pine">
+                  <span className="h-1.5 w-1.5 rounded-full bg-pine" />
+                  {subscriptionState.planName}
+                </span>
+              </div>
+              <p className="mt-0.5 truncate text-xs text-ink-soft">
+                {profileForm.email}
+                {profileForm.phone ? ` · ${profileForm.phone}` : ""}
+              </p>
+            </div>
+          </div>
+
+          {onLogout ? (
+            <button
+              type="button"
+              onClick={onLogout}
+              className="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-danger/30 bg-card px-3.5 text-xs font-medium text-danger transition-colors hover:bg-danger-soft sm:text-sm"
+            >
+              <span>Encerrar sessão</span>
+            </button>
+          ) : null}
+        </section>
+
+        <section className="rounded-lg border border-line bg-card p-5 sm:p-6">
+          {tabContent}
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={menuContainerRef} className="relative flex shrink-0 items-center gap-2 sm:gap-2.5">
+      {/* Botão do Perfil que abre a Caixa de Opções */}
+      <button
+        type="button"
+        onClick={() => setMenuOpen((prev) => !prev)}
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        aria-label="Abrir menu Minha Conta"
+        className={`group inline-flex h-10 items-center gap-2.5 rounded-xl border px-2.5 py-1.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine sm:px-3 ${
+          menuOpen
+            ? "border-pine bg-pine/5 ring-2 ring-pine/20"
+            : "border-line bg-card hover:bg-paper"
+        }`}
+      >
+        {profileForm.avatarUrl ? (
+          <img
+            src={profileForm.avatarUrl}
+            alt={fullName}
+            className="h-7 w-7 shrink-0 rounded-full border border-line object-cover"
+          />
+        ) : (
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-pine text-xs font-bold text-white">
+            {initials}
+          </span>
+        )}
+        <div className="min-w-0 max-w-28 text-left sm:max-w-44">
+          <p className="truncate text-xs font-semibold leading-tight text-ink">
+            {fullName || "Minha Conta"}
+          </p>
+          <p className="hidden truncate text-[11px] leading-tight text-ink-soft sm:block">
+            Minha Conta · Opções
+          </p>
+        </div>
+        <ChevronDownIcon
+          className={`h-4 w-4 shrink-0 text-ink-soft transition-transform duration-150 ${
+            menuOpen ? "rotate-180 text-pine" : "group-hover:text-ink"
+          }`}
+        />
+      </button>
+
+      {/* Botão Sair ao lado do menu de perfil */}
+      {onLogout ? (
+        <button
+          type="button"
+          onClick={onLogout}
+          className="h-10 shrink-0 rounded-xl border border-line bg-card px-3 text-xs font-medium text-ink transition-colors hover:bg-paper sm:px-3.5 sm:text-sm"
+        >
+          Sair
+        </button>
+      ) : null}
+
+      {/* Caixa de Opções do Perfil (Dropdown) */}
+      {menuOpen ? (
+        <div
+          role="menu"
+          aria-label="Opções da minha conta"
+          className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-1.5rem)] origin-top-right overflow-hidden rounded-2xl border border-line bg-card shadow-2xl ring-1 ring-black/5"
+        >
+          {/* Cabeçalho da Caixa de Opções */}
+          <div className="border-b border-line bg-paper/60 p-4">
+            <div className="flex items-center gap-3">
+              {profileForm.avatarUrl ? (
+                <img
+                  src={profileForm.avatarUrl}
+                  alt={fullName}
+                  className="h-11 w-11 shrink-0 rounded-full border border-line object-cover"
+                />
+              ) : (
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-pine text-sm font-bold text-white">
+                  {initials}
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-ink">{fullName}</p>
+                <p className="truncate text-xs text-ink-soft">{profileForm.email}</p>
+                <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-pine/10 px-2 py-0.5 text-[10px] font-semibold text-pine">
+                  <span className="h-1.5 w-1.5 rounded-full bg-pine" />
+                  {subscriptionState.planName}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Lista de Opções de Configuração do Usuário */}
+          <div className="p-1.5">
+            <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-soft">
+              Configurações da Minha Conta
+            </p>
+            {MENU_OPTIONS.map((option) => {
+              const Icon = option.icon;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => openSectionFromMenu(option.id)}
+                  className="flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
+                >
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pine/10 text-pine">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-xs font-semibold text-ink">{option.label}</span>
+                    <span className="mt-0.5 block text-[11px] leading-snug text-ink-soft">
+                      {option.description}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {onLogout ? (
+            <div className="border-t border-line bg-paper/40 p-1.5">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onLogout();
+                }}
+                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium text-danger transition-colors hover:bg-danger-soft"
+              >
+                <span>Encerrar sessão ({appName})</span>
+                <span aria-hidden>→</span>
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Modal Completo de Configuração da Conta, Plano, Faturas e Pagamento */}
+      {activeModalTab ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Configurações da Minha Conta"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-xs sm:p-5"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setActiveModalTab(null);
+          }}
+        >
+          <div className="flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-line bg-card text-ink shadow-2xl">
+            {/* Topo do Modal */}
+            <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line bg-paper/60 px-5 py-4 sm:px-7">
+              <div className="flex items-center gap-3 min-w-0">
+                {profileForm.avatarUrl ? (
+                  <img
+                    src={profileForm.avatarUrl}
+                    alt={fullName}
+                    className="h-10 w-10 shrink-0 rounded-full border border-line object-cover"
+                  />
+                ) : (
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pine text-sm font-bold text-white">
+                    {initials}
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-pine">
+                    Minha Conta · {appName}
+                  </p>
+                  <h2 className="truncate text-base font-semibold text-ink sm:text-lg">
+                    {fullName || "Configurações do Usuário"}
+                  </h2>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveModalTab(null)}
+                className="inline-flex h-9 items-center rounded-xl border border-line bg-card px-3.5 text-xs font-semibold text-ink hover:bg-paper"
+              >
+                Fechar ✕
+              </button>
+            </div>
+
+            {/* Corpo do Modal com Navegação Lateral / Abas */}
+            <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[230px_minmax(0,1fr)]">
+              {/* Menu de Abas */}
+              <nav
+                aria-label="Seções da conta"
+                className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-line bg-paper/40 p-3 md:flex-col md:overflow-y-auto md:border-b-0 md:border-r"
+              >
+                {MENU_OPTIONS.map((item) => {
+                  const Icon = item.icon;
+                  const active = activeModalTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => selectTab(item.id)}
+                      className={`flex shrink-0 items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition-colors ${
+                        active
+                          ? "bg-pine text-white shadow-xs"
+                          : "text-ink-soft hover:bg-paper hover:text-ink"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+
+              {/* Área de Conteúdo da Aba Selecionada */}
+              <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
+                {tabContent}
               </div>
             </div>
           </div>

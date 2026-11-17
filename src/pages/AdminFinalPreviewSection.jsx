@@ -5,7 +5,7 @@ import SongScroll from "@/components/SongScroll.jsx";
 import { getAppIconImage, getAppSettings } from "@/lib/appSettings.js";
 import { filterSongs } from "@/lib/songs.js";
 import { useSongThemes } from "@/lib/songThemes.js";
-import { useTheme } from "@/lib/theme.js";
+import { ACCENT_OPTIONS, useAccent, useTheme } from "@/lib/theme.js";
 
 const VIEWPORT_MODES = [
   { id: "portrait", label: "Retrato" },
@@ -50,6 +50,21 @@ export default function AdminFinalPreviewSection({ songs = [] }) {
   const settings = getAppSettings();
   const { appName } = settings;
   const theme = useTheme();
+  const currentAccentId = useAccent();
+  const accentOption =
+    ACCENT_OPTIONS.find((option) => option.id === currentAccentId) || ACCENT_OPTIONS[0];
+  const isPreviewDark = theme === "dark";
+  const appPreviewVars = {
+    "--paper": isPreviewDark ? accentOption.darkPaper : accentOption.paper,
+    "--card": isPreviewDark ? accentOption.darkCard : accentOption.card,
+    "--ink": isPreviewDark ? accentOption.darkInk : accentOption.ink,
+    "--ink-soft": isPreviewDark ? accentOption.darkInkSoft : accentOption.inkSoft,
+    "--line": isPreviewDark ? accentOption.darkLine : accentOption.line,
+    "--pine": isPreviewDark ? accentOption.darkPine : accentOption.pine,
+    "--pine-dark": isPreviewDark ? accentOption.darkPineDark : accentOption.pineDark,
+    "--voice-men": isPreviewDark ? "96 165 250" : "29 78 216",
+    "--voice-women": isPreviewDark ? "56 189 248" : "2 132 199",
+  };
   const { themes } = useSongThemes();
   const iconSrc =
     getAppIconImage(settings, theme) || `${import.meta.env.BASE_URL || "/"}icon.png`;
@@ -176,6 +191,7 @@ export default function AdminFinalPreviewSection({ songs = [] }) {
       </section>
 
       <div
+        style={appPreviewVars}
         className={`mx-auto w-full transition-all ${
           viewport === "web"
             ? "max-w-5xl"

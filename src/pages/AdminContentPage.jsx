@@ -16,6 +16,7 @@ import VocalArrangementEditor from "@/components/VocalArrangementEditor.jsx";
 import { emptySongForm, fieldsFromSong, payloadFromSongForm } from "@/lib/songEditor.js";
 import { filterSongs, withNumbers } from "@/lib/songs.js";
 import { getAppSettings } from "@/lib/appSettings.js";
+import { ACCENT_OPTIONS, useAccent, useTheme } from "@/lib/theme.js";
 import AdminPersonalizationSection from "@/pages/AdminPersonalizationSection.jsx";
 import AdminRegistriesSection from "@/pages/AdminRegistriesSection.jsx";
 import AdminFinalPreviewSection from "@/pages/AdminFinalPreviewSection.jsx";
@@ -23,23 +24,51 @@ import AdminProjectExportSection from "@/pages/AdminProjectExportSection.jsx";
 import AdminSlidesEditorSection from "@/pages/AdminSlidesEditorSection.jsx";
 import UserProfileMenu from "@/components/UserProfileMenu.jsx";
 
-const EDIT_SECTIONS = [
-  { id: "home", label: "Home", icon: HomeIcon },
-  { id: "letra", label: "Letra", icon: LyricIcon },
-  { id: "vozes", label: "Vozes", icon: VoicesPartsIcon },
-  { id: "cifra", label: "Cifra", icon: ChordIcon },
-];
-
-const REGISTRY_SECTIONS = [
-  { id: "temas", label: "Temas das músicas" },
-  { id: "informacoes", label: "Informações da música" },
-];
-
 const PERSONALIZATION_SECTIONS = [
   { id: "identidade", label: "Identidade" },
-  { id: "temas", label: "Temas" },
-  { id: "visualizacao", label: "Visualização" },
-  { id: "acoes", label: "Acesso e ações" },
+  { id: "temas", label: "Temas e Cores" },
+  { id: "visualizacao", label: "Leitura Padrão" },
+  { id: "acoes", label: "Permissões e Menus" },
+];
+
+const USER_ACCOUNT_SECTIONS = [
+  { id: "perfil", label: "Meu Perfil e Contato" },
+  { id: "plano", label: "Plano Pago Atual" },
+  { id: "faturas", label: "Faturas e Recibos" },
+  { id: "dados-pagamento", label: "Dados de Pagamento" },
+  { id: "forma-pagamento", label: "Forma de Pagamento" },
+];
+
+const SIDEBAR_GROUPS = [
+  {
+    id: "edicao",
+    label: "Edição",
+    items: [
+      { id: "letra", label: "Letra & Áudio", icon: LyricIcon },
+      { id: "vozes", label: "Arranjo de Vozes", icon: VoicesPartsIcon },
+      { id: "cifra", label: "Cifras & Tons", icon: ChordIcon },
+      { id: "slides", label: "Projeção (Slides)", icon: SlidesIcon },
+    ],
+  },
+  {
+    id: "sistema",
+    label: "Catálogo & Sistema",
+    items: [
+      { id: "temas-musicas", label: "Temas & Listas", icon: RegistryIcon },
+      { id: "ficha-tecnica", label: "Fichas Técnicas", icon: SongMetadataIcon },
+      { id: "personalizacao", label: "Aparência do App", icon: SettingsIcon },
+      { id: "acessos", label: "Equipe & Acessos", icon: PeopleIcon },
+      { id: "minha-conta", label: "Minha Conta", icon: UserAccountIcon },
+    ],
+  },
+  {
+    id: "publicacao",
+    label: "Publicação",
+    items: [
+      { id: "previa-final", label: "Simulador do App", icon: FinalPreviewIcon },
+      { id: "gerar-projeto", label: "Exportar & Publicar", icon: ProjectExportIcon },
+    ],
+  },
 ];
 
 const PREVIEW_MODES = [
@@ -49,16 +78,17 @@ const PREVIEW_MODES = [
 ];
 
 const SECTION_TITLES = {
-  home: "Home",
-  letra: "Letra",
-  vozes: "Vozes",
-  cifra: "Cifra",
-  slides: "Slides",
-  cadastros: "Cadastros",
-  personalizacao: "Personalização",
-  "previa-final": "Prévia final",
-  "gerar-projeto": "Gerar projeto",
-  acessos: "Pessoas e acessos",
+  letra: "Letra & Áudio",
+  vozes: "Arranjo de Vozes",
+  cifra: "Cifras & Tons",
+  slides: "Projeção (Slides)",
+  "temas-musicas": "Temas & Listas",
+  "ficha-tecnica": "Fichas Técnicas",
+  personalizacao: "Aparência do App",
+  "previa-final": "Simulador do App",
+  "gerar-projeto": "Exportar & Publicar",
+  acessos: "Equipe & Acessos",
+  "minha-conta": "Minha Conta",
 };
 
 export default function AdminContentPage({ user, onLogout, accessPanel }) {
@@ -66,11 +96,14 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
   const [songs, setSongs] = useState([]);
   const [loadingSongs, setLoadingSongs] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [activeSection, setActiveSection] = useState("home");
-  const [activeRegistrySection, setActiveRegistrySection] = useState("temas");
+  const [activeSection, setActiveSection] = useState("letra");
   const [activePersonalizationSection, setActivePersonalizationSection] = useState("identidade");
+  const [activeUserAccountSection, setActiveUserAccountSection] = useState("perfil");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewOrientation, setPreviewOrientation] = useState("portrait");
+  const [customPreviewMode, setCustomPreviewMode] = useState(null);
+  const [customPreviewTheme, setCustomPreviewTheme] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ ...emptySongForm });
@@ -113,22 +146,32 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
   const selectedSong = songs.find((song) => song.id === selectedId) ?? null;
   const visibleSongs = useMemo(() => filterSongs(songs, search), [songs, search]);
   const isAccessSection = activeSection === "acessos";
-  const isRegistrySection = activeSection === "cadastros";
+  const isUserAccountSection = activeSection === "minha-conta";
+  const isRegistrySection =
+    activeSection === "temas-musicas" || activeSection === "ficha-tecnica";
+  const activeRegistryTab = activeSection === "ficha-tecnica" ? "informacoes" : "temas";
   const isPersonalizationSection = activeSection === "personalizacao";
   const isSlidesSection = activeSection === "slides";
   const isFinalPreviewSection = activeSection === "previa-final";
   const isProjectExportSection = activeSection === "gerar-projeto";
   const isUtilitySection =
     isAccessSection ||
+    isUserAccountSection ||
     isRegistrySection ||
     isPersonalizationSection ||
     isSlidesSection ||
     isFinalPreviewSection ||
     isProjectExportSection;
   const isSongSection = ["letra", "vozes", "cifra"].includes(activeSection);
-  const hasSideMobilePreview = isSongSection || activeSection === "home";
-  const previewMode = isSongSection ? activeSection : "letra";
+  const hasSideMobilePreview = isSongSection;
+  const previewMode = customPreviewMode || (isSongSection ? activeSection : "letra");
   const number = withNumbers(songs).find((song) => song.id === selectedId)?.numero;
+
+  useEffect(() => {
+    if (["letra", "vozes", "cifra"].includes(activeSection)) {
+      setCustomPreviewMode(null);
+    }
+  }, [activeSection]);
 
   const handleSongSavedFromRegistry = (savedSong) => {
     setSongs((current) =>
@@ -178,7 +221,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
     } else {
       setForm({ ...emptySongForm });
       setEditing(false);
-      setActiveSection("home");
+      setActiveSection("letra");
     }
     setDirty(false);
     setError("");
@@ -187,7 +230,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
 
   const saveSong = async () => {
     if (!form.titulo.trim()) {
-      setActiveSection("home");
+      setActiveSection("letra");
       setError("Informe o título antes de salvar a música.");
       return;
     }
@@ -232,7 +275,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
         setEditing(false);
         setForm({ ...emptySongForm });
         setDirty(false);
-        setActiveSection("home");
+        setActiveSection("letra");
       }
       setNotice("Música excluída do catálogo.");
     } catch (deleteError) {
@@ -268,123 +311,108 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
     });
   };
 
+  const activeGroup = SIDEBAR_GROUPS.find((group) =>
+    group.items.some((item) => item.id === activeSection),
+  );
+
   return (
     <div className="flex h-full min-h-0 w-full bg-paper text-ink">
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-card lg:flex">
-        <div className="border-b border-line px-5 py-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pine">{appName}</p>
-          <h1 className="mt-1 text-lg font-semibold">Estúdio de edição</h1>
-          <p className="mt-1 text-xs text-ink-soft">Painel administrativo</p>
+      <aside
+        className={`hidden shrink-0 flex-col border-r border-line bg-card transition-[width] duration-200 lg:flex ${
+          sidebarCollapsed ? "w-[68px]" : "w-60"
+        }`}
+      >
+        <div
+          className={`flex items-center border-b border-line ${
+            sidebarCollapsed ? "justify-center px-2 py-4" : "justify-between gap-2 px-4 py-4"
+          }`}
+        >
+          {!sidebarCollapsed ? (
+            <div className="min-w-0">
+              <p className="truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
+                {appName}
+              </p>
+              <h1 className="mt-0.5 truncate text-sm font-semibold tracking-tight text-ink">
+                Estúdio de edição
+              </h1>
+              <p className="mt-0.5 truncate text-[11px] text-ink-soft">Painel administrativo</p>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed((current) => !current)}
+            aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+            title={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-line bg-paper text-ink-soft transition-colors hover:border-ink-soft/40 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
+          >
+            <SidebarCollapseIcon collapsed={sidebarCollapsed} className="h-4 w-4" />
+          </button>
         </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5" aria-label="Seções do painel">
-          {EDIT_SECTIONS.map((section) => (
-            <SidebarButton
-              key={section.id}
-              active={activeSection === section.id}
-              icon={section.icon}
-              onClick={() => setActiveSection(section.id)}
+
+        <nav
+          className={`flex-1 overflow-y-auto ${
+            sidebarCollapsed ? "space-y-4 px-2 py-4" : "space-y-6 px-3 py-5"
+          }`}
+          aria-label="Seções do painel"
+        >
+          {SIDEBAR_GROUPS.map((group, groupIndex) => (
+            <div
+              key={group.id}
+              className={
+                sidebarCollapsed && groupIndex > 0 ? "border-t border-line pt-3" : undefined
+              }
             >
-              {section.label}
-            </SidebarButton>
+              {!sidebarCollapsed ? (
+                <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-soft/75">
+                  {group.label}
+                </p>
+              ) : (
+                <p className="sr-only">{group.label}</p>
+              )}
+
+              <div className="space-y-0.5" role="group" aria-label={group.label}>
+                {group.items.map((item) => (
+                  <SidebarButton
+                    key={item.id}
+                    active={activeSection === item.id}
+                    collapsed={sidebarCollapsed}
+                    icon={item.icon}
+                    label={item.label}
+                    onClick={() => setActiveSection(item.id)}
+                  >
+                    {item.label}
+                  </SidebarButton>
+                ))}
+              </div>
+            </div>
           ))}
-          <SidebarButton
-            active={isSlidesSection}
-            icon={SlidesIcon}
-            onClick={() => setActiveSection("slides")}
-          >
-            Slides
-          </SidebarButton>
-          <SidebarButton
-            active={isRegistrySection}
-            icon={RegistryIcon}
-            onClick={() => setActiveSection("cadastros")}
-          >
-            Cadastros
-          </SidebarButton>
-          {isRegistrySection ? (
-            <div
-              className="ml-10 space-y-1 border-l border-line pl-2"
-              role="group"
-              aria-label="Submenus de cadastros"
-            >
-              {REGISTRY_SECTIONS.map((section) => (
-                <button
-                  key={section.id}
-                  type="button"
-                  onClick={() => setActiveRegistrySection(section.id)}
-                  aria-current={activeRegistrySection === section.id ? "page" : undefined}
-                  className={`min-h-9 w-full rounded-lg px-3 text-left text-sm ${
-                    activeRegistrySection === section.id
-                      ? "bg-pine/10 font-semibold text-pine"
-                      : "text-ink-soft hover:bg-paper hover:text-ink"
-                  }`}
-                >
-                  {section.label}
-                </button>
-              ))}
-            </div>
-          ) : null}
-          <SidebarButton
-            active={isPersonalizationSection}
-            icon={SettingsIcon}
-            onClick={() => setActiveSection("personalizacao")}
-          >
-            Personalização
-          </SidebarButton>
-          {isPersonalizationSection ? (
-            <div
-              className="ml-10 space-y-1 border-l border-line pl-2"
-              role="group"
-              aria-label="Submenus de personalização"
-            >
-              {PERSONALIZATION_SECTIONS.map((section) => (
-                <button
-                  key={section.id}
-                  type="button"
-                  onClick={() => setActivePersonalizationSection(section.id)}
-                  aria-current={activePersonalizationSection === section.id ? "page" : undefined}
-                  className={`min-h-9 w-full rounded-lg px-3 text-left text-sm ${
-                    activePersonalizationSection === section.id
-                      ? "bg-pine/10 font-semibold text-pine"
-                      : "text-ink-soft hover:bg-paper hover:text-ink"
-                  }`}
-                >
-                  {section.label}
-                </button>
-              ))}
-            </div>
-          ) : null}
-          <SidebarButton
-            active={isFinalPreviewSection}
-            icon={FinalPreviewIcon}
-            onClick={() => setActiveSection("previa-final")}
-          >
-            Prévia final
-          </SidebarButton>
-          <SidebarButton
-            active={isProjectExportSection}
-            icon={ProjectExportIcon}
-            onClick={() => setActiveSection("gerar-projeto")}
-          >
-            Gerar projeto
-          </SidebarButton>
-          <div className="my-4 border-t border-line" />
-          <SidebarButton
-            active={isAccessSection}
-            icon={PeopleIcon}
-            onClick={() => setActiveSection("acessos")}
-          >
-            Pessoas e acessos
-          </SidebarButton>
         </nav>
+
+        <div className="border-t border-line p-2.5">
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed((current) => !current)}
+            aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+            title={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+            className={`flex h-9 w-full items-center rounded-lg text-xs font-medium text-ink-soft transition-colors hover:bg-paper hover:text-ink ${
+              sidebarCollapsed ? "justify-center px-0" : "gap-2.5 px-3"
+            }`}
+          >
+            <SidebarCollapseIcon collapsed={sidebarCollapsed} className="h-4 w-4 shrink-0" />
+            {!sidebarCollapsed ? <span>Recolher menu</span> : null}
+          </button>
+        </div>
       </aside>
 
       <section className="flex min-w-0 flex-1 flex-col">
         <header className="shrink-0 border-b border-line bg-card">
-          <div className="flex min-h-16 items-center gap-2 px-3 sm:gap-4 sm:px-7">
+          <div className="flex min-h-14 items-center gap-2 px-3 sm:gap-4 sm:px-7">
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-ink-soft">Administração / {SECTION_TITLES[activeSection]}</p>
-              <h2 className="truncate text-lg font-semibold">
+              <p className="text-[11px] font-medium text-ink-soft">
+                Administração{activeGroup ? ` / ${activeGroup.label}` : ""} /{" "}
+                {SECTION_TITLES[activeSection]}
+              </p>
+              <h2 className="truncate text-base font-semibold tracking-tight text-ink">
                 {editing && !isUtilitySection ? form.titulo || "Nova música" : SECTION_TITLES[activeSection]}
               </h2>
             </div>
@@ -394,7 +422,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                   <button
                     type="button"
                     onClick={discardChanges}
-                    className="hidden h-10 rounded-lg border border-line px-4 text-sm font-medium hover:bg-paper sm:inline-flex sm:items-center"
+                    className="hidden h-9 rounded-md border border-line px-3.5 text-xs font-medium hover:bg-paper sm:inline-flex sm:items-center sm:text-sm"
                   >
                     Descartar
                   </button>
@@ -403,7 +431,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                   <button
                     type="button"
                     onClick={() => selectedSong && removeSong(selectedSong)}
-                    className="hidden h-10 rounded-lg border border-danger/30 px-4 text-sm font-medium text-danger hover:bg-danger-soft sm:inline-flex sm:items-center"
+                    className="hidden h-9 rounded-md border border-danger/30 px-3.5 text-xs font-medium text-danger hover:bg-danger-soft sm:inline-flex sm:items-center sm:text-sm"
                   >
                     Excluir
                   </button>
@@ -412,7 +440,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                   type="button"
                   onClick={saveSong}
                   disabled={saving || !dirty}
-                  className="h-10 rounded-lg bg-pine px-4 text-sm font-semibold text-white hover:bg-pine-dark disabled:cursor-not-allowed disabled:opacity-50"
+                  className="h-9 rounded-md bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
                 >
                   {saving ? "Salvando…" : "Salvar"}
                 </button>
@@ -423,69 +451,34 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                 type="button"
                 onClick={() => setPreviewOpen(true)}
                 aria-haspopup="dialog"
-                className="h-9 shrink-0 rounded-lg border border-line px-2 text-xs font-medium hover:bg-paper sm:px-3 sm:text-sm"
+                className="h-9 shrink-0 rounded-md border border-line px-2.5 text-xs font-medium hover:bg-paper sm:px-3 sm:text-sm"
               >
                 Visualizar
               </button>
             ) : null}
-            <div className="flex min-w-0 shrink-0 items-center gap-2 border-l border-line pl-2 sm:gap-3 sm:pl-4">
-              <UserProfileMenu user={user} onLogout={onLogout} />
-            </div>
           </div>
           <nav
             className="flex gap-1 overflow-x-auto border-t border-line px-3 py-2 lg:hidden"
             aria-label="Seções do painel"
           >
-            {[
-              ...EDIT_SECTIONS,
-              { id: "slides", label: "Slides" },
-              { id: "cadastros", label: "Cadastros" },
-              { id: "personalizacao", label: "Personalização" },
-              { id: "previa-final", label: "Prévia final" },
-              { id: "gerar-projeto", label: "Gerar projeto" },
-              { id: "acessos", label: "Acessos" },
-            ].map(
-              (section) => (
-                <button
-                  key={section.id}
-                  type="button"
-                  onClick={() => setActiveSection(section.id)}
-                  className={`shrink-0 rounded-full px-3 py-2 text-sm ${
-                    activeSection === section.id
-                      ? "bg-pine text-white"
-                      : "text-ink-soft hover:bg-paper"
-                  }`}
-                >
-                  {section.label}
-                </button>
-              ),
-            )}
+            {SIDEBAR_GROUPS.flatMap((group) => group.items).map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => setActiveSection(section.id)}
+                className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium ${
+                  activeSection === section.id
+                    ? "bg-pine text-white"
+                    : "text-ink-soft hover:bg-paper"
+                }`}
+              >
+                {section.label}
+              </button>
+            ))}
           </nav>
-          {isRegistrySection ? (
-            <nav
-              className="flex gap-1 overflow-x-auto border-t border-line px-3 py-2 lg:hidden"
-              aria-label="Submenus de cadastros"
-            >
-              {REGISTRY_SECTIONS.map((section) => (
-                <button
-                  key={section.id}
-                  type="button"
-                  onClick={() => setActiveRegistrySection(section.id)}
-                  aria-current={activeRegistrySection === section.id ? "page" : undefined}
-                  className={`shrink-0 rounded-full px-3 py-2 text-sm ${
-                    activeRegistrySection === section.id
-                      ? "bg-pine text-white"
-                      : "text-ink-soft hover:bg-paper"
-                  }`}
-                >
-                  {section.label}
-                </button>
-              ))}
-            </nav>
-          ) : null}
           {isPersonalizationSection ? (
             <nav
-              className="flex gap-1 overflow-x-auto border-t border-line px-3 py-2 lg:hidden"
+              className="flex gap-1.5 overflow-x-auto border-t border-line bg-paper/40 px-3 py-2 sm:px-7"
               aria-label="Submenus de personalização"
             >
               {PERSONALIZATION_SECTIONS.map((section) => (
@@ -494,10 +487,32 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                   type="button"
                   onClick={() => setActivePersonalizationSection(section.id)}
                   aria-current={activePersonalizationSection === section.id ? "page" : undefined}
-                  className={`shrink-0 rounded-full px-3 py-2 text-sm ${
+                  className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                     activePersonalizationSection === section.id
                       ? "bg-pine text-white"
-                      : "text-ink-soft hover:bg-paper"
+                      : "text-ink-soft hover:bg-card hover:text-ink"
+                  }`}
+                >
+                  {section.label}
+                </button>
+              ))}
+            </nav>
+          ) : null}
+          {isUserAccountSection ? (
+            <nav
+              className="flex gap-1.5 overflow-x-auto border-t border-line bg-paper/40 px-3 py-2 sm:px-7"
+              aria-label="Submenus da minha conta"
+            >
+              {USER_ACCOUNT_SECTIONS.map((section) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => setActiveUserAccountSection(section.id)}
+                  aria-current={activeUserAccountSection === section.id ? "page" : undefined}
+                  className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    activeUserAccountSection === section.id
+                      ? "bg-pine text-white"
+                      : "text-ink-soft hover:bg-card hover:text-ink"
                   }`}
                 >
                   {section.label}
@@ -523,10 +538,20 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
           >
             {isAccessSection ? (
               accessPanel
+            ) : isUserAccountSection ? (
+              <UserProfileMenu
+                user={user}
+                onLogout={onLogout}
+                inline
+                activeTab={activeUserAccountSection}
+                onTabChange={setActiveUserAccountSection}
+              />
             ) : isRegistrySection ? (
               <AdminRegistriesSection
-                activeTab={activeRegistrySection}
-                onTabChange={setActiveRegistrySection}
+                activeTab={activeRegistryTab}
+                onTabChange={(nextTab) =>
+                  setActiveSection(nextTab === "informacoes" ? "ficha-tecnica" : "temas-musicas")
+                }
                 songs={visibleSongs}
                 loadingSongs={loadingSongs}
                 onSongSaved={handleSongSavedFromRegistry}
@@ -562,14 +587,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                     Não foi possível carregar o catálogo: {loadError}
                   </p>
                 ) : null}
-                {activeSection === "home" ? (
-                  <HomeSection
-                    totalSongs={songs.length}
-                    editing={editing}
-                    selectedSong={selectedSong}
-                    form={form}
-                  />
-                ) : activeSection === "letra" ? (
+                {activeSection === "letra" ? (
                   <>
                     <SongPickerSection
                       songs={visibleSongs}
@@ -616,6 +634,13 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                 form={form}
                 number={number}
                 previewMode={previewMode}
+                onPreviewModeChange={setCustomPreviewMode}
+                customPreviewTheme={customPreviewTheme}
+                onTogglePreviewTheme={(nextTheme) => setCustomPreviewTheme(nextTheme)}
+                onOpenExpand={(nextOrientation) => {
+                  if (nextOrientation) setPreviewOrientation(nextOrientation);
+                  setPreviewOpen(true);
+                }}
                 editing={editing}
                 orientation="portrait"
               />
@@ -628,6 +653,9 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
           form={form}
           number={number}
           previewMode={previewMode}
+          onPreviewModeChange={setCustomPreviewMode}
+          customPreviewTheme={customPreviewTheme}
+          onTogglePreviewTheme={(nextTheme) => setCustomPreviewTheme(nextTheme)}
           editing={editing}
           orientation={previewOrientation}
           onOrientationChange={setPreviewOrientation}
@@ -638,29 +666,33 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
   );
 }
 
-function SidebarButton({ active, icon: Icon, onClick, children }) {
+function SidebarButton({ active, collapsed = false, icon: Icon, label, onClick, children }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-current={active ? "page" : undefined}
-      className={`flex h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium transition-colors ${
-        active ? "bg-pine text-white" : "text-ink-soft hover:bg-paper hover:text-ink"
+      aria-label={collapsed ? label : undefined}
+      title={collapsed ? label : undefined}
+      className={`group relative flex h-9 w-full items-center rounded-md text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine ${
+        collapsed ? "justify-center px-0" : "gap-2.5 px-3 text-left"
+      } ${
+        active
+          ? "bg-paper font-semibold text-ink before:absolute before:bottom-1.5 before:left-0 before:top-1.5 before:w-0.5 before:rounded-r-full before:bg-pine"
+          : "font-medium text-ink-soft hover:bg-paper/75 hover:text-ink"
       }`}
     >
-      <span
-        className={`flex h-7 w-7 items-center justify-center rounded-lg ${
-          active ? "bg-white/15 text-white" : "bg-paper text-pine"
+      <Icon
+        className={`h-[17px] w-[17px] shrink-0 transition-colors ${
+          active ? "text-pine" : "text-ink-soft/80 group-hover:text-ink"
         }`}
-      >
-        <Icon className="h-5 w-5 shrink-0" />
-      </span>
-      {children}
+      />
+      {!collapsed ? <span className="truncate">{children}</span> : null}
     </button>
   );
 }
 
-function HomeIcon({ className }) {
+function SongMetadataIcon({ className }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -672,9 +704,33 @@ function HomeIcon({ className }) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="m3.5 10 8.5-7 8.5 7" />
-      <path d="M5.5 9v11h13V9" />
-      <path d="M9.5 20v-6h5v6" />
+      <rect x="4" y="3.5" width="16" height="17" rx="2" />
+      <path d="M8 8.5h8" />
+      <path d="M8 12.5h8" />
+      <path d="M8 16.5h5" />
+    </svg>
+  );
+}
+
+function SidebarCollapseIcon({ collapsed, className }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="2.5" />
+      <path d="M9 4v16" />
+      {collapsed ? (
+        <path d="m13 9 3 3-3 3" />
+      ) : (
+        <path d="m15 9-3 3 3 3" />
+      )}
     </svg>
   );
 }
@@ -767,6 +823,24 @@ function PeopleIcon({ className }) {
   );
 }
 
+function UserAccountIcon({ className }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M4.5 19.5a7.5 7.5 0 0 1 15 0" />
+    </svg>
+  );
+}
+
 function RegistryIcon({ className }) {
   return (
     <svg
@@ -844,37 +918,6 @@ function ProjectExportIcon({ className }) {
   );
 }
 
-function HomeSection({
-  totalSongs,
-  editing,
-  form,
-  selectedSong,
-}) {
-  return (
-    <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <SummaryCard label="Músicas no catálogo" value={totalSongs} />
-        <SummaryCard
-          label="Estado da edição"
-          value={editing ? (selectedSong ? "Editando música" : "Nova música") : "Nenhuma selecionada"}
-        />
-      </div>
-      <section className="rounded-2xl border border-line bg-card p-5 shadow-sm sm:p-6">
-        <h3 className="text-base font-semibold">Editor de músicas</h3>
-        <p className="mt-1 text-sm leading-6 text-ink-soft">
-          Gerencie cada música nas seções Letra, Vozes e Cifra. A seleção, o título e o conteúdo
-          principal ficam em Letra; as demais seções cuidam do arranjo e dos acordes.
-        </p>
-        {editing ? (
-          <p className="mt-4 rounded-xl bg-paper px-4 py-3 text-sm font-medium">
-            Em edição: {form.titulo.trim() || "Nova música"}
-          </p>
-        ) : null}
-      </section>
-    </div>
-  );
-}
-
 function SongPickerSection({
   songs,
   totalSongs,
@@ -888,35 +931,70 @@ function SongPickerSection({
 }) {
   return (
     <section
-      className={`overflow-hidden rounded-2xl border border-line bg-card shadow-sm ${
+      className={`overflow-hidden rounded-lg border border-line bg-card ${
         fillHeight ? "flex min-h-0 flex-1 flex-col" : ""
       }`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
         <div>
-          <h3 className="text-base font-semibold">Música</h3>
-          <p className="mt-1 text-sm text-ink-soft">
-            Selecione uma música ou crie um novo registro.
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold tracking-tight text-ink">Catálogo de músicas</h3>
+            {!loading ? (
+              <span className="inline-flex items-center rounded-md border border-line bg-paper px-2 py-0.5 font-mono text-[11px] font-medium tabular-nums text-ink-soft">
+                {totalSongs}
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-0.5 text-xs text-ink-soft">
+            Selecione uma música na lista para editar ou crie um novo registro.
           </p>
         </div>
         <button
           type="button"
           onClick={onNew}
-          className="h-10 rounded-lg bg-pine px-4 text-sm font-semibold text-white hover:bg-pine-dark"
+          className="inline-flex h-8.5 items-center gap-1.5 rounded-md bg-pine px-3.5 text-xs font-semibold text-white transition-all hover:bg-pine-dark active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine sm:h-9"
         >
+          <span aria-hidden className="text-sm leading-none">
+            +
+          </span>
           Nova música
         </button>
       </div>
       {totalSongs ? (
-        <div className="border-b border-line p-4">
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => onSearch(event.target.value)}
-            placeholder="Buscar no catálogo"
-            aria-label="Buscar músicas"
-            className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
-          />
+        <div className="border-b border-line bg-paper/40 px-4 py-2.5 sm:px-5">
+          <div className="relative flex items-center">
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden
+              className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-ink-soft"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.8-3.8" />
+            </svg>
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => onSearch(event.target.value)}
+              placeholder="Filtrar por número, título ou trecho da letra…"
+              aria-label="Buscar músicas"
+              className="h-9 w-full rounded-md border border-line bg-paper pl-8.5 pr-8 text-xs transition-shadow outline-none focus:border-pine/60 focus:ring-1 focus:ring-pine sm:text-sm"
+            />
+            {search ? (
+              <button
+                type="button"
+                onClick={() => onSearch("")}
+                aria-label="Limpar busca"
+                className="absolute right-2 inline-flex h-6 w-6 items-center justify-center rounded-md text-ink-soft hover:bg-card hover:text-ink"
+              >
+                ×
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : null}
       {loading ? (
@@ -924,36 +1002,78 @@ function SongPickerSection({
       ) : songs.length ? (
         <ul
           className={`divide-y divide-line overflow-y-auto ${
-            fillHeight ? "min-h-0 flex-1" : "max-h-64"
+            fillHeight ? "min-h-0 flex-1" : "max-h-60"
           }`}
         >
-          {songs.map((song) => (
-            <li key={song.id} className="flex items-center gap-3 px-4 py-3 sm:px-5">
-              <span className="w-10 shrink-0 text-right font-mono text-xs tabular-nums text-ink-soft">
-                {String(song.numero).padStart(3, "0")}
-              </span>
-              <button
-                type="button"
-                onClick={() => onSelect(song)}
-                aria-current={selectedId === song.id ? "true" : undefined}
-                className={`min-w-0 flex-1 rounded-lg px-2 py-1 text-left ${
-                  selectedId === song.id ? "bg-pine/10 text-pine" : "hover:bg-paper"
-                }`}
-              >
-                <span className="block truncate text-sm font-medium">{song.titulo}</span>
-                <span className="mt-0.5 block text-xs text-ink-soft">
-                  {song.audioArquivo ? "Com demonstração" : "Sem demonstração"}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onSelect(song)}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-pine hover:bg-pine/5"
-              >
-                Editar
-              </button>
-            </li>
-          ))}
+          {songs.map((song) => {
+            const isSelected = selectedId === song.id;
+            return (
+              <li key={song.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(song)}
+                  aria-current={isSelected ? "true" : undefined}
+                  className={`group relative flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pine sm:px-5 ${
+                    isSelected
+                      ? "bg-paper before:absolute before:bottom-0 before:left-0 before:top-0 before:w-0.5 before:bg-pine"
+                      : "hover:bg-paper/65"
+                  }`}
+                >
+                  <span
+                    className={`inline-flex w-10 shrink-0 items-center justify-center rounded border py-0.5 font-mono text-xs font-medium tabular-nums transition-colors ${
+                      isSelected
+                        ? "border-pine/40 bg-pine/15 text-ink"
+                        : "border-line bg-paper text-ink-soft group-hover:text-ink"
+                    }`}
+                  >
+                    {String(song.numero).padStart(3, "0")}
+                  </span>
+
+                  <span
+                    className={`min-w-0 flex-1 truncate text-sm transition-colors ${
+                      isSelected ? "font-semibold text-ink" : "font-medium text-ink"
+                    }`}
+                  >
+                    {song.titulo}
+                  </span>
+
+                  {song.audioArquivo ? (
+                    <span
+                      title="Com demonstração de áudio"
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded border border-line bg-paper px-2 py-0.5 text-[11px] font-medium text-ink"
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      <span className="hidden sm:inline">Com áudio</span>
+                    </span>
+                  ) : (
+                    <span
+                      title="Sem demonstração de áudio"
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded border border-line/70 bg-paper/50 px-2 py-0.5 text-[11px] text-ink-soft/75"
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-ink-soft/35" />
+                      <span className="hidden sm:inline">Sem áudio</span>
+                    </span>
+                  )}
+
+                  <span
+                    className={`inline-flex h-7 shrink-0 items-center gap-1 rounded border px-2 text-xs font-medium transition-all ${
+                      isSelected
+                        ? "border-pine/40 bg-pine/15 text-ink"
+                        : "border-transparent text-ink-soft group-hover:border-line group-hover:bg-card group-hover:text-ink"
+                    }`}
+                  >
+                    <span>{isSelected ? "Editando" : "Editar"}</span>
+                    <span
+                      aria-hidden
+                      className="transition-transform duration-150 group-hover:translate-x-0.5"
+                    >
+                      ›
+                    </span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <p className="px-5 py-6 text-sm text-ink-soft">
@@ -968,33 +1088,33 @@ function SongEditorSection({ section, form, onUpdate, onAudioChange, onClearAudi
   if (section === "letra") {
     return (
       <div className="space-y-5">
-        <section className="space-y-5 rounded-2xl border border-line bg-card p-5 shadow-sm sm:p-7">
+        <section className="space-y-5 rounded-lg border border-line bg-card p-5 sm:p-6">
           <div>
-            <h3 className="text-lg font-semibold">Informações da música</h3>
-            <p className="mt-1 text-sm text-ink-soft">
+            <h3 className="text-base font-semibold tracking-tight text-ink">Informações da música</h3>
+            <p className="mt-1 text-xs text-ink-soft sm:text-sm">
               Defina o título e a demonstração de áudio junto com o conteúdo principal.
             </p>
           </div>
           <label className="block space-y-2">
-            <span className="text-sm font-medium">Título</span>
+            <span className="text-xs font-medium text-ink-soft sm:text-sm">Título</span>
             <input
               value={form.titulo}
               onChange={(event) => onUpdate({ titulo: event.target.value })}
               maxLength={200}
               placeholder="Título da música"
-              className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
+              className="h-9.5 w-full rounded-md border border-line bg-paper px-3 text-sm outline-none focus:border-pine/60 focus:ring-1 focus:ring-pine"
             />
           </label>
-          <div className="space-y-3">
-            <span className="block text-sm font-medium">Demonstração de áudio</span>
+          <div className="space-y-2.5">
+            <span className="block text-xs font-medium text-ink-soft sm:text-sm">Demonstração de áudio</span>
             {form.audioDataUrl || (form.audioArquivo && !form.removeAudio) ? (
-              <div className="space-y-3 rounded-xl border border-line bg-paper p-4">
+              <div className="space-y-3 rounded-md border border-line bg-paper p-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="min-w-0 flex-1 truncate text-sm">
+                  <span className="min-w-0 flex-1 truncate font-mono text-xs text-ink sm:text-sm">
                     {form.audioNome || form.audioArquivo}
                   </span>
                   <div className="flex gap-2">
-                    <label className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-line bg-card px-3 text-sm hover:bg-paper">
+                    <label className="inline-flex h-8 cursor-pointer items-center rounded-md border border-line bg-card px-3 text-xs font-medium hover:bg-paper">
                       Trocar áudio
                       <input
                         type="file"
@@ -1006,7 +1126,7 @@ function SongEditorSection({ section, form, onUpdate, onAudioChange, onClearAudi
                     <button
                       type="button"
                       onClick={onClearAudio}
-                      className="h-9 rounded-lg border border-danger/30 px-3 text-sm text-danger hover:bg-danger-soft"
+                      className="h-8 rounded-md border border-danger/30 px-3 text-xs font-medium text-danger hover:bg-danger-soft"
                     >
                       Remover
                     </button>
@@ -1016,13 +1136,33 @@ function SongEditorSection({ section, form, onUpdate, onAudioChange, onClearAudi
                   controls
                   preload="metadata"
                   src={form.audioDataUrl || getAudioUrl(form.audioArquivo)}
-                  className="h-10 w-full"
+                  className="h-9 w-full"
                 />
               </div>
             ) : (
-              <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-line bg-paper px-4 py-5 text-center text-sm text-ink-soft hover:border-pine/50">
-                <span className="font-medium text-ink">Adicionar demonstração</span>
-                <span className="mt-1">MP3, WAV, M4A, OGG e outros formatos de áudio</span>
+              <label className="group flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-line bg-paper/60 px-4 py-5 text-center text-sm text-ink-soft transition-all duration-150 hover:border-ink-soft/50 hover:bg-paper">
+                <span className="mb-1.5 inline-flex h-8 w-8 items-center justify-center rounded-md border border-line bg-card text-ink-soft transition-transform duration-150 group-hover:scale-105 group-hover:text-ink">
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.9"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9 18V5l12-2v13" />
+                    <circle cx="6" cy="18" r="3" />
+                    <circle cx="18" cy="16" r="3" />
+                  </svg>
+                </span>
+                <span className="text-xs font-medium text-ink sm:text-sm">
+                  Adicionar demonstração de áudio
+                </span>
+                <span className="mt-0.5 text-xs text-ink-soft">
+                  MP3, WAV, M4A, OGG e outros formatos de áudio
+                </span>
                 <input
                   type="file"
                   accept="audio/*,.mp1,.mp2,.mp3,.mpeg,.wav,.m4a,.ogg,.aac,.flac"
@@ -1033,15 +1173,15 @@ function SongEditorSection({ section, form, onUpdate, onAudioChange, onClearAudi
             )}
           </div>
         </section>
-        <section className="space-y-6 rounded-2xl border border-line bg-card p-5 shadow-sm sm:p-7">
+        <section className="space-y-6 rounded-lg border border-line bg-card p-5 sm:p-6">
           <div>
-            <h3 className="text-lg font-semibold">Letra e refrão</h3>
-            <p className="mt-1 text-sm text-ink-soft">
+            <h3 className="text-base font-semibold tracking-tight text-ink">Letra e refrão</h3>
+            <p className="mt-1 text-xs text-ink-soft sm:text-sm">
               Edite o texto que será exibido no aplicativo.
             </p>
           </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium">Letra</label>
+          <label className="text-xs font-medium text-ink-soft sm:text-sm">Letra</label>
           <LyricEditor
             label="Letra"
             text={form.letra}
@@ -1053,7 +1193,7 @@ function SongEditorSection({ section, form, onUpdate, onAudioChange, onClearAudi
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium">Refrão</label>
+          <label className="text-xs font-medium text-ink-soft sm:text-sm">Refrão</label>
           <LyricEditor
             label="Refrão"
             text={form.refrao}
@@ -1088,10 +1228,10 @@ function SongEditorSection({ section, form, onUpdate, onAudioChange, onClearAudi
 
   if (section === "vozes") {
     return (
-      <section className="space-y-5 rounded-2xl border border-line bg-card p-5 shadow-sm sm:p-7">
+      <section className="space-y-5 rounded-lg border border-line bg-card p-5 sm:p-6">
         <div>
-          <h3 className="text-lg font-semibold">Arranjo de vozes</h3>
-          <p className="mt-1 text-sm text-ink-soft">
+          <h3 className="text-base font-semibold tracking-tight text-ink">Arranjo de vozes</h3>
+          <p className="mt-1 text-xs text-ink-soft sm:text-sm">
             Selecione trechos do texto para marcar cada voz. A prévia à direita atualiza em tempo real.
           </p>
         </div>
@@ -1107,10 +1247,10 @@ function SongEditorSection({ section, form, onUpdate, onAudioChange, onClearAudi
   }
 
   return (
-    <section className="space-y-6 rounded-2xl border border-line bg-card p-5 shadow-sm sm:p-7">
+    <section className="space-y-6 rounded-lg border border-line bg-card p-5 sm:p-6">
       <div>
-        <h3 className="text-lg font-semibold">Cifras</h3>
-        <p className="mt-1 text-sm text-ink-soft">
+        <h3 className="text-base font-semibold tracking-tight text-ink">Cifras</h3>
+        <p className="mt-1 text-xs text-ink-soft sm:text-sm">
           Associe os acordes às linhas. A visualização mobile mostra a cifra como será lida no app.
         </p>
       </div>
@@ -1138,7 +1278,7 @@ function SongEditorSection({ section, form, onUpdate, onAudioChange, onClearAudi
 
 function CheckOption({ checked, onChange, title, description }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line p-4 hover:bg-paper/60">
+    <label className="flex cursor-pointer items-start gap-3 rounded-md border border-line p-3.5 hover:bg-paper/60">
       <input
         type="checkbox"
         checked={checked}
@@ -1155,12 +1295,12 @@ function CheckOption({ checked, onChange, title, description }) {
 
 function EmptyEditorSection({ section, onCreate, onGoToLyrics, hasSongs }) {
   return (
-    <section className="rounded-2xl border border-line bg-card p-8 text-center shadow-sm sm:p-12">
-      <p className="text-xs font-semibold uppercase tracking-wide text-pine">
+    <section className="rounded-lg border border-line bg-card p-8 text-center sm:p-12">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
         {SECTION_TITLES[section]}
       </p>
-      <h3 className="mt-2 text-xl font-semibold">Selecione uma música para editar</h3>
-      <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-ink-soft">
+      <h3 className="mt-2 text-lg font-semibold text-ink">Selecione uma música para editar</h3>
+      <p className="mx-auto mt-1.5 max-w-lg text-sm leading-6 text-ink-soft">
         {hasSongs
           ? "Escolha uma música na aba Letra para editar o arranjo ou as cifras."
           : "Crie a primeira música pela aba Letra. O editor e a prévia mobile ficam lado a lado."}
@@ -1168,7 +1308,7 @@ function EmptyEditorSection({ section, onCreate, onGoToLyrics, hasSongs }) {
       <button
         type="button"
         onClick={hasSongs ? onGoToLyrics : onCreate}
-        className="mt-6 h-11 rounded-lg bg-pine px-5 text-sm font-semibold text-white hover:bg-pine-dark"
+        className="mt-6 h-9.5 rounded-md bg-pine px-4 text-sm font-semibold text-white hover:bg-pine-dark"
       >
         {hasSongs ? "Selecionar na aba Letra" : "Criar primeira música"}
       </button>
@@ -1180,19 +1320,43 @@ function MobilePreview({
   form,
   number,
   previewMode,
+  onPreviewModeChange,
+  customPreviewTheme,
+  onTogglePreviewTheme,
+  onOpenExpand,
   editing,
   orientation = "portrait",
   modal = false,
 }) {
   const { appName } = getAppSettings();
+  const globalTheme = useTheme();
+  const currentAccentId = useAccent();
   const [tooltipOpen, setTooltipOpen] = useState(false);
+
+  const effectiveTheme = customPreviewTheme || globalTheme;
+  const isPreviewDark = effectiveTheme === "dark";
+  const accentOption =
+    ACCENT_OPTIONS.find((option) => option.id === currentAccentId) || ACCENT_OPTIONS[0];
+
+  const previewVars = {
+    "--paper": isPreviewDark ? accentOption.darkPaper : accentOption.paper,
+    "--card": isPreviewDark ? accentOption.darkCard : accentOption.card,
+    "--ink": isPreviewDark ? accentOption.darkInk : accentOption.ink,
+    "--ink-soft": isPreviewDark ? accentOption.darkInkSoft : accentOption.inkSoft,
+    "--line": isPreviewDark ? accentOption.darkLine : accentOption.line,
+    "--pine": isPreviewDark ? accentOption.darkPine : accentOption.pine,
+    "--pine-dark": isPreviewDark ? accentOption.darkPineDark : accentOption.pineDark,
+    "--voice-men": isPreviewDark ? "96 165 250" : "29 78 216",
+    "--voice-women": isPreviewDark ? "56 189 248" : "2 132 199",
+  };
+
   const previewLabel = PREVIEW_MODES.find((mode) => mode.id === previewMode)?.label || "Letra";
   const deviceHeight =
     orientation === "landscape"
       ? "h-[min(420px,calc(100dvh-180px))] min-h-[260px]"
       : modal
         ? "h-[min(620px,calc(100dvh-180px))] min-h-[300px]"
-        : "h-[min(620px,calc(100dvh-225px))] min-h-[430px]";
+        : "h-[min(620px,calc(100dvh-245px))] min-h-[430px]";
   const barHeight = orientation === "landscape" ? "h-11" : "h-14";
   const hasAudio = Boolean(form.audioDataUrl || (form.audioArquivo && !form.removeAudio));
   const hasContent = Boolean(
@@ -1205,51 +1369,114 @@ function MobilePreview({
         orientation === "landscape" ? "max-w-[820px]" : "max-w-[380px]"
       }`}
     >
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <div>
-          <div className="flex items-center gap-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-pine">Prévia ao vivo</p>
-            <div
-              className="group relative inline-flex items-center"
-              onMouseLeave={() => setTooltipOpen(false)}
+      <div className="mb-2.5 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">Prévia ao vivo</p>
+          <div
+            className="group relative inline-flex items-center"
+            onMouseLeave={() => setTooltipOpen(false)}
+          >
+            <button
+              type="button"
+              aria-label="Informações sobre a prévia"
+              aria-expanded={tooltipOpen}
+              onClick={() => setTooltipOpen((prev) => !prev)}
+              onBlur={() => setTooltipOpen(false)}
+              className="inline-flex h-5 w-5 items-center justify-center rounded border border-line bg-card text-[11px] font-bold text-ink-soft transition-colors hover:border-ink-soft/50 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
             >
-              <button
-                type="button"
-                aria-label="Informações sobre a prévia"
-                aria-expanded={tooltipOpen}
-                onClick={() => setTooltipOpen((prev) => !prev)}
-                onBlur={() => setTooltipOpen(false)}
-                className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-line bg-card text-[11px] font-bold text-ink-soft transition-colors hover:border-pine hover:text-pine focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
-              >
-                i
-              </button>
-              <div
-                role="tooltip"
-                className={`pointer-events-none absolute left-0 top-full z-30 mt-2 w-60 rounded-xl border border-line bg-card px-3 py-2 text-xs font-normal leading-relaxed text-ink shadow-lg transition-all duration-150 ${
-                  tooltipOpen
-                    ? " visible translate-y-0 opacity-100"
-                    : "invisible -translate-y-1 opacity-0 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100"
-                }`}
-              >
-                <span
-                  aria-hidden
-                  className="absolute -top-1.5 left-2 h-2.5 w-2.5 rotate-45 border-l border-t border-line bg-card"
-                />
-                A prévia é somente visualização. As edições são feitas nesta tela web.
-              </div>
+              i
+            </button>
+            <div
+              role="tooltip"
+              className={`pointer-events-none absolute left-0 top-full z-30 mt-2 w-60 rounded-lg border border-line bg-card px-3 py-2 text-xs font-normal leading-relaxed text-ink shadow-lg transition-all duration-150 ${
+                tooltipOpen
+                  ? " visible translate-y-0 opacity-100"
+                  : "invisible -translate-y-1 opacity-0 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100"
+              }`}
+            >
+              <span
+                aria-hidden
+                className="absolute -top-1.5 left-2 h-2.5 w-2.5 rotate-45 border-l border-t border-line bg-card"
+              />
+              A prévia é somente visualização. Alterne abaixo entre Letra, Vozes, Cifra ou tema Claro/Escuro para testar a leitura.
             </div>
           </div>
-          <p className="mt-1 text-xs text-ink-soft">
-            {previewLabel} · {orientation === "landscape" ? "Paisagem" : "Retrato"}
-          </p>
         </div>
-        <span aria-hidden className="text-xs font-semibold text-ink-soft">
-          {orientation === "landscape" ? "PAISAGEM" : "MOBILE"}
+        <span className="font-mono text-[11px] font-medium text-ink-soft">
+          {orientation === "landscape" ? "Paisagem" : "Retrato"} · {isPreviewDark ? "Escuro" : "Claro"}
         </span>
       </div>
+
+      {/* Barra de controles rápidos da prévia */}
+      <div className="mb-3.5 flex flex-wrap items-center justify-between gap-1.5 rounded-lg border border-line bg-card p-1">
+        <div
+          className="inline-flex rounded-md bg-paper p-0.5"
+          role="group"
+          aria-label="Modo de visualização da prévia"
+        >
+          {PREVIEW_MODES.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => onPreviewModeChange?.(mode.id)}
+              aria-pressed={previewMode === mode.id}
+              className={`rounded px-2.5 py-1 text-xs font-semibold transition-colors ${
+                previewMode === mode.id
+                  ? "bg-card text-ink shadow-2xs ring-1 ring-line"
+                  : "text-ink-soft hover:text-ink"
+              }`}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1">
+          {onTogglePreviewTheme ? (
+            <button
+              type="button"
+              onClick={() => onTogglePreviewTheme(isPreviewDark ? "light" : "dark")}
+              aria-label={
+                isPreviewDark
+                  ? "Alternar prévia para tema claro"
+                  : "Alternar prévia para tema escuro"
+              }
+              title={
+                isPreviewDark
+                  ? "Testar prévia em modo claro"
+                  : "Testar prévia em modo escuro"
+              }
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-line bg-paper px-2 text-xs font-medium text-ink-soft transition-colors hover:border-ink-soft/40 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
+            >
+              {isPreviewDark ? (
+                <SunMiniIcon className="h-3.5 w-3.5 text-ink" />
+              ) : (
+                <MoonMiniIcon className="h-3.5 w-3.5 text-ink" />
+              )}
+              <span>{isPreviewDark ? "Claro" : "Escuro"}</span>
+            </button>
+          ) : null}
+
+          {!modal && onOpenExpand ? (
+            <button
+              type="button"
+              onClick={() => onOpenExpand("landscape")}
+              aria-label="Expandir prévia para testar modo paisagem"
+              title="Expandir simulador (Retrato / Paisagem)"
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-line bg-paper px-2 text-xs font-medium text-ink-soft transition-colors hover:border-ink-soft/40 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
+            >
+              <ExpandMiniIcon className="h-3.5 w-3.5" />
+              <span>Paisagem</span>
+            </button>
+          ) : null}
+        </div>
+      </div>
+
       <div className="mx-auto w-full overflow-hidden rounded-[2.2rem] border-[6px] border-neutral-800 bg-neutral-900 p-1.5 shadow-xl ring-1 ring-black/20">
         <div
-          className={`flex ${deviceHeight} flex-col overflow-hidden rounded-[1.8rem] bg-paper text-ink`}
+          style={previewVars}
+          data-theme={effectiveTheme}
+          className={`flex ${deviceHeight} flex-col overflow-hidden rounded-[1.8rem] bg-paper text-ink transition-colors duration-200`}
         >
           {/* Barra de status do celular */}
           <div
@@ -1344,36 +1571,35 @@ function MobilePreview({
           <div className="shrink-0 border-t border-line bg-card">
             <nav
               aria-label="Controles da música"
-              className="grid grid-cols-2"
+              className="grid grid-cols-3"
             >
-              <div
-                role="status"
-                aria-label={`Visualização atual: ${previewLabel}`}
-                className={`flex items-center justify-center text-pine ${
-                  orientation === "landscape"
-                    ? "h-9 flex-row gap-1.5 text-[11px]"
-                    : "h-12 flex-col gap-0.5 text-[11px]"
-                } font-medium`}
-              >
-                {previewMode === "letra" ? (
-                  <LyricIcon className="h-4 w-4 shrink-0" />
-                ) : previewMode === "vozes" ? (
-                  <VoicesPartsIcon className="h-4 w-4 shrink-0" />
-                ) : (
-                  <ChordIcon className="h-4 w-4 shrink-0" />
-                )}
-                {previewLabel}
-              </div>
-              <div
-                className={`flex items-center justify-center text-ink-soft ${
-                  orientation === "landscape"
-                    ? "h-9 flex-row gap-1.5 text-[11px]"
-                    : "h-12 flex-col gap-0.5 text-[11px]"
-                } font-medium`}
-              >
-                <SettingsIcon className="h-4 w-4 shrink-0" />
-                Configuração
-              </div>
+              {PREVIEW_MODES.map((mode) => {
+                const isModeActive = previewMode === mode.id;
+                const ModeIcon =
+                  mode.id === "letra"
+                    ? LyricIcon
+                    : mode.id === "vozes"
+                      ? VoicesPartsIcon
+                      : ChordIcon;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => onPreviewModeChange?.(mode.id)}
+                    aria-pressed={isModeActive}
+                    className={`flex items-center justify-center transition-colors ${
+                      orientation === "landscape"
+                        ? "h-9 flex-row gap-1.5 text-[11px]"
+                        : "h-12 flex-col gap-0.5 text-[11px]"
+                    } font-medium ${
+                      isModeActive ? "text-pine" : "text-ink-soft hover:text-ink"
+                    }`}
+                  >
+                    <ModeIcon className="h-4 w-4 shrink-0" />
+                    {mode.label}
+                  </button>
+                );
+              })}
             </nav>
             <div aria-hidden className="flex justify-center pb-1.5 pt-0.5">
               <span className="h-1 w-24 rounded-full bg-ink/20" />
@@ -1382,6 +1608,58 @@ function MobilePreview({
         </div>
       </div>
     </div>
+  );
+}
+
+function SunMiniIcon({ className }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+    </svg>
+  );
+}
+
+function MoonMiniIcon({ className }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
+function ExpandMiniIcon({ className }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+    </svg>
   );
 }
 
@@ -1437,6 +1715,9 @@ function PreviewModal({
   form,
   number,
   previewMode,
+  onPreviewModeChange,
+  customPreviewTheme,
+  onTogglePreviewTheme,
   editing,
   orientation,
   onOrientationChange,
@@ -1505,21 +1786,15 @@ function PreviewModal({
             form={form}
             number={number}
             previewMode={previewMode}
+            onPreviewModeChange={onPreviewModeChange}
+            customPreviewTheme={customPreviewTheme}
+            onTogglePreviewTheme={onTogglePreviewTheme}
             editing={editing}
             orientation={orientation}
             modal
           />
         </div>
       </section>
-    </div>
-  );
-}
-
-function SummaryCard({ label, value }) {
-  return (
-    <div className="rounded-2xl border border-line bg-card p-5 shadow-sm">
-      <p className="text-sm text-ink-soft">{label}</p>
-      <p className="mt-2 truncate text-xl font-semibold">{value}</p>
     </div>
   );
 }

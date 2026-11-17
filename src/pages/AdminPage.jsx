@@ -101,9 +101,9 @@ export default function AdminPage() {
   const showSetup = setupRequired === true;
   const showRegistration = showSetup;
   const accessPanel = (
-    <section className="max-w-4xl overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
+    <section className="max-w-4xl overflow-hidden rounded-lg border border-line bg-card">
         <div className="border-b border-line px-5 py-4 sm:px-6">
-          <h2 className="text-base font-semibold text-ink">Pessoas e acessos</h2>
+          <h2 className="text-base font-semibold text-ink">Equipe & Acessos</h2>
           <p className="mt-1 text-sm text-ink-soft">
             Lista somente para administradores. O painel não cadastra nem remove outras contas.
           </p>
@@ -115,27 +115,27 @@ export default function AdminPage() {
             {people.map((person) => {
               const personFullName = [person.name, person.lastName].filter(Boolean).join(" ").trim();
               return (
-                <li key={person.id} className="flex items-center gap-4 px-5 py-4 sm:px-6">
+                <li key={person.id} className="flex items-center gap-4 px-5 py-3.5 sm:px-6">
                   {person.avatarUrl ? (
                     <img
                       src={person.avatarUrl}
                       alt={personFullName}
-                      className="h-10 w-10 shrink-0 rounded-full border border-line object-cover"
+                      className="h-9 w-9 shrink-0 rounded-md border border-line object-cover"
                     />
                   ) : (
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pine/10 text-sm font-semibold text-pine">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-line bg-paper text-xs font-semibold text-ink">
                       {person.name.slice(0, 1).toUpperCase()}
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-ink">{personFullName}</p>
-                    <p className="truncate text-sm text-ink-soft">
+                    <p className="truncate text-xs text-ink-soft">
                       {person.email}
                       {person.phone ? ` · ${person.phone}` : ""}
                     </p>
                   </div>
-                  <span className="hidden rounded-full bg-paper px-3 py-1 text-xs font-medium text-ink-soft sm:inline-flex">
-                    {person.role === "admin" ? "Administrador" : "Pessoa"}
+                  <span className="hidden rounded-md border border-line bg-paper px-2.5 py-1 text-xs font-medium text-ink-soft sm:inline-flex">
+                    {person.role === "admin" ? "Administrador" : "Membro"}
                   </span>
                 </li>
               );
@@ -158,7 +158,7 @@ export default function AdminPage() {
         <button
           type="button"
           onClick={deleteOwnAccount}
-          className="h-10 rounded-lg border border-danger/30 px-4 text-sm font-medium text-danger hover:bg-danger-soft"
+          className="h-9 rounded-md border border-danger/30 px-3.5 text-xs font-medium text-danger hover:bg-danger-soft sm:text-sm"
         >
           Excluir minha conta
         </button>
@@ -168,27 +168,29 @@ export default function AdminPage() {
 
   if (user?.role === "admin") {
     return (
-      <AdminContentPage
-        user={user}
-        onLogout={signOut}
-        accessPanel={accessPanel}
-      />
+      <div className="admin-studio-shell h-full w-full bg-paper text-ink">
+        <AdminContentPage
+          user={user}
+          onLogout={signOut}
+          accessPanel={accessPanel}
+        />
+      </div>
     );
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col">
-      <header className="flex h-16 shrink-0 items-center gap-3 border-b border-pine-dark bg-pine px-4 text-white shadow-sm sm:px-8">
+    <div className="admin-studio-shell flex h-full min-h-0 flex-1 flex-col bg-paper text-ink">
+      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-card px-4 text-ink sm:px-8">
         <a
           href={getAppUrl()}
           aria-label={`Abrir ${appName}`}
-          className="-ml-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white/85 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          className="-ml-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-line bg-paper text-ink-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
         >
-          <span aria-hidden className="text-xl leading-none">‹</span>
+          <span aria-hidden className="text-lg leading-none">‹</span>
         </a>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">{appName}</p>
-          <h1 className="truncate text-lg font-semibold leading-tight">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">{appName}</p>
+          <h1 className="truncate text-base font-semibold leading-tight text-ink">
             {user?.role === "admin" ? "Painel de administração" : "Acesso administrativo"}
           </h1>
         </div>
@@ -198,11 +200,11 @@ export default function AdminPage() {
         {authLoading || (setupRequired === null && !setupError && available) ? (
           <p className="py-12 text-center text-sm text-ink-soft">Carregando…</p>
         ) : !available ? (
-          <p role="alert" className="rounded-2xl border border-line bg-paper p-4 text-sm text-danger">
+          <p role="alert" className="rounded-lg border border-line bg-card p-4 text-sm text-danger">
             A autenticação precisa da API Node.js. Inicie o servidor e tente novamente.
           </p>
         ) : user ? (
-            <section className="mx-auto w-full max-w-screen-lg rounded-2xl border border-line bg-card p-6 shadow-sm sm:p-8">
+            <section className="mx-auto w-full max-w-screen-lg rounded-lg border border-line bg-card p-6 sm:p-8">
               <p className="text-xs font-medium uppercase tracking-wide text-danger">Acesso restrito</p>
               <h2 className="mt-1 text-lg font-semibold text-ink">{user.name}</h2>
               <p className="text-sm text-ink-soft">
@@ -210,46 +212,46 @@ export default function AdminPage() {
               </p>
               <a
                 href={`${getAppUrl()}/conta`}
-                className="mt-4 inline-flex h-10 items-center rounded-xl bg-pine px-4 text-sm font-semibold text-white hover:bg-pine-dark"
+                className="mt-4 inline-flex h-9 items-center rounded-md bg-pine px-4 text-sm font-semibold text-white hover:bg-pine-dark"
               >
                 Ir para meu painel
               </a>
               <button
                 type="button"
                 onClick={signOut}
-                className="ml-2 mt-4 rounded-lg border border-line bg-card px-3 py-2 text-sm font-medium hover:bg-paper"
+                className="ml-2 mt-4 h-9 rounded-md border border-line bg-paper px-3 text-sm font-medium hover:bg-card"
               >
                 Sair
               </button>
               {formError ? <p role="alert" className="mt-3 text-sm text-danger">{formError}</p> : null}
             </section>
         ) : setupError ? (
-          <p role="alert" className="rounded-2xl border border-line bg-paper p-4 text-sm text-danger">
+          <p role="alert" className="rounded-lg border border-line bg-card p-4 text-sm text-danger">
             {setupError}
           </p>
         ) : (
-          <section className="mx-auto w-full max-w-lg space-y-5 rounded-2xl border border-line bg-card p-6 shadow-sm sm:p-8">
+          <section className="mx-auto w-full max-w-md space-y-5 rounded-lg border border-line bg-card p-6 sm:p-7">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-pine">
-                {showSetup ? "Configuração inicial" : "Área restrita"}
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
+                {showSetup ? "Configuração inicial" : "Credenciais do estúdio"}
               </p>
-              <h2 className="mt-1 text-xl font-semibold text-ink">
-                {showSetup ? "Criar administrador" : showRegistration ? "Cadastrar administrador" : "Entrar"}
+              <h2 className="mt-1 text-lg font-semibold text-ink">
+                {showSetup ? "Criar administrador" : showRegistration ? "Cadastrar administrador" : "Entrar no painel"}
               </h2>
-              <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+              <p className="mt-1 text-xs leading-relaxed text-ink-soft sm:text-sm">
                 {showSetup
                   ? "Cadastre a primeira conta para proteger o painel e gerenciar os acessos."
                   : "Entre com o e-mail e a senha cadastrados pelo administrador."}
               </p>
             </div>
 
-            <form onSubmit={submitAccess} className="space-y-3">
+            <form onSubmit={submitAccess} className="space-y-3.5">
               {showRegistration ? (
                 <label className="block space-y-1">
                   <span className="text-xs font-medium text-ink-soft">Nome</span>
                   <input
                     autoComplete="name"
-                    className="h-11 w-full rounded-xl border border-line bg-card px-3 outline-none focus:ring-2 focus:ring-pine"
+                    className="h-10 w-full rounded-md border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
                     value={form.name}
                     onChange={updateForm("name")}
                     maxLength={80}
@@ -263,7 +265,7 @@ export default function AdminPage() {
                   <input
                     type="password"
                     autoComplete="off"
-                    className="h-11 w-full rounded-xl border border-line bg-card px-3 outline-none focus:ring-2 focus:ring-pine"
+                    className="h-10 w-full rounded-md border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
                     value={form.setupToken}
                     onChange={updateForm("setupToken")}
                     required
@@ -275,7 +277,7 @@ export default function AdminPage() {
                 <input
                   type="email"
                   autoComplete="username"
-                  className="h-11 w-full rounded-xl border border-line bg-card px-3 outline-none focus:ring-2 focus:ring-pine"
+                  className="h-10 w-full rounded-md border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
                   value={form.email}
                   onChange={updateForm("email")}
                   maxLength={254}
@@ -287,7 +289,7 @@ export default function AdminPage() {
                 <input
                   type="password"
                   autoComplete={showRegistration ? "new-password" : "current-password"}
-                  className="h-11 w-full rounded-xl border border-line bg-card px-3 outline-none focus:ring-2 focus:ring-pine"
+                  className="h-10 w-full rounded-md border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
                   value={form.password}
                   onChange={updateForm("password")}
                   minLength={8}
@@ -299,7 +301,7 @@ export default function AdminPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="h-11 w-full rounded-xl bg-pine px-4 text-sm font-semibold text-white hover:bg-pine-dark disabled:opacity-60"
+                className="h-10 w-full rounded-md bg-pine px-4 text-sm font-semibold text-white hover:bg-pine-dark disabled:opacity-60"
               >
                 {submitting
                   ? "Aguarde…"

@@ -7,6 +7,7 @@ import { getAppSettings } from "@/lib/appSettings.js";
 import { fieldsFromSong, payloadFromSongForm } from "@/lib/songEditor.js";
 import { filterSongs } from "@/lib/songs.js";
 import { useSongThemes } from "@/lib/songThemes.js";
+import { ACCENT_OPTIONS, useAccent, useTheme } from "@/lib/theme.js";
 
 const REGISTRY_TABS = [
   { id: "temas", label: "Temas das músicas" },
@@ -30,6 +31,20 @@ export default function AdminRegistriesSection({
   onSongSaved,
 }) {
   const { appName } = getAppSettings();
+  const currentTheme = useTheme();
+  const currentAccentId = useAccent();
+  const accentOption =
+    ACCENT_OPTIONS.find((option) => option.id === currentAccentId) || ACCENT_OPTIONS[0];
+  const isPreviewDark = currentTheme === "dark";
+  const appPreviewVars = {
+    "--paper": isPreviewDark ? accentOption.darkPaper : accentOption.paper,
+    "--card": isPreviewDark ? accentOption.darkCard : accentOption.card,
+    "--ink": isPreviewDark ? accentOption.darkInk : accentOption.ink,
+    "--ink-soft": isPreviewDark ? accentOption.darkInkSoft : accentOption.inkSoft,
+    "--line": isPreviewDark ? accentOption.darkLine : accentOption.line,
+    "--pine": isPreviewDark ? accentOption.darkPine : accentOption.pine,
+    "--pine-dark": isPreviewDark ? accentOption.darkPineDark : accentOption.pineDark,
+  };
   const {
     themes,
     error: themeError,
@@ -715,7 +730,10 @@ export default function AdminRegistriesSection({
           </div>
 
           <div className="mx-auto mt-4 max-w-[340px] rounded-[2.4rem] border-[6px] border-neutral-800 bg-neutral-900 p-1.5 shadow-xl ring-1 ring-black/20">
-            <div className="flex h-[min(600px,calc(100dvh-230px))] min-h-[450px] flex-col overflow-hidden rounded-[2rem] bg-paper text-ink">
+            <div
+              style={appPreviewVars}
+              className="flex h-[min(600px,calc(100dvh-230px))] min-h-[450px] flex-col overflow-hidden rounded-[2rem] bg-paper text-ink"
+            >
               <div
                 aria-hidden
                 className="flex h-7 shrink-0 items-center justify-between bg-pine px-4 pt-1 text-[11px] font-semibold tracking-tight text-white select-none"
