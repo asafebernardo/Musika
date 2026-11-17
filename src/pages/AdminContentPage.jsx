@@ -17,12 +17,22 @@ import { emptySongForm, fieldsFromSong, payloadFromSongForm } from "@/lib/songEd
 import { filterSongs, withNumbers } from "@/lib/songs.js";
 import { getAppSettings } from "@/lib/appSettings.js";
 import AdminPersonalizationSection from "@/pages/AdminPersonalizationSection.jsx";
+import AdminRegistriesSection from "@/pages/AdminRegistriesSection.jsx";
+import AdminFinalPreviewSection from "@/pages/AdminFinalPreviewSection.jsx";
+import AdminProjectExportSection from "@/pages/AdminProjectExportSection.jsx";
+import AdminSlidesEditorSection from "@/pages/AdminSlidesEditorSection.jsx";
+import UserProfileMenu from "@/components/UserProfileMenu.jsx";
 
 const EDIT_SECTIONS = [
   { id: "home", label: "Home", icon: HomeIcon },
   { id: "letra", label: "Letra", icon: LyricIcon },
   { id: "vozes", label: "Vozes", icon: VoicesPartsIcon },
   { id: "cifra", label: "Cifra", icon: ChordIcon },
+];
+
+const REGISTRY_SECTIONS = [
+  { id: "temas", label: "Temas das músicas" },
+  { id: "informacoes", label: "Informações da música" },
 ];
 
 const PERSONALIZATION_SECTIONS = [
@@ -43,8 +53,12 @@ const SECTION_TITLES = {
   letra: "Letra",
   vozes: "Vozes",
   cifra: "Cifra",
-  acessos: "Pessoas e acessos",
+  slides: "Slides",
+  cadastros: "Cadastros",
   personalizacao: "Personalização",
+  "previa-final": "Prévia final",
+  "gerar-projeto": "Gerar projeto",
+  acessos: "Pessoas e acessos",
 };
 
 export default function AdminContentPage({ user, onLogout, accessPanel }) {
@@ -53,6 +67,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
   const [loadingSongs, setLoadingSongs] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [activeSection, setActiveSection] = useState("home");
+  const [activeRegistrySection, setActiveRegistrySection] = useState("temas");
   const [activePersonalizationSection, setActivePersonalizationSection] = useState("identidade");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewOrientation, setPreviewOrientation] = useState("portrait");
@@ -98,11 +113,34 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
   const selectedSong = songs.find((song) => song.id === selectedId) ?? null;
   const visibleSongs = useMemo(() => filterSongs(songs, search), [songs, search]);
   const isAccessSection = activeSection === "acessos";
+  const isRegistrySection = activeSection === "cadastros";
   const isPersonalizationSection = activeSection === "personalizacao";
-  const isUtilitySection = isAccessSection || isPersonalizationSection;
+  const isSlidesSection = activeSection === "slides";
+  const isFinalPreviewSection = activeSection === "previa-final";
+  const isProjectExportSection = activeSection === "gerar-projeto";
+  const isUtilitySection =
+    isAccessSection ||
+    isRegistrySection ||
+    isPersonalizationSection ||
+    isSlidesSection ||
+    isFinalPreviewSection ||
+    isProjectExportSection;
   const isSongSection = ["letra", "vozes", "cifra"].includes(activeSection);
+  const hasSideMobilePreview = isSongSection || activeSection === "home";
   const previewMode = isSongSection ? activeSection : "letra";
   const number = withNumbers(songs).find((song) => song.id === selectedId)?.numero;
+
+  const handleSongSavedFromRegistry = (savedSong) => {
+    setSongs((current) =>
+      withNumbers([
+        ...current.filter((song) => song.id !== savedSong.id),
+        savedSong,
+      ]),
+    );
+    if (selectedId === savedSong.id) {
+      setForm(fieldsFromSong(savedSong));
+    }
+  };
 
   const updateForm = (updates) => {
     setForm((current) => ({ ...current, ...updates }));
@@ -238,7 +276,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
           <h1 className="mt-1 text-lg font-semibold">Estúdio de edição</h1>
           <p className="mt-1 text-xs text-ink-soft">Painel administrativo</p>
         </div>
-        <nav className="flex-1 space-y-1 px-3 py-5" aria-label="Seções do painel">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5" aria-label="Seções do painel">
           {EDIT_SECTIONS.map((section) => (
             <SidebarButton
               key={section.id}
@@ -249,6 +287,43 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
               {section.label}
             </SidebarButton>
           ))}
+          <SidebarButton
+            active={isSlidesSection}
+            icon={SlidesIcon}
+            onClick={() => setActiveSection("slides")}
+          >
+            Slides
+          </SidebarButton>
+          <SidebarButton
+            active={isRegistrySection}
+            icon={RegistryIcon}
+            onClick={() => setActiveSection("cadastros")}
+          >
+            Cadastros
+          </SidebarButton>
+          {isRegistrySection ? (
+            <div
+              className="ml-10 space-y-1 border-l border-line pl-2"
+              role="group"
+              aria-label="Submenus de cadastros"
+            >
+              {REGISTRY_SECTIONS.map((section) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => setActiveRegistrySection(section.id)}
+                  aria-current={activeRegistrySection === section.id ? "page" : undefined}
+                  className={`min-h-9 w-full rounded-lg px-3 text-left text-sm ${
+                    activeRegistrySection === section.id
+                      ? "bg-pine/10 font-semibold text-pine"
+                      : "text-ink-soft hover:bg-paper hover:text-ink"
+                  }`}
+                >
+                  {section.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <SidebarButton
             active={isPersonalizationSection}
             icon={SettingsIcon}
@@ -279,6 +354,20 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
               ))}
             </div>
           ) : null}
+          <SidebarButton
+            active={isFinalPreviewSection}
+            icon={FinalPreviewIcon}
+            onClick={() => setActiveSection("previa-final")}
+          >
+            Prévia final
+          </SidebarButton>
+          <SidebarButton
+            active={isProjectExportSection}
+            icon={ProjectExportIcon}
+            onClick={() => setActiveSection("gerar-projeto")}
+          >
+            Gerar projeto
+          </SidebarButton>
           <div className="my-4 border-t border-line" />
           <SidebarButton
             active={isAccessSection}
@@ -340,17 +429,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
               </button>
             ) : null}
             <div className="flex min-w-0 shrink-0 items-center gap-2 border-l border-line pl-2 sm:gap-3 sm:pl-4">
-              <div className="min-w-0 max-w-20 text-right sm:max-w-40">
-                <p className="truncate text-xs font-medium sm:text-sm">{user.name}</p>
-                <p className="hidden truncate text-xs text-ink-soft md:block">{user.email}</p>
-              </div>
-              <button
-                type="button"
-                onClick={onLogout}
-                className="h-9 shrink-0 rounded-lg border border-line px-2 text-xs font-medium hover:bg-paper sm:px-3 sm:text-sm"
-              >
-                Sair
-              </button>
+              <UserProfileMenu user={user} onLogout={onLogout} />
             </div>
           </div>
           <nav
@@ -359,8 +438,12 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
           >
             {[
               ...EDIT_SECTIONS,
-              { id: "personalizacao", label: "Personalização", shortLabel: "P" },
-              { id: "acessos", label: "Acessos", shortLabel: "A" },
+              { id: "slides", label: "Slides" },
+              { id: "cadastros", label: "Cadastros" },
+              { id: "personalizacao", label: "Personalização" },
+              { id: "previa-final", label: "Prévia final" },
+              { id: "gerar-projeto", label: "Gerar projeto" },
+              { id: "acessos", label: "Acessos" },
             ].map(
               (section) => (
                 <button
@@ -378,6 +461,28 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
               ),
             )}
           </nav>
+          {isRegistrySection ? (
+            <nav
+              className="flex gap-1 overflow-x-auto border-t border-line px-3 py-2 lg:hidden"
+              aria-label="Submenus de cadastros"
+            >
+              {REGISTRY_SECTIONS.map((section) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => setActiveRegistrySection(section.id)}
+                  aria-current={activeRegistrySection === section.id ? "page" : undefined}
+                  className={`shrink-0 rounded-full px-3 py-2 text-sm ${
+                    activeRegistrySection === section.id
+                      ? "bg-pine text-white"
+                      : "text-ink-soft hover:bg-paper"
+                  }`}
+                >
+                  {section.label}
+                </button>
+              ))}
+            </nav>
+          ) : null}
           {isPersonalizationSection ? (
             <nav
               className="flex gap-1 overflow-x-auto border-t border-line px-3 py-2 lg:hidden"
@@ -406,7 +511,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
           className={`grid min-h-0 flex-1 ${
             isUtilitySection
               ? "grid-cols-1 overflow-y-auto"
-              : "grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_320px] lg:overflow-hidden"
+              : "grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_380px] lg:overflow-hidden"
           }`}
         >
           <main
@@ -418,8 +523,22 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
           >
             {isAccessSection ? (
               accessPanel
+            ) : isRegistrySection ? (
+              <AdminRegistriesSection
+                activeTab={activeRegistrySection}
+                onTabChange={setActiveRegistrySection}
+                songs={visibleSongs}
+                loadingSongs={loadingSongs}
+                onSongSaved={handleSongSavedFromRegistry}
+              />
             ) : isPersonalizationSection ? (
               <AdminPersonalizationSection activeTab={activePersonalizationSection} />
+            ) : isSlidesSection ? (
+              <AdminSlidesEditorSection songs={withNumbers(songs)} loadingSongs={loadingSongs} />
+            ) : isFinalPreviewSection ? (
+              <AdminFinalPreviewSection songs={withNumbers(songs)} />
+            ) : isProjectExportSection ? (
+              <AdminProjectExportSection totalSongs={songs.length} />
             ) : (
               <div
                 className={`mx-auto w-full max-w-5xl ${
@@ -491,7 +610,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
             )}
           </main>
 
-          {isSongSection ? (
+          {hasSideMobilePreview ? (
             <aside className="border-t border-line bg-paper p-4 lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
               <MobilePreview
                 form={form}
@@ -644,6 +763,83 @@ function PeopleIcon({ className }) {
       <circle cx="9" cy="8" r="3" />
       <path d="M3.5 20v-1.2a5.5 5.5 0 0 1 11 0V20z" />
       <path d="M16 5.3a3 3 0 0 1 0 5.4M17 14a4.8 4.8 0 0 1 3.5 4.6V20h-3" />
+    </svg>
+  );
+}
+
+function RegistryIcon({ className }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 6.5h16M4 12h16M4 17.5h10" />
+      <circle cx="18" cy="17.5" r="2.5" />
+    </svg>
+  );
+}
+
+function SlidesIcon({ className }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="12" rx="2" />
+      <path d="M8 20h8" />
+      <path d="M12 16v4" />
+      <path d="M7.5 8.5h9" />
+      <path d="M9.5 11.5h5" />
+    </svg>
+  );
+}
+
+function FinalPreviewIcon({ className }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="6" y="2.5" width="12" height="19" rx="2.5" />
+      <path d="M10 18.5h4" />
+      <path d="m10.5 9.5 4 2.5-4 2.5z" />
+    </svg>
+  );
+}
+
+function ProjectExportIcon({ className }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z" />
+      <path d="m4 7.5 8 4.5 8-4.5" />
+      <path d="M12 12v9" />
     </svg>
   );
 }
@@ -989,6 +1185,7 @@ function MobilePreview({
   modal = false,
 }) {
   const { appName } = getAppSettings();
+  const [tooltipOpen, setTooltipOpen] = useState(false);
   const previewLabel = PREVIEW_MODES.find((mode) => mode.id === previewMode)?.label || "Letra";
   const deviceHeight =
     orientation === "landscape"
@@ -1005,12 +1202,43 @@ function MobilePreview({
   return (
     <div
       className={`mx-auto w-full ${
-        orientation === "landscape" ? "max-w-[760px]" : "max-w-[340px]"
+        orientation === "landscape" ? "max-w-[820px]" : "max-w-[380px]"
       }`}
     >
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between gap-2">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-pine">Prévia ao vivo</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-pine">Prévia ao vivo</p>
+            <div
+              className="group relative inline-flex items-center"
+              onMouseLeave={() => setTooltipOpen(false)}
+            >
+              <button
+                type="button"
+                aria-label="Informações sobre a prévia"
+                aria-expanded={tooltipOpen}
+                onClick={() => setTooltipOpen((prev) => !prev)}
+                onBlur={() => setTooltipOpen(false)}
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-line bg-card text-[11px] font-bold text-ink-soft transition-colors hover:border-pine hover:text-pine focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
+              >
+                i
+              </button>
+              <div
+                role="tooltip"
+                className={`pointer-events-none absolute left-0 top-full z-30 mt-2 w-60 rounded-xl border border-line bg-card px-3 py-2 text-xs font-normal leading-relaxed text-ink shadow-lg transition-all duration-150 ${
+                  tooltipOpen
+                    ? " visible translate-y-0 opacity-100"
+                    : "invisible -translate-y-1 opacity-0 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100"
+                }`}
+              >
+                <span
+                  aria-hidden
+                  className="absolute -top-1.5 left-2 h-2.5 w-2.5 rotate-45 border-l border-t border-line bg-card"
+                />
+                A prévia é somente visualização. As edições são feitas nesta tela web.
+              </div>
+            </div>
+          </div>
           <p className="mt-1 text-xs text-ink-soft">
             {previewLabel} · {orientation === "landscape" ? "Paisagem" : "Retrato"}
           </p>
@@ -1153,9 +1381,6 @@ function MobilePreview({
           </div>
         </div>
       </div>
-      <p className="mt-3 text-center text-xs text-ink-soft">
-        A prévia é somente visualização. As edições são feitas nesta tela web.
-      </p>
     </div>
   );
 }

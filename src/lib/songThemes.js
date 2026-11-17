@@ -34,6 +34,7 @@ export function readSongThemes() {
       return {
         id: theme.id,
         name: theme.name,
+        description: typeof theme.description === "string" ? theme.description : "",
         songIds: [...new Set(songIds)],
       };
     });
@@ -57,8 +58,12 @@ function updateSongThemes(update) {
   return next;
 }
 
-export function createSongTheme(name) {
+export function createSongTheme(name, options = {}) {
   const cleanName = String(name ?? "").trim();
+  const cleanDescription = String(options?.description ?? "").trim().slice(0, 240);
+  const initialSongIds = Array.isArray(options?.songIds)
+    ? [...new Set(options.songIds.map(Number).filter(isValidSongId))]
+    : [];
   if (!cleanName) throw new Error("theme_name_required");
   if (cleanName.length > 80) throw new Error("theme_name_too_long");
 
@@ -67,11 +72,19 @@ export function createSongTheme(name) {
     if (themes.some((theme) => theme.name.toLocaleLowerCase("pt-BR") === normalizedName)) {
       throw new Error("theme_name_duplicate");
     }
-    return [...themes, { id: createThemeId(), name: cleanName, songIds: [] }];
+    return [
+      ...themes,
+      {
+        id: createThemeId(),
+        name: cleanName,
+        description: cleanDescription,
+        songIds: initialSongIds,
+      },
+    ];
   });
 }
 
-export function renameSongTheme(themeId, name) {
+export function updateSongTheme(themeId, { name, description, songIds } = {}) {
   const cleanName = String(name ?? "").trim();
   if (!cleanName) throw new Error("theme_name_required");
   if (cleanName.length > 80) throw new Error("theme_name_too_long");
@@ -88,11 +101,28 @@ export function renameSongTheme(themeId, name) {
     ) {
       throw new Error("theme_name_duplicate");
     }
-    if (theme.name === cleanName) return themes;
+    const nextDescription =
+      description !== undefined
+        ? String(description ?? "").trim().slice(0, 240)
+        : theme.description || "";
+    const nextSongIds = Array.isArray(songIds)
+      ? [...new Set(songIds.map(Number).filter(isValidSongId))]
+      : theme.songIds;
     return themes.map((item) =>
-      item.id === themeId ? { ...item, name: cleanName } : item,
+      item.id === themeId
+        ? {
+            ...item,
+            name: cleanName,
+            description: nextDescription,
+            songIds: nextSongIds,
+          }
+        : item,
     );
   });
+}
+
+export function renameSongTheme(themeId, name) {
+  return updateSongTheme(themeId, { name });
 }
 
 export function deleteSongTheme(themeId) {
@@ -193,7 +223,11 @@ export function useSongThemes() {
   }, []);
 
   const createTheme = useCallback(
-    (name) => runUpdate(() => createSongTheme(name)),
+    (name, options) => runUpdate(() => createSongTheme(name, options)),
+    [runUpdate],
+  );
+  const updateTheme = useCallback(
+    (themeId, changes) => runUpdate(() => updateSongTheme(themeId, changes)),
     [runUpdate],
   );
   const renameTheme = useCallback(
@@ -213,5 +247,15 @@ export function useSongThemes() {
     [runUpdate],
   );
 
-  return { themes, error, isReady, createTheme, renameTheme, deleteTheme, addSong, removeSong };
+  return {
+    themes,
+    error,
+    isReady,
+    createTheme,
+    updateTheme,
+    renameTheme,
+    deleteTheme,
+    addSong,
+    removeSong,
+  };
 }

@@ -38,10 +38,16 @@ export default function SongInfoPage() {
   const infoItems = song
     ? [
         { label: "Título", value: song.titulo },
+        { label: "Banda / Intérprete", value: song.banda },
+        { label: "Compositor(es)", value: song.compositor },
+        { label: "Álbum", value: song.album },
+        { label: "Ano de lançamento", value: song.anoLancamento },
+        { label: "Tema", value: song.tema },
         {
           label: "Demonstração",
           value: song.audioNome || (song.audioArquivo ? "Disponível" : ""),
         },
+        { label: "Informações adicionais", value: song.adicionais, multiline: true },
       ]
     : [];
 

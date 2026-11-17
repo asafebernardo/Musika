@@ -64,6 +64,14 @@ export function AuthProvider({ children }) {
         await request("/api/auth/logout", { method: "POST", body: "{}" });
         setUser(null);
       },
+      async updateAccount(updates) {
+        const result = await request("/api/auth/account", {
+          method: "PUT",
+          body: JSON.stringify(updates),
+        });
+        setUser(result.user);
+        return result.user;
+      },
       async deleteAccount() {
         await request("/api/auth/account", { method: "DELETE" });
         setUser(null);

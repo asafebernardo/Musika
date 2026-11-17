@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import UserProfileMenu from "@/components/UserProfileMenu.jsx";
 import { useAuth } from "@/lib/auth.jsx";
 import { getAppIconImage, getAppSettings } from "@/lib/appSettings.js";
 import { useTheme } from "@/lib/theme.js";
@@ -14,6 +15,15 @@ export default function UserDashboardPage({ user }) {
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [openProfileSection, setOpenProfileSection] = useState(null);
+
+  const fullName = [user.name, user.lastName].filter(Boolean).join(" ").trim();
+  const initials =
+    [user.name, user.lastName]
+      .filter(Boolean)
+      .map((part) => part.trim().slice(0, 1).toUpperCase())
+      .join("")
+      .slice(0, 2) || "U";
 
   const signOut = async () => {
     setError("");
@@ -49,17 +59,16 @@ export default function UserDashboardPage({ user }) {
   return (
     <main className="min-h-dvh bg-paper text-ink">
       <header className="border-b border-line bg-card">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 py-5 sm:px-8 lg:px-12">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8 lg:px-12">
           <Link to="/" className="text-lg font-bold tracking-tight text-pine">
             {appName}
           </Link>
-          <button
-            type="button"
-            onClick={signOut}
-            className="inline-flex h-10 items-center rounded-full border border-line px-5 text-sm font-medium hover:bg-paper"
-          >
-            Sair
-          </button>
+          <UserProfileMenu
+            user={user}
+            onLogout={signOut}
+            externalOpenSection={openProfileSection}
+            onExternalSectionHandled={() => setOpenProfileSection(null)}
+          />
         </div>
       </header>
 
@@ -69,11 +78,11 @@ export default function UserDashboardPage({ user }) {
             Painel da conta
           </p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-            Olá, {user.name}.
+            Olá, {fullName}.
           </h1>
           <p className="mt-2 text-base leading-7 text-ink-soft">
             Este é o seu espaço no {appName}. Acesse o aplicativo quando quiser consultar letras,
-            cifras e suas músicas favoritas.
+            cifras e suas músicas favoritas, ou gerencie seu perfil, plano e faturas no menu superior.
           </p>
         </div>
 
@@ -97,18 +106,64 @@ export default function UserDashboardPage({ user }) {
             >
               Abrir aplicativo
             </Link>
+
+            <div className="mt-8 border-t border-line pt-6">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+                Atalhos de configuração da conta
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {[
+                  { id: "perfil", label: "Meu Perfil e Foto" },
+                  { id: "plano", label: "Plano Pago Atual" },
+                  { id: "faturas", label: "Faturas e Recibos" },
+                  { id: "dados-pagamento", label: "Dados de Pagamento" },
+                  { id: "forma-pagamento", label: "Forma de Pagamento" },
+                ].map((shortcut) => (
+                  <button
+                    key={shortcut.id}
+                    type="button"
+                    onClick={() => setOpenProfileSection(shortcut.id)}
+                    className="inline-flex h-9 items-center rounded-full border border-line bg-paper px-3.5 text-xs font-semibold text-ink transition-colors hover:border-pine hover:text-pine"
+                  >
+                    {shortcut.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="rounded-3xl border border-line bg-card p-6 shadow-sm sm:p-8">
             <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
               Sua conta
             </p>
-            <p className="mt-5 text-lg font-semibold">{user.name}</p>
-            <p className="mt-1 break-all text-sm text-ink-soft">{user.email}</p>
+            <div className="mt-4 flex items-center gap-3.5">
+              {user.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={fullName}
+                  className="h-14 w-14 shrink-0 rounded-full border border-line object-cover"
+                />
+              ) : (
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-pine text-lg font-bold text-white">
+                  {initials}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="truncate text-lg font-semibold">{fullName}</p>
+                <p className="mt-0.5 break-all text-sm text-ink-soft">{user.email}</p>
+                {user.phone ? (
+                  <p className="mt-0.5 text-xs text-ink-soft">Contato: {user.phone}</p>
+                ) : null}
+              </div>
+            </div>
             <div className="mt-5 border-t border-line pt-4">
-              <p className="text-sm leading-6 text-ink-soft">
-                Para alterar seu acesso, fale com um administrador do {appName}.
-              </p>
+              <button
+                type="button"
+                onClick={() => setOpenProfileSection("perfil")}
+                className="inline-flex h-9 items-center rounded-full border border-line bg-paper px-4 text-xs font-semibold text-ink hover:bg-card"
+              >
+                Configurar meu usuário e assinatura
+              </button>
             </div>
             <div className="mt-5 border-t border-line pt-4">
               <p className="text-sm font-semibold text-danger">Excluir minha conta</p>

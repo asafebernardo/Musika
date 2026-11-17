@@ -173,7 +173,7 @@ export default function AdminPersonalizationSection({ activeTab }) {
     `${import.meta.env.BASE_URL || "/"}icon.png`;
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-2 xl:col-span-2">
         <nav
           className="flex min-w-0 flex-1 gap-1 overflow-x-auto"
@@ -257,7 +257,7 @@ export default function AdminPersonalizationSection({ activeTab }) {
             </p>
           </div>
 
-          <div className="mx-auto mt-4 max-w-[272px] rounded-[2.4rem] border-[6px] border-neutral-800 bg-neutral-900 p-1.5 shadow-xl ring-1 ring-black/20">
+          <div className="mx-auto mt-4 max-w-[340px] rounded-[2.4rem] border-[6px] border-neutral-800 bg-neutral-900 p-1.5 shadow-xl ring-1 ring-black/20">
             <div
               style={previewStyle}
               className="flex h-[min(600px,calc(100dvh-230px))] min-h-[450px] flex-col overflow-hidden rounded-[2rem] bg-paper text-ink"

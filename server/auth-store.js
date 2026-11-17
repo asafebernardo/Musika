@@ -52,9 +52,16 @@ function publicUser(user) {
   return {
     id: user.id,
     name: user.name,
+    lastName: user.lastName || "",
+    avatarUrl: user.avatarUrl || "",
     email: user.email,
+    phone: user.phone || "",
     role: user.role,
     createdAt: user.createdAt,
+    subscription: user.subscription || null,
+    billingDetails: user.billingDetails || null,
+    paymentMethod: user.paymentMethod || null,
+    invoices: Array.isArray(user.invoices) ? user.invoices : null,
   };
 }
 
@@ -195,6 +202,73 @@ export async function getSessionUser(headers) {
 
 export async function listPeople() {
   return (await readUsers()).map(publicUser);
+}
+
+export async function updateUserAccount(id, input) {
+  return withLock(async () => {
+    const users = await readUsers();
+    const index = users.findIndex((user) => user.id === id);
+    if (index === -1) return { error: "nao_encontrada" };
+
+    const current = users[index];
+    const next = { ...current };
+
+    if (input?.name !== undefined) {
+      const name = String(input.name ?? "").trim();
+      if (!name || name.length > 80) return { error: "nome_invalido" };
+      next.name = name;
+    }
+
+    if (input?.lastName !== undefined) {
+      const lastName = String(input.lastName ?? "").trim();
+      if (lastName.length > 80) return { error: "sobrenome_invalido" };
+      next.lastName = lastName;
+    }
+
+    if (input?.email !== undefined) {
+      const email = String(input.email ?? "").trim().toLowerCase();
+      if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return { error: "email_invalido" };
+      }
+      if (users.some((user, idx) => idx !== index && user.email === email)) {
+        return { error: "email_em_uso" };
+      }
+      next.email = email;
+    }
+
+    if (input?.phone !== undefined) {
+      const phone = String(input.phone ?? "").trim().slice(0, 40);
+      next.phone = phone;
+    }
+
+    if (input?.avatarUrl !== undefined) {
+      const avatarUrl = String(input.avatarUrl ?? "").trim();
+      if (avatarUrl.length <= 2_500_000) {
+        next.avatarUrl = avatarUrl;
+      }
+    }
+
+    if (input?.subscription && typeof input.subscription === "object") {
+      next.subscription = input.subscription;
+    }
+
+    if (input?.billingDetails && typeof input.billingDetails === "object") {
+      next.billingDetails = input.billingDetails;
+    }
+
+    if (input?.paymentMethod && typeof input.paymentMethod === "object") {
+      next.paymentMethod = input.paymentMethod;
+    }
+
+    if (Array.isArray(input?.invoices)) {
+      next.invoices = input.invoices.slice(0, 100);
+    }
+
+    const updatedUsers = [...users];
+    updatedUsers[index] = next;
+    await writeUsers(updatedUsers);
+    return { user: publicUser(next) };
+  });
 }
 
 export async function deleteUserAccount(id) {

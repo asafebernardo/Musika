@@ -9,6 +9,7 @@ import {
   listPeople,
   sessionTtlSeconds,
   startSession,
+  updateUserAccount,
 } from "./auth-store.js";
 
 function errorResult(status, error) {
@@ -131,6 +132,25 @@ export async function handleAuthRequest({
       status: 200,
       body: { ok: true },
       headers: { "Set-Cookie": clearCookie(secure) },
+    };
+  }
+
+  if ((method === "PUT" || method === "PATCH") && pathname === "/api/auth/account") {
+    const user = await getSessionUser(headers);
+    if (!user) return errorResult(401, "sessao_invalida");
+    const result = await updateUserAccount(user.id, body);
+    if (result.error) {
+      const status =
+        result.error === "nao_encontrada"
+          ? 404
+          : result.error === "email_em_uso"
+            ? 409
+            : 400;
+      return errorResult(status, result.error);
+    }
+    return {
+      status: 200,
+      body: { user: result.user },
     };
   }
 

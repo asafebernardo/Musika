@@ -112,20 +112,34 @@ export default function AdminPage() {
           <p className="px-5 py-6 text-sm text-ink-soft">Carregando pessoas…</p>
         ) : people.length ? (
           <ul className="divide-y divide-line">
-            {people.map((person) => (
-              <li key={person.id} className="flex items-center gap-4 px-5 py-4 sm:px-6">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pine/10 text-sm font-semibold text-pine">
-                  {person.name.slice(0, 1).toUpperCase()}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-ink">{person.name}</p>
-                  <p className="truncate text-sm text-ink-soft">{person.email}</p>
-                </div>
-                <span className="hidden rounded-full bg-paper px-3 py-1 text-xs font-medium text-ink-soft sm:inline-flex">
-                  {person.role === "admin" ? "Administrador" : "Pessoa"}
-                </span>
-              </li>
-            ))}
+            {people.map((person) => {
+              const personFullName = [person.name, person.lastName].filter(Boolean).join(" ").trim();
+              return (
+                <li key={person.id} className="flex items-center gap-4 px-5 py-4 sm:px-6">
+                  {person.avatarUrl ? (
+                    <img
+                      src={person.avatarUrl}
+                      alt={personFullName}
+                      className="h-10 w-10 shrink-0 rounded-full border border-line object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pine/10 text-sm font-semibold text-pine">
+                      {person.name.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-ink">{personFullName}</p>
+                    <p className="truncate text-sm text-ink-soft">
+                      {person.email}
+                      {person.phone ? ` · ${person.phone}` : ""}
+                    </p>
+                  </div>
+                  <span className="hidden rounded-full bg-paper px-3 py-1 text-xs font-medium text-ink-soft sm:inline-flex">
+                    {person.role === "admin" ? "Administrador" : "Pessoa"}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="px-5 py-6 text-sm text-ink-soft">Nenhuma pessoa cadastrada.</p>

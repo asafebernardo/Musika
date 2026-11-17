@@ -4,6 +4,12 @@ import { buildFullSongLyrics, hasMarkedVoices, packLyrics } from "@/lib/voices.j
 
 export const emptySongForm = {
   titulo: "",
+  banda: "",
+  compositor: "",
+  album: "",
+  anoLancamento: "",
+  tema: "",
+  adicionais: "",
   audioArquivo: "",
   audioNome: "",
   audioDataUrl: "",
@@ -51,6 +57,12 @@ export function fieldsFromSong(song) {
   return {
     ...emptySongForm,
     titulo: song.titulo || "",
+    banda: song.banda || "",
+    compositor: song.compositor || "",
+    album: song.album || "",
+    anoLancamento: song.anoLancamento || "",
+    tema: song.tema || "",
+    adicionais: song.adicionais || "",
     audioArquivo: song.audioArquivo || "",
     audioNome: song.audioNome || "",
     letra,
@@ -76,6 +88,12 @@ export function payloadFromSongForm(form) {
 
   return {
     titulo: form.titulo.trim(),
+    banda: String(form.banda ?? "").trim(),
+    compositor: String(form.compositor ?? "").trim(),
+    album: String(form.album ?? "").trim(),
+    anoLancamento: String(form.anoLancamento ?? "").trim(),
+    tema: String(form.tema ?? "").trim(),
+    adicionais: String(form.adicionais ?? "").trim(),
     audioDataUrl: form.audioDataUrl || undefined,
     audioNome: form.audioNome || undefined,
     removeAudio: Boolean(form.removeAudio),
