@@ -64,7 +64,7 @@ export default function SongThemesPage() {
             value={name}
             onChange={(event) => setName(event.target.value)}
             maxLength={80}
-            placeholder="Ex.: Páscoa, Gratidão..."
+            placeholder="Ex.: Acústico, Abertura, Animadas..."
             className="h-10 w-full rounded-xl border border-line bg-paper px-3 text-sm text-ink placeholder:text-ink-soft outline-none ring-pine focus:ring-2"
           />
           <div className="flex justify-end gap-2">

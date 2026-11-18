@@ -9,29 +9,29 @@ const DEMO_SONGS = [
   {
     id: 1,
     number: "001",
-    title: "Cantai ao Senhor",
-    band: "Ministério de Louvor",
-    composer: "Salmos 96:1-2",
-    album: "Coletânea Cristã",
+    title: "Horizonte de Luz",
+    band: "Banda Horizonte",
+    composer: "Lucas Andrade",
+    album: "Sessão Acústica",
     year: "2024",
-    theme: "Adoração",
+    theme: "Abertura / Início",
     baseKey: "C",
     hasAudio: true,
     duration: "03:42",
     notes: "Entrada suave com violão; modulação opcional no último refrão.",
     stanzas: [
       [
-        "Cantai ao Senhor um cântico novo,",
-        "Proclamai a Sua salvação dia após dia.",
+        "Quando o som começa a ecoar,",
+        "Cada acorde encontra o seu lugar.",
       ],
       [
-        "Anunciai entre as nações a Sua glória,",
-        "Entre todos os povos as Suas maravilhas.",
+        "Nossa voz se espalha pelo ar,",
+        "Na melodia que nos faz cantar.",
       ],
     ],
     chorus: [
-      "Grande é o Senhor e mui digno de louvor,",
-      "Honra e majestade estão diante dEle!",
+      "A música nos move do início ao fim,",
+      "Em cada nota brilha um novo tom!",
     ],
     chordsStanzas: [
       ["C                G/B              Am", "F                 Dm         G"],
@@ -39,39 +39,39 @@ const DEMO_SONGS = [
     ],
     chordsChorus: ["F                G                Em       Am", "Dm               G                C"],
     voices: [
-      { part: "men", label: "Homens", text: "Cantai ao Senhor um cântico novo," },
-      { part: "women", label: "Mulheres", text: "Proclamai a Sua salvação dia após dia." },
-      { part: "all", label: "Todos (Refrão)", text: "Grande é o Senhor e mui digno de louvor!" },
-      { part: "women", label: "Soprano / Contralto", text: "Honra e majestade (eco suave)" },
-      { part: "men", label: "Tenor / Baixo", text: "Estão diante dEle para sempre, amém!" },
+      { part: "men", label: "Homens", text: "Quando o som começa a ecoar," },
+      { part: "women", label: "Mulheres", text: "Cada acorde encontra o seu lugar." },
+      { part: "all", label: "Todos (Refrão)", text: "A música nos move do início ao fim!" },
+      { part: "women", label: "Voz Aguda", text: "Em cada nota (eco suave)" },
+      { part: "men", label: "Voz Grave", text: "Brilha sempre um novo tom!" },
     ],
   },
   {
     id: 2,
     number: "002",
-    title: "Rocha Eterna e Fiel",
-    band: "Coral Harmonia",
-    composer: "Domínio Público",
-    album: "Hinos da Graça",
+    title: "Vento da Estrada",
+    band: "Coletivo Harmonia",
+    composer: "Marina Costa",
+    album: "Vozes & Acordes",
     year: "2022",
-    theme: "Ceia e Comunhão",
+    theme: "Acústico & Voz",
     baseKey: "G",
     hasAudio: true,
     duration: "04:15",
-    notes: "Arranjo a 4 vozes no segundo verso; dinâmica crescendo no refrão.",
+    notes: "Arranjo vocal no segundo verso; dinâmica crescendo no refrão.",
     stanzas: [
       [
-        "Tu és a rocha eterna onde firmo os meus pés,",
-        "No abrigo da Tua graça encontro plena paz.",
+        "Pelos caminhos onde o vento vai,",
+        "O som do violão nunca se esvai.",
       ],
       [
-        "Mesmo que os ventos soprem forte ao redor,",
-        "Confio na promessa do meu Salvador.",
+        "Mesmo que a noite tente esconder,",
+        "O nosso canto faz amanhecer.",
       ],
     ],
     chorus: [
-      "Fiel é o Cordeiro que venceu na cruz,",
-      "Para sempre cantaremos ao Senhor Jesus!",
+      "Seguimos juntos nessa direção,",
+      "Vivendo a força de cada canção!",
     ],
     chordsStanzas: [
       ["G                D/F#             Em", "C                 Am         D"],
@@ -79,38 +79,38 @@ const DEMO_SONGS = [
     ],
     chordsChorus: ["C                D                Bm       Em", "Am               D                G"],
     voices: [
-      { part: "women", label: "Mulheres", text: "Tu és a rocha eterna onde firmo os meus pés," },
-      { part: "men", label: "Homens", text: "No abrigo da Tua graça encontro plena paz." },
-      { part: "all", label: "Todos (Uníssono)", text: "Fiel é o Cordeiro que venceu na cruz," },
-      { part: "all", label: "Todos (Harmonia)", text: "Para sempre cantaremos ao Senhor Jesus!" },
+      { part: "women", label: "Mulheres", text: "Pelos caminhos onde o vento vai," },
+      { part: "men", label: "Homens", text: "O som do violão nunca se esvai." },
+      { part: "all", label: "Todos (Uníssono)", text: "Seguimos juntos nessa direção," },
+      { part: "all", label: "Todos (Harmonia)", text: "Vivendo a força de cada canção!" },
     ],
   },
   {
     id: 3,
     number: "003",
-    title: "Alvo Mais que a Neve",
-    band: "Coletânea Clássica",
-    composer: "Harpa & Hinário",
-    album: "Clássicos da Fé",
+    title: "Noite de Estúdio",
+    band: "Trio Acústico",
+    composer: "Repertório Clássico",
+    album: "Clássicos da Música",
     year: "2021",
-    theme: "Gratidão",
+    theme: "Clássicos & Sucessos",
     baseKey: "D",
     hasAudio: true,
     duration: "03:18",
-    notes: "Andamento moderado; ideal para momentos de ceia e oração.",
+    notes: "Andamento moderado; ideal para momentos acústicos e shows intimistas.",
     stanzas: [
       [
-        "Bendito seja o Cordeiro,",
-        "Que na cruz por nós padeceu!",
+        "Sob as luzes calmas do salão,",
+        "Nasce o compasso dessa canção!",
       ],
       [
-        "Bendito seja o Seu sangue,",
-        "Que por nós ali Ele verteu!",
+        "Cada instrumento traz a sua cor,",
+        "Transformando o palco em emoção!",
       ],
     ],
     chorus: [
-      "Alvo mais que a neve,",
-      "Sim, nesse sangue lavado, mais alvo que a neve serei!",
+      "Cante mais alto, deixe o som fluir,",
+      "Essa melodia todos vão ouvir!",
     ],
     chordsStanzas: [
       ["D                A/C#             Bm", "Em                A7         D"],
@@ -118,10 +118,10 @@ const DEMO_SONGS = [
     ],
     chordsChorus: ["G                A7               F#m      Bm", "Em               A7               D"],
     voices: [
-      { part: "all", label: "Todos", text: "Bendito seja o Cordeiro, que na cruz por nós padeceu!" },
-      { part: "women", label: "Mulheres", text: "Alvo mais que a neve," },
-      { part: "men", label: "Homens", text: "Alvo mais que a neve," },
-      { part: "all", label: "Todos", text: "Sim, nesse sangue lavado, mais alvo que a neve serei!" },
+      { part: "all", label: "Todos", text: "Sob as luzes calmas do salão, nasce o compasso dessa canção!" },
+      { part: "women", label: "Mulheres", text: "Cante mais alto," },
+      { part: "men", label: "Homens", text: "Deixe o som fluir," },
+      { part: "all", label: "Todos", text: "Essa melodia todos vão ouvir!" },
     ],
   },
 ];
@@ -132,26 +132,26 @@ const SEMITONES_FROM_C = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 const ALL_FEATURES = [
   {
     id: "catalogo",
-    category: "louvor",
+    category: "catalogo",
     badge: "Busca instantânea",
     title: "Catálogo Numerado & Pesquisa por Trechos",
     description:
-      "Localize qualquer cântico em milissegundos digitando o número oficial, título ou apenas uma frase que você lembra da letra ou do refrão.",
+      "Localize qualquer música em milissegundos digitando o número oficial, título ou apenas uma frase que você lembra da letra ou do refrão.",
     highlights: ["Numeração automática padronizada", "Busca em títulos, estrofes e refrões", "Letreiro animado para títulos longos"],
   },
   {
     id: "letras",
-    category: "louvor",
+    category: "catalogo",
     badge: "Leitura adaptável",
     title: "Letras com Cronologia Inteligente & Zoom",
     description:
-      "Escolha entre ver o refrão apenas uma vez ou repeti-lo automaticamente após cada estrofe na ordem cronológica do canto, ajustando a fonte de 13px a 38px.",
+      "Escolha entre ver o refrão apenas uma vez ou repeti-lo automaticamente após cada estrofe na ordem cronológica da execução, ajustando a fonte de 13px a 38px.",
     highlights: ["Modo cronológico com 1 toque", "Suporte a músicas que iniciam pelo refrão", "Ajuste fino de fonte salvo no aparelho"],
   },
   {
     id: "vozes",
     category: "musical",
-    badge: "Corais e grupos",
+    badge: "Bandas e grupos vocais",
     title: "Arranjo e Divisão de Vozes por Cores",
     description:
       "Visualize claramente as partes de Homens (azul royal), Mulheres (ciano) e Todos (uníssono), além de notas de arranjo vocal e opção de músicas exclusivas para vozes.",
@@ -179,10 +179,10 @@ const ALL_FEATURES = [
     id: "temas",
     category: "organizacao",
     badge: "Repertório e listas",
-    title: "Temas Oficiais & Listas Personalizadas",
+    title: "Temas de Repertório & Listas Personalizadas",
     description:
-      "Navegue por categorias temáticas (Adoração, Ceia, Jovens, Abertura, Natal) ou crie suas próprias listas de músicas para organizar a ordem do culto ou ensaio.",
-    highlights: ["Temas globais criados pelo estúdio", "Criação de listas próprias pelo usuário", "Adição rápida de múltiplos cânticos"],
+      "Navegue por categorias temáticas (Abertura, Acústico, Animadas, Baladas, Encerramento) ou crie suas próprias listas de músicas para organizar shows e ensaios.",
+    highlights: ["Temas definidos pelo estúdio", "Criação de listas próprias pelo usuário", "Organização rápida de setlists e repertórios"],
   },
   {
     id: "favoritos",
@@ -191,7 +191,7 @@ const ALL_FEATURES = [
     title: "Coleção de Favoritos & Ficha Técnica",
     description:
       "Guarde suas músicas mais tocadas na aba Favoritos e consulte a ficha completa de cada obra: intérprete/banda, compositor, álbum, ano, tema e observações.",
-    highlights: ["Marcação instantânea com coração", "Ficha técnica detalhada por música", "Respeito e preservação de direitos autorais"],
+    highlights: ["Marcação instantânea com coração", "Ficha técnica vinculada ao compositor", "Respeito e preservação de direitos autorais"],
   },
   {
     id: "aparencia",
@@ -226,7 +226,7 @@ const ALL_FEATURES = [
     badge: "Identidade própria",
     title: "Configuração White-Label & Controle de Menus",
     description:
-      "Defina o nome do aplicativo da sua igreja, envie ícones exclusivos para tema claro e escuro, escolha a paleta padrão e decida quais menus ou botões ficam ativos.",
+      "Defina o nome do aplicativo da sua banda, artista ou empresa, envie ícones exclusivos para tema claro e escuro, escolha a paleta padrão e decida quais menus ficam ativos.",
     highlights: ["Upload de ícones personalizados (Claro/Escuro)", "Bloqueio ou ocultação de recursos indisponíveis", "Definição de visualização e fonte padrão"],
   },
   {
@@ -242,7 +242,7 @@ const ALL_FEATURES = [
 
 const FEATURE_CATEGORIES = [
   { id: "todos", label: "Todas as funcionalidades (12)" },
-  { id: "louvor", label: "Leitura & Catálogo" },
+  { id: "catalogo", label: "Leitura & Catálogo" },
   { id: "musical", label: "Vozes, Cifras & Áudio" },
   { id: "organizacao", label: "Temas, Cores & PWA" },
   { id: "admin", label: "Estúdio & White-Label" },
@@ -266,9 +266,9 @@ const STUDIO_TABS = [
   {
     id: "whitelabel",
     badge: "02 · Personalização White-Label",
-    title: "Deixe o aplicativo com o nome, o ícone e as cores do seu ministério",
+    title: "Deixe o aplicativo com o nome, o ícone e as cores da sua banda, carreira ou empresa",
     description:
-      "O administrador controla toda a identidade e o comportamento padrão do app para os membros: desde a paleta de cores até o que acontece quando uma música ainda não possui áudio.",
+      "O administrador controla toda a identidade e o comportamento padrão do app para a equipe ou público: desde a paleta de cores até o que acontece quando uma música ainda não possui áudio.",
     bullets: [
       "Identidade: Nome personalizado do aplicativo e ícones dedicados para fundo claro e escuro.",
       "Temas e Cores: Escolha o tema inicial (Sistema, Claro, Escuro) e quais das 12 paletas ficam liberadas.",
@@ -280,12 +280,12 @@ const STUDIO_TABS = [
   {
     id: "cadastros",
     badge: "03 · Gestão & Prévia Final",
-    title: "Cadastros em lote, controle de acessos e simulador completo da jornada",
+    title: "Cadastros de temas e fichas técnicas, controle de acessos e simulador completo",
     description:
-      "Organize temas oficiais, preencha fichas técnicas rapidamente, acompanhe músicas sem áudio e valide toda a experiência antes de liberar para a igreja.",
+      "Organize temas de repertório, vincule álbuns e anos de lançamento aos compositores, acompanhe músicas sem áudio e valide toda a experiência antes de publicar.",
     bullets: [
-      "Gestão centralizada de Temas de Músicas e vinculação rápida de repertórios.",
-      "Painel de Pessoas e Acessos para visualizar contas cadastradas e administradores.",
+      "Gestão centralizada de Temas de Músicas e Cadastro de Informações por compositor.",
+      "Painel de Equipe e Acessos para visualizar contas cadastradas e administradores.",
       "Relatório de Pré-visualizações Pendentes para saber quais músicas ainda precisam de gravação.",
       "Prévia Final interativa: navegue pelos 5 passos (Início, Catálogo, Música, Ficha e Mais+) em Retrato, Paisagem ou Web.",
     ],
@@ -296,8 +296,8 @@ const STUDIO_TABS = [
 const FICTIONAL_PLANS = [
   {
     id: "comunidade",
-    name: "Comunidade",
-    tagline: "Para pequenos grupos, células e ministérios locais em início de organização.",
+    name: "Essencial / Solo",
+    tagline: "Para cantores solo, músicos independentes e pequenos grupos em início de organização.",
     monthlyPrice: 29,
     annualMonthlyPrice: 23,
     annualTotal: 276,
@@ -323,8 +323,8 @@ const FICTIONAL_PLANS = [
   },
   {
     id: "ministerio",
-    name: "Ministério Pro",
-    tagline: "Ideal para igrejas, corais e equipes de louvor com vozes, áudios e identidade própria.",
+    name: "Banda & Artista Pro",
+    tagline: "Ideal para bandas musicais, artistas, grupos vocais e equipes com vozes, áudios e marca própria.",
     monthlyPrice: 69,
     annualMonthlyPrice: 55,
     annualTotal: 660,
@@ -334,10 +334,10 @@ const FICTIONAL_PLANS = [
     badge: "Mais escolhido",
     popular: true,
     features: [
-      "Tudo do plano Comunidade sem limite de músicas",
+      "Tudo do plano Essencial sem limite de músicas",
       "Divisão de Vozes completa (Homens, Mulheres e Todos)",
       "Player de demonstrações de áudio (até 10 GB em nuvem)",
-      "Temas oficiais + criação de listas pelos membros",
+      "Temas de repertório + criação de listas pelos usuários",
       "White-Label completo: seu nome e seus ícones (Claro/Escuro)",
       "Todas as 12 paletas de cores liberadas e configuráveis",
       "Controle fino de menus e botões bloqueados/ocultos",
@@ -348,24 +348,24 @@ const FICTIONAL_PLANS = [
   },
   {
     id: "denominacional",
-    name: "Denominacional & Rede",
-    tagline: "Para grandes igrejas, convenções, múltiplas congregações ou operação híbrida.",
+    name: "Produtora & Corporativo",
+    tagline: "Para produtoras, escolas de música, grandes elencos, múltiplos projetos ou operação híbrida.",
     monthlyPrice: 149,
     annualMonthlyPrice: 119,
     annualTotal: 1428,
-    songsLimitLabel: "Músicas e coletâneas ilimitadas",
+    songsLimitLabel: "Músicas e catálogos ilimitados",
     membersLabel: "Membros e acessos ilimitados",
     adminsLabel: "Administradores ilimitados",
     badge: "Completo + Híbrido",
     popular: false,
     features: [
-      "Tudo do plano Ministério Pro sem limites de acesso",
+      "Tudo do plano Banda & Artista Pro sem limites de acesso",
       "Armazenamento expandido para áudios de referência (50 GB)",
       "Direito à Exportação de Arquivo Bruto (.zip) a qualquer momento",
       "Operação híbrida: Nuvem gerenciada + pacote para rede local/offline",
       "Prévia Final multi-formato e relatórios de áudios pendentes",
       "Múltiplos editores simultâneos no Estúdio Administrativo",
-      "Suporte prioritário e apoio na migração do hinário/coletânea",
+      "Suporte prioritário e apoio na importação de repertório",
     ],
     notIncluded: [],
   },
@@ -378,7 +378,7 @@ const RAW_PACKAGE_PLAN = {
   oneTimePrice: 490,
   installments: "ou 6x de R$ 89 sem juros (simulação)",
   description:
-    "Prefere hospedar em servidor próprio, VPS da igreja ou rede local sem mensalidade? Gere o pacote compilado completo com App + Web + API Node.js + banco de músicas e áudios.",
+    "Prefere hospedar em servidor próprio, VPS da sua empresa ou rede local sem mensalidade? Gere o pacote compilado completo com App + Web + API Node.js + banco de músicas e áudios.",
   deliverables: [
     "Front-end compilado de produção (Aplicativo PWA + Versão Web)",
     "Servidor API Node.js + Express pronto para execução local ou em nuvem própria",
@@ -408,9 +408,9 @@ const FAQ_ITEMS = [
       "Não. Todos os valores, planos e cálculos desta seção são 100% fictícios e demonstrativos, criados para simular como a plataforma pode ser apresentada comercialmente na modalidade de assinatura em nuvem (SaaS) ou exportação de pacote independente.",
   },
   {
-    question: "Os membros da igreja precisam baixar o app na Play Store ou App Store?",
+    question: "Os integrantes ou usuários precisam baixar o app na Play Store ou App Store?",
     answer:
-      "Não é necessário! O aplicativo utiliza tecnologia PWA (Progressive Web App). Pelo próprio navegador do celular (Android ou iPhone/iPad), o membro toca em 'Baixar aplicativo' e o ícone é instalado diretamente na tela inicial, funcionando em tela cheia como um app nativo.",
+      "Não é necessário! O aplicativo utiliza tecnologia PWA (Progressive Web App). Pelo próprio navegador do celular (Android ou iPhone/iPad), o usuário toca em 'Baixar aplicativo' e o ícone é instalado diretamente na tela inicial, funcionando em tela cheia como um app nativo.",
   },
   {
     question: "Como funciona a divisão de vozes e a transposição de cifras?",
@@ -597,7 +597,7 @@ export default function ProductLandingPage({ user }) {
                 {appName}
               </span>
               <span className="block text-[11px] font-medium text-ink-soft">
-                App, Web & Estúdio de Louvor
+                App, Web & Estúdio Musical
               </span>
             </div>
           </Link>
@@ -693,7 +693,7 @@ export default function ProductLandingPage({ user }) {
               <strong className="font-semibold text-ink">divisão de vozes por cores</strong>,{" "}
               <strong className="font-semibold text-ink">cifras com transposição instantânea</strong>{" "}
               e <strong className="font-semibold text-ink">demonstrações de áudio</strong> em um
-              único aplicativo personalizável para sua igreja, coral ou ministério.
+              único aplicativo personalizável para sua banda, carreira solo, grupo vocal ou empresa.
             </p>
 
             {/* Pílulas rápidas de recursos */}
@@ -1294,14 +1294,14 @@ export default function ProductLandingPage({ user }) {
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-pine">
-                Ecossistema completo de louvor
+                Ecossistema musical completo
               </p>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
                 Todas as funcionalidades em detalhes.
               </h2>
               <p className="mt-3 text-base leading-7 text-ink-soft">
-                Do membro na congregação ao regente do coral e ao administrador do estúdio: cada
-                recurso foi desenhado para tornar o momento de louvor fluido, organizado e acessível.
+                Do cantor e músico no palco ao diretor musical e ao administrador do estúdio: cada
+                recurso foi desenhado para tornar ensaios, shows e apresentações fluidos, organizados e acessíveis.
               </p>
             </div>
 
@@ -1377,9 +1377,9 @@ export default function ProductLandingPage({ user }) {
               Um estúdio completo para gerir músicas, vozes, cores e identidade.
             </h2>
             <p className="mt-3 text-base leading-7 text-ink-soft">
-              Além do aplicativo para os membros, o {appName} inclui um painel administrativo web
-              para cadastrar repertórios, estilizar arranjos vocais, personalizar a marca da sua
-              igreja e exportar o projeto.
+              Além do aplicativo para músicos e público, o {appName} inclui um painel administrativo web
+              para cadastrar repertórios, estilizar arranjos vocais, personalizar a identidade da sua
+              banda, carreira ou empresa e exportar o projeto.
             </p>
           </div>
 
@@ -1540,10 +1540,10 @@ export default function ProductLandingPage({ user }) {
                 <span>Simulador Comercial Interativo · Valores Fictícios</span>
               </div>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-                Planos e simulação de investimento para cada tamanho de ministério.
+                Planos e simulação de investimento para cada perfil musical.
               </h2>
               <p className="mt-3 text-base leading-7 text-ink-soft">
-                Simule abaixo o cenário ideal para sua igreja ou grupo de louvor, compare os planos
+                Simule abaixo o cenário ideal para você, sua banda, grupo ou empresa, compare os planos
                 em nuvem gerenciada ou veja a opção de pacote compilado independente.
               </p>
             </div>
@@ -1689,9 +1689,9 @@ export default function ProductLandingPage({ user }) {
                     className="h-2 w-full cursor-pointer accent-pine"
                   />
                   <div className="flex justify-between text-[11px] text-ink-soft">
-                    <span>20 (Grupo)</span>
-                    <span>150 (Igreja)</span>
-                    <span>500+ (Rede)</span>
+                    <span>20 (Solo / Trio)</span>
+                    <span>150 (Banda / Grupo)</span>
+                    <span>500+ (Produtora)</span>
                   </div>
                 </div>
               </div>
@@ -1699,7 +1699,7 @@ export default function ProductLandingPage({ user }) {
               {/* 4. Recursos adicionais */}
               <div className="space-y-2">
                 <span className="block text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                  4. Recursos essenciais para o seu ministério
+                  4. Recursos essenciais para o seu projeto
                 </span>
                 <div className="grid gap-2.5 sm:grid-cols-3">
                   <label className="flex cursor-pointer items-start gap-2.5 rounded-2xl border border-line bg-paper/60 p-3 text-xs">
@@ -1737,7 +1737,7 @@ export default function ProductLandingPage({ user }) {
                     />
                     <span>
                       <strong className="block font-semibold text-ink">White-Label + 12 Cores</strong>
-                      <span className="text-ink-soft">Nome e ícone próprios da igreja</span>
+                      <span className="text-ink-soft">Nome e ícone próprios da sua marca</span>
                     </span>
                   </label>
                 </div>
@@ -2070,9 +2070,9 @@ export default function ProductLandingPage({ user }) {
                 <thead>
                   <tr className="border-b border-line bg-paper/75 text-xs uppercase tracking-wider text-ink-soft">
                     <th className="py-3.5 pl-6 pr-4 font-semibold">Funcionalidade</th>
-                    <th className="px-4 py-3.5 font-semibold">Comunidade</th>
-                    <th className="px-4 py-3.5 font-bold text-pine">Ministério Pro</th>
-                    <th className="px-4 py-3.5 font-semibold">Denominacional</th>
+                    <th className="px-4 py-3.5 font-semibold">Essencial / Solo</th>
+                    <th className="px-4 py-3.5 font-bold text-pine">Banda & Artista Pro</th>
+                    <th className="px-4 py-3.5 font-semibold">Produtora</th>
                     <th className="py-3.5 pl-4 pr-6 font-semibold">Arquivo Bruto</th>
                   </tr>
                 </thead>
@@ -2124,7 +2124,7 @@ export default function ProductLandingPage({ user }) {
         <div className="mx-auto flex w-full max-w-7xl flex-col items-start justify-between gap-6 px-5 py-12 sm:px-8 lg:flex-row lg:items-center lg:px-12">
           <div className="max-w-2xl">
             <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Pronto para organizar o louvor com excelência?
+              Pronto para organizar seu repertório musical com excelência?
             </h2>
             <p className="mt-2 text-sm leading-6 text-white/85 sm:text-base">
               Acesse agora o catálogo completo, experimente a transposição de cifras, a divisão de
@@ -2165,7 +2165,7 @@ export default function ProductLandingPage({ user }) {
             <img src={iconSrc} alt="" className="h-6 w-6 rounded-md object-contain" />
             <p>
               <strong className="font-semibold text-ink">{appName}</strong> — Letras, vozes, cifras
-              e áudios para o momento de louvor. *(Valores e planos meramente ilustrativos)*
+              e áudios para bandas, cantores e projetos musicais. *(Valores e planos meramente ilustrativos)*
             </p>
           </div>
           <div className="flex flex-wrap gap-4">

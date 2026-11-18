@@ -416,11 +416,13 @@ export function subscribeTheme(listener) {
   return () => listeners.delete(listener);
 }
 
-export function setTheme(next) {
+export function setTheme(next, options = {}) {
+  if (next !== "light" && next !== "dark") {
+    return;
+  }
   if (
-    !getAppSettings().allowAppearanceChanges ||
-    !getAppSettings().allowedThemes.includes(next) ||
-    (next !== "light" && next !== "dark")
+    !options.force &&
+    (!getAppSettings().allowAppearanceChanges || !getAppSettings().allowedThemes.includes(next))
   ) {
     return;
   }
@@ -453,8 +455,8 @@ export function setAccent(next) {
   listeners.forEach((listener) => listener());
 }
 
-export function toggleTheme() {
-  setTheme(current === "dark" ? "light" : "dark");
+export function toggleTheme(options = {}) {
+  setTheme(current === "dark" ? "light" : "dark", options);
 }
 
 export function initTheme() {

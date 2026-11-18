@@ -1,39 +1,39 @@
 export const DEFAULT_THEMES = [
   {
-    label: "Louvor",
-    description: "Exaltação e glorificação a Deus.",
+    label: "Abertura / Início",
+    description: "Músicas ideais para abrir shows, apresentações e eventos.",
   },
   {
-    label: "Adoração",
-    description: "Amor, reverência e entrega a Deus.",
+    label: "Acústico & Voz",
+    description: "Arranjos intimistas focados em voz, violão ou piano.",
   },
   {
-    label: "Gratidão",
-    description: "Agradecimento pelas bênçãos recebidas.",
+    label: "Animadas / Upbeat",
+    description: "Repertório vibrante e energético para envolver o público.",
   },
   {
-    label: "Oração",
-    description: "Pedidos, súplicas e comunhão com Deus.",
+    label: "Baladas & Lento",
+    description: "Canções suaves, melódicas e de andamento calmo.",
   },
   {
-    label: "Fé e Esperança",
-    description: "Confiança em Deus e em Suas promessas.",
+    label: "Clássicos & Sucessos",
+    description: "Músicas consagradas e mais pedidas do repertório.",
   },
   {
-    label: "Jesus Cristo",
-    description: "Vida, obra, cruz e ressurreição de Jesus.",
+    label: "Ensaio & Passagem de Som",
+    description: "Seleção preparada para aquecimento, estudo e passagem de som.",
   },
   {
-    label: "Espírito Santo",
-    description: "Presença e ação do Espírito Santo.",
+    label: "Encerramento",
+    description: "Canções marcantes para finalizar a apresentação ou show.",
   },
   {
-    label: "Salvação",
-    description: "Perdão, redenção e vida eterna.",
+    label: "Especial / Evento",
+    description: "Repertório selecionado para ocasiões e projetos especiais.",
   },
   {
-    label: "Vida Cristã",
-    description: "Santidade, obediência e caminhada com Deus.",
+    label: "Vocal & Harmonia",
+    description: "Músicas com foco em arranjos vocais e divisão de vozes.",
   },
 ];
 

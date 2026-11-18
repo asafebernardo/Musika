@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   createSong,
@@ -12,6 +12,13 @@ import LyricEditor from "@/components/LyricEditor.jsx";
 import VocalArrangementEditor from "@/components/VocalArrangementEditor.jsx";
 import { syncChordLines } from "@/lib/chords.js";
 import { emptySongForm, fieldsFromSong, payloadFromSongForm } from "@/lib/songEditor.js";
+import {
+  buildUpdatesForAlbumSelection,
+  buildUpdatesForComposerSelection,
+  getRelatedSongInfoOptions,
+  useSongInfoRegistry,
+} from "@/lib/songInfoRegistry.js";
+import { syncSongSingleTheme, useSongThemes } from "@/lib/songThemes.js";
 
 const VALID_TABS = new Set(["letra", "arranjo", "cifra", "info"]);
 
@@ -33,6 +40,42 @@ export default function SongFormPage() {
   const [status, setStatus] = useState(editing ? "loading" : "ready");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const { themes } = useSongThemes();
+  const { mergedEntries: infoEntries } = useSongInfoRegistry();
+
+  const themeOptions = useMemo(() => {
+    const names = themes.map((item) => item.name.trim()).filter(Boolean);
+    const currentTema = String(form.tema ?? "").trim();
+    if (
+      currentTema &&
+      !names.some((n) => n.toLocaleLowerCase("pt-BR") === currentTema.toLocaleLowerCase("pt-BR"))
+    ) {
+      names.push(currentTema);
+    }
+    return [...new Set(names)].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [themes, form.tema]);
+
+  const relatedInfo = useMemo(
+    () => getRelatedSongInfoOptions(infoEntries, form.compositor, form.album),
+    [infoEntries, form.compositor, form.album],
+  );
+
+  const handleComposerChange = (event) => {
+    const nextCompositor = event.target.value;
+    setForm((current) => ({
+      ...current,
+      ...buildUpdatesForComposerSelection(infoEntries, nextCompositor, current),
+    }));
+  };
+
+  const handleAlbumChange = (event) => {
+    const nextAlbum = event.target.value;
+    setForm((current) => ({
+      ...current,
+      ...buildUpdatesForAlbumSelection(infoEntries, current.compositor, nextAlbum, current),
+    }));
+  };
 
   useEffect(() => {
     if (!editing) return undefined;
@@ -107,7 +150,9 @@ export default function SongFormPage() {
       const saved = editing
         ? await updateSong(numericId, payload)
         : await createSong(payload);
-      navigate(returnTo || `/musicas/${saved.id}`, { replace: true });
+      const savedSong = saved.song ?? saved;
+      syncSongSingleTheme(savedSong.id, savedSong.tema);
+      navigate(returnTo || `/musicas/${savedSong.id}`, { replace: true });
     } catch (err) {
       setError(messageForSongError(err));
       setSaving(false);
@@ -303,6 +348,161 @@ export default function SongFormPage() {
                   <p id="titulo-numero" className="text-xs leading-relaxed text-ink-soft">
                     O número segue a ordem alfabética do título e muda quando a coletânea muda.
                   </p>
+                </div>
+
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-medium text-ink-soft">
+                    Tema da música (definido no cadastro de temas)
+                  </span>
+                  <select
+                    value={form.tema}
+                    onChange={setField("tema")}
+                    className="h-11 w-full rounded-xl border border-line bg-paper px-3 text-sm text-ink outline-none ring-pine focus:ring-2"
+                  >
+                    <option value="">Selecione 1 tema para a música…</option>
+                    {themeOptions.map((themeName) => (
+                      <option key={themeName} value={themeName}>
+                        {themeName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="space-y-3 rounded-xl border border-line bg-paper/60 p-3.5">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-pine">
+                      Informações da música (vinculadas ao compositor)
+                    </p>
+                    <p className="mt-0.5 text-xs text-ink-soft">
+                      Selecione o autor/compositor para exibir somente as opções relacionadas nos campos seguintes.
+                    </p>
+                  </div>
+
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium text-ink-soft">
+                      Autor / Compositor / Banda
+                    </span>
+                    <select
+                      value={form.compositor}
+                      onChange={handleComposerChange}
+                      className="h-11 w-full rounded-xl border border-line bg-card px-3 text-sm text-ink outline-none ring-pine focus:ring-2"
+                    >
+                      <option value="">Selecione o autor / compositor…</option>
+                      {relatedInfo.composers.map((composer) => (
+                        <option key={composer} value={composer}>
+                          {composer}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium text-ink-soft">Nome do Álbum</span>
+                    <select
+                      value={form.album}
+                      onChange={handleAlbumChange}
+                      disabled={!relatedInfo.hasSelectedComposer}
+                      className="h-11 w-full rounded-xl border border-line bg-card px-3 text-sm text-ink outline-none ring-pine focus:ring-2 disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      <option value="">
+                        {!relatedInfo.hasSelectedComposer
+                          ? "Selecione o compositor primeiro…"
+                          : relatedInfo.albums.length === 0
+                            ? "Nenhum álbum vinculado a este compositor"
+                            : "Selecione o álbum…"}
+                      </option>
+                      {(form.album && !relatedInfo.albums.includes(form.album)
+                        ? [form.album, ...relatedInfo.albums]
+                        : relatedInfo.albums
+                      ).map((album) => (
+                        <option key={album} value={album}>
+                          {album}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium text-ink-soft">Ano de lançamento</span>
+                    <select
+                      value={form.anoLancamento}
+                      onChange={setField("anoLancamento")}
+                      disabled={!relatedInfo.hasSelectedComposer}
+                      className="h-11 w-full rounded-xl border border-line bg-card px-3 text-sm text-ink outline-none ring-pine focus:ring-2 disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      <option value="">
+                        {!relatedInfo.hasSelectedComposer
+                          ? "Selecione o compositor primeiro…"
+                          : relatedInfo.years.length === 0
+                            ? "Nenhum ano vinculado a este compositor"
+                            : "Selecione o ano de lançamento…"}
+                      </option>
+                      {(form.anoLancamento && !relatedInfo.years.includes(form.anoLancamento)
+                        ? [form.anoLancamento, ...relatedInfo.years]
+                        : relatedInfo.years
+                      ).map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium text-ink-soft">
+                      Banda / Intérprete relacionado
+                    </span>
+                    <select
+                      value={form.banda}
+                      onChange={setField("banda")}
+                      disabled={!relatedInfo.hasSelectedComposer}
+                      className="h-11 w-full rounded-xl border border-line bg-card px-3 text-sm text-ink outline-none ring-pine focus:ring-2 disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      <option value="">
+                        {!relatedInfo.hasSelectedComposer
+                          ? "Selecione o compositor primeiro…"
+                          : relatedInfo.bands.length === 0
+                            ? "Nenhuma banda vinculada a este compositor"
+                            : "Selecione a banda / intérprete…"}
+                      </option>
+                      {(form.banda && !relatedInfo.bands.includes(form.banda)
+                        ? [form.banda, ...relatedInfo.bands]
+                        : relatedInfo.bands
+                      ).map((band) => (
+                        <option key={band} value={band}>
+                          {band}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium text-ink-soft">
+                      Informações adicionais vinculadas
+                    </span>
+                    <select
+                      value={form.adicionais}
+                      onChange={setField("adicionais")}
+                      disabled={!relatedInfo.hasSelectedComposer}
+                      className="h-11 w-full rounded-xl border border-line bg-card px-3 text-sm text-ink outline-none ring-pine focus:ring-2 disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      <option value="">
+                        {!relatedInfo.hasSelectedComposer
+                          ? "Selecione o compositor primeiro…"
+                          : relatedInfo.additionalNotes.length === 0
+                            ? "Nenhuma observação vinculada"
+                            : "Selecione a observação vinculada…"}
+                      </option>
+                      {(form.adicionais && !relatedInfo.additionalNotes.includes(form.adicionais)
+                        ? [form.adicionais, ...relatedInfo.additionalNotes]
+                        : relatedInfo.additionalNotes
+                      ).map((note) => (
+                        <option key={note} value={note}>
+                          {note}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
 
                 <div className="space-y-1.5">

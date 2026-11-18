@@ -173,8 +173,8 @@ export default function AdminPersonalizationSection({ activeTab }) {
     `${import.meta.env.BASE_URL || "/"}icon.png`;
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-2 xl:col-span-2">
+    <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/80 pb-3 xl:col-span-2">
         <nav
           className="flex min-w-0 flex-1 gap-1 overflow-x-auto"
           aria-label={`Configurações de ${activeTab}`}
@@ -185,10 +185,10 @@ export default function AdminPersonalizationSection({ activeTab }) {
               type="button"
               onClick={() => setActiveField(field.id)}
               aria-current={selectedField === field.id ? "page" : undefined}
-              className={`shrink-0 rounded-full px-3 py-2 text-sm ${
+              className={`h-8 shrink-0 rounded-[3px] px-3 text-xs font-medium transition-colors ${
                 selectedField === field.id
-                  ? "bg-pine text-white"
-                  : "text-ink-soft hover:bg-card"
+                  ? "bg-pine text-white font-semibold"
+                  : "text-ink-soft hover:bg-card hover:text-ink"
               }`}
             >
               {field.label}
@@ -205,7 +205,7 @@ export default function AdminPersonalizationSection({ activeTab }) {
               setNotice("");
             }}
             disabled={loading || saving}
-            className="h-9 rounded-full border border-line px-3.5 text-sm font-medium hover:bg-card disabled:opacity-50"
+            className="h-8.5 rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper disabled:opacity-50"
           >
             Restaurar padrão
           </button>
@@ -213,7 +213,7 @@ export default function AdminPersonalizationSection({ activeTab }) {
             type="submit"
             form="admin-personalization-form"
             disabled={loading || saving}
-            className="h-9 rounded-full bg-pine px-4 text-sm font-semibold text-white hover:bg-pine-dark disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-8.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? "Salvando…" : "Salvar"}
           </button>
@@ -237,27 +237,28 @@ export default function AdminPersonalizationSection({ activeTab }) {
         )}
 
         {error ? (
-          <p role="alert" className="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
+          <p role="alert" className="rounded-[3px] border border-danger/30 bg-danger-soft px-3.5 py-2.5 text-xs text-danger">
             {error}
           </p>
         ) : null}
         {notice ? (
-          <p role="status" className="rounded-xl border border-pine/20 bg-pine/5 px-4 py-3 text-sm text-pine">
+          <p role="status" className="rounded-[3px] border border-pine/30 bg-pine/5 px-3.5 py-2.5 text-xs text-pine">
             {notice}
           </p>
         ) : null}
       </form>
 
-      <aside className="xl:sticky xl:top-4 xl:self-start">
-        <div className="rounded-2xl border border-line bg-card p-5 shadow-sm">
-          <div>
-            <h3 className="text-sm font-semibold">Prévia do app</h3>
-            <p className="mt-1 text-xs text-ink-soft">
-              A tela do celular acompanha as opções selecionadas em tempo real.
-            </p>
-          </div>
+      <aside className="border-t border-line/80 pt-5 xl:sticky xl:top-4 xl:self-start xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
+            Prévia do app
+          </p>
+          <p className="mt-0.5 text-xs text-ink-soft">
+            A tela do celular acompanha as opções selecionadas em tempo real.
+          </p>
+        </div>
 
-          <div className="mx-auto mt-4 max-w-[340px] rounded-[2.4rem] border-[6px] border-neutral-800 bg-neutral-900 p-1.5 shadow-xl ring-1 ring-black/20">
+        <div className="mx-auto mt-3.5 max-w-[340px] rounded-[2.4rem] border-[6px] border-neutral-800 bg-neutral-900 p-1.5 shadow-xl ring-1 ring-black/20">
             <div
               style={previewStyle}
               className="flex h-[min(600px,calc(100dvh-230px))] min-h-[450px] flex-col overflow-hidden rounded-[2rem] bg-paper text-ink"
@@ -366,7 +367,7 @@ export default function AdminPersonalizationSection({ activeTab }) {
                 >
                   <div className="flex flex-col items-center justify-center gap-0.5 py-1 text-[10px] font-semibold text-pine">
                     <PreviewPraiseIcon />
-                    <span>Louvor</span>
+                    <span>Músicas</span>
                   </div>
                   <div className="flex flex-col items-center justify-center gap-0.5 py-1 text-[10px] font-medium text-pine">
                     <PreviewViewIcon view={settings.defaultSongView} />
@@ -391,9 +392,9 @@ export default function AdminPersonalizationSection({ activeTab }) {
           {activeTab === "identidade" ? (
             <div
               style={previewStyle}
-              className="mt-3 flex items-center gap-3 rounded-xl border border-line bg-paper p-2.5 text-ink"
+              className="mt-3 flex items-center gap-3 border-t border-line/80 pt-3 text-ink"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-card shadow-sm">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[3px] border border-line bg-card">
                 {previewIcon ? (
                   <img
                     src={previewIcon}
@@ -412,10 +413,9 @@ export default function AdminPersonalizationSection({ activeTab }) {
               </div>
             </div>
           ) : null}
-          <p className="mt-4 text-center text-xs text-ink-soft">
+          <p className="mt-3 text-center text-xs text-ink-soft">
             Tema: {THEMES.find((item) => item.value === settings.theme)?.label} · Cor: {accent.label}
           </p>
-        </div>
       </aside>
     </div>
   );
@@ -541,14 +541,14 @@ function IdentitySettings({ activeField, settings, update, onImageChange }) {
   return (
     <SettingsCard title={field.title} description={field.description}>
       {activeField === "nome" ? (
-        <label className="block space-y-1.5">
-          <span className="text-sm font-medium">Nome do aplicativo</span>
+        <label className="block max-w-md space-y-1.5">
+          <span className="text-xs font-medium text-ink-soft">Nome do aplicativo</span>
           <input
             value={settings.appName}
             onChange={(event) => update({ appName: event.target.value })}
             maxLength={40}
             required
-            className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
+            className="h-9 w-full rounded-[3px] border border-line bg-card px-2.5 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
           />
           <span className="block text-xs text-ink-soft">Até 40 caracteres.</span>
         </label>
@@ -564,22 +564,22 @@ function IdentitySettings({ activeField, settings, update, onImageChange }) {
             onChange={(appIconMode) => update({ appIconMode })}
           />
           {settings.appIconMode === "default" ? (
-            <div className="flex items-center gap-4 rounded-xl border border-line bg-paper p-4">
+            <div className="flex items-center gap-4 border-t border-line/80 pt-4">
               <img
                 src={defaultIconSrc}
                 alt="Ícone padrão do aplicativo"
-                className="h-16 w-16 shrink-0 rounded-xl bg-black object-contain"
+                className="h-14 w-14 shrink-0 rounded-[3px] border border-line bg-black object-contain"
               />
               <div>
-                <p className="text-sm font-medium">Ícone padrão</p>
-                <p className="mt-1 text-xs text-ink-soft">
+                <p className="text-[13px] font-medium text-ink">Ícone padrão</p>
+                <p className="mt-0.5 text-xs text-ink-soft">
                   Este ícone será usado nos temas claro e escuro.
                 </p>
               </div>
             </div>
           ) : (
             <>
-              <div className="flex gap-1 rounded-xl border border-line bg-paper p-1" role="group" aria-label="Tema do ícone">
+              <div className="inline-flex gap-1 rounded-[3px] border border-line bg-card p-0.5" role="group" aria-label="Tema do ícone">
                 {[
                   { value: "light", label: "Claro" },
                   { value: "dark", label: "Escuro" },
@@ -589,9 +589,9 @@ function IdentitySettings({ activeField, settings, update, onImageChange }) {
                     type="button"
                     aria-pressed={iconTheme === theme.value}
                     onClick={() => setIconTheme(theme.value)}
-                    className={`min-h-9 flex-1 rounded-lg px-3 text-sm font-medium ${
+                    className={`h-8 rounded-[2px] px-3 text-xs font-medium ${
                       iconTheme === theme.value
-                        ? "bg-card text-ink shadow-sm"
+                        ? "bg-pine text-white"
                         : "text-ink-soft hover:text-ink"
                     }`}
                   >
@@ -716,7 +716,7 @@ function ThemeSettings({ activeField, settings, update }) {
               { value: "light", label: "Claro" },
               { value: "dark", label: "Escuro" },
             ].map((theme) => (
-              <label key={theme.value} className="flex items-center gap-3 rounded-xl border border-line bg-paper px-3 py-2.5">
+              <label key={theme.value} className="flex items-center gap-3 rounded-[3px] border border-line bg-card px-3 py-2">
                 <input
                   type="checkbox"
                   checked={settings.allowedThemes.includes(theme.value)}
@@ -725,9 +725,9 @@ function ThemeSettings({ activeField, settings, update }) {
                     settings.allowedThemes.length === 1 &&
                     settings.allowedThemes.includes(theme.value)
                   }
-                  className="h-4 w-4 accent-pine"
+                  className="h-4 w-4 rounded-[2px] accent-pine"
                 />
-                <span className="text-sm">{theme.label}</span>
+                <span className="text-[13px] font-medium text-ink">{theme.label}</span>
               </label>
             ))}
           </div>
@@ -746,11 +746,11 @@ function ThemeSettings({ activeField, settings, update }) {
       {activeField === "coresDisponiveis" ? (
         <fieldset>
           <legend className="text-sm font-semibold">Paletas disponíveis para usuários</legend>
-          <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {ACCENT_OPTIONS.map((option) => (
               <label
                 key={option.id}
-                className="flex cursor-pointer items-center gap-3 rounded-xl border border-line bg-paper px-3.5 py-3 transition-colors hover:bg-card"
+                className="flex cursor-pointer items-center gap-3 rounded-[3px] border border-line bg-card/50 px-3 py-2.5 transition-colors hover:bg-card"
               >
                 <input
                   type="checkbox"
@@ -760,11 +760,11 @@ function ThemeSettings({ activeField, settings, update }) {
                     settings.allowedAccents.length === 1 &&
                     settings.allowedAccents.includes(option.id)
                   }
-                  className="h-4 w-4 shrink-0 accent-pine"
+                  className="h-4 w-4 shrink-0 rounded-[2px] accent-pine"
                 />
                 <PaletteSwatchBar option={option} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-ink">{option.label}</span>
+                  <span className="block truncate text-[13px] font-medium text-ink">{option.label}</span>
                   {option.description ? (
                     <span className="block truncate text-[11px] text-ink-soft">{option.description}</span>
                   ) : null}
@@ -932,10 +932,10 @@ function AccessSettings({ activeField, settings, update }) {
 
 function SettingsCard({ title, description, children }) {
   return (
-    <section className="space-y-6 rounded-2xl border border-line bg-card p-5 shadow-sm sm:p-6">
-      <div>
-        <h3 className="text-base font-semibold">{title}</h3>
-        <p className="mt-1 text-sm leading-relaxed text-ink-soft">{description}</p>
+    <section className="space-y-5">
+      <div className="border-b border-line/80 pb-4">
+        <h3 className="text-sm font-semibold text-ink">{title}</h3>
+        <p className="mt-0.5 text-xs leading-relaxed text-ink-soft">{description}</p>
       </div>
       {children}
     </section>
@@ -945,23 +945,23 @@ function SettingsCard({ title, description, children }) {
 function ImageSetting({ label, description, value, fallbackSrc, onChange, onClear }) {
   const previewSrc = value || fallbackSrc;
   return (
-    <div className="rounded-xl border border-line bg-paper p-4">
-      <p className="text-sm font-semibold">{label}</p>
-      <p className="mt-1 text-xs text-ink-soft">{description}</p>
+    <div className="border-t border-line/80 pt-4">
+      <p className="text-[13px] font-semibold text-ink">{label}</p>
+      <p className="mt-0.5 text-xs text-ink-soft">{description}</p>
       <div className="mt-3 flex items-center gap-3">
         {previewSrc ? (
           <img
             src={previewSrc}
             alt={`Prévia de ${label.toLowerCase()}`}
-            className="h-14 w-14 shrink-0 rounded-xl border border-line bg-black object-contain"
+            className="h-14 w-14 shrink-0 rounded-[3px] border border-line bg-black object-contain"
           />
         ) : (
-          <span className="flex h-14 w-14 items-center justify-center rounded-xl border border-dashed border-line bg-card text-xs text-ink-soft">
+          <span className="flex h-14 w-14 items-center justify-center rounded-[3px] border border-dashed border-line bg-card text-xs text-ink-soft">
             Sem imagem
           </span>
         )}
         <div className="flex flex-wrap gap-2">
-          <label className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-line bg-card px-3 text-sm font-medium hover:bg-paper">
+          <label className="inline-flex h-8.5 cursor-pointer items-center rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper">
             Enviar imagem
             <input
               type="file"
@@ -971,7 +971,7 @@ function ImageSetting({ label, description, value, fallbackSrc, onChange, onClea
             />
           </label>
           {value ? (
-            <button type="button" onClick={onClear} className="h-9 rounded-lg px-3 text-sm text-danger hover:bg-danger-soft">
+            <button type="button" onClick={onClear} className="h-8.5 rounded-[3px] border border-danger/30 bg-card px-3 text-xs font-medium text-danger hover:bg-danger-soft">
               Remover
             </button>
           ) : null}
@@ -985,7 +985,7 @@ function PaletteSwatchBar({ option }) {
   return (
     <span
       aria-hidden
-      className="inline-flex h-7 w-14 shrink-0 overflow-hidden rounded-lg border border-black/15 shadow-sm"
+      className="inline-flex h-6 w-12 shrink-0 overflow-hidden rounded-[2px] border border-black/15"
     >
       <span style={{ backgroundColor: option.swatch }} className="h-full flex-1" title="Cor principal" />
       <span style={{ backgroundColor: option.secondarySwatch || option.swatch }} className="h-full flex-1" title="Cor secundária / hover" />
@@ -997,7 +997,7 @@ function PaletteSwatchBar({ option }) {
 
 function AccentChoices({ value, accents, onChange }) {
   return (
-    <div role="radiogroup" aria-label="Cor padrão" className="mt-3 grid gap-2.5 sm:grid-cols-2">
+    <div role="radiogroup" aria-label="Cor padrão" className="mt-3 grid gap-2 sm:grid-cols-2">
       {accents.map((option) => {
         const selected = value === option.id;
         return (
@@ -1009,29 +1009,29 @@ function AccentChoices({ value, accents, onChange }) {
             aria-label={option.label}
             title={option.label}
             onClick={() => onChange(option.id)}
-            className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine ${
+            className={`flex items-center gap-3 rounded-[3px] border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-pine ${
               selected
-                ? "border-pine bg-pine/5 ring-2 ring-pine/30"
-                : "border-line bg-paper hover:bg-card"
+                ? "border-pine bg-card"
+                : "border-line bg-card/50 hover:bg-card"
             }`}
           >
             <PaletteSwatchBar option={option} />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold text-ink">{option.label}</span>
+              <span className="block truncate text-[13px] font-semibold text-ink">{option.label}</span>
               {option.description ? (
                 <span className="block truncate text-[11px] text-ink-soft">{option.description}</span>
               ) : null}
             </span>
             <span
               aria-hidden
-              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+              className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] border ${
                 selected ? "border-pine bg-pine text-white" : "border-line bg-card"
               }`}
             >
               {selected ? (
                 <svg
                   viewBox="0 0 20 20"
-                  className="h-3.5 w-3.5"
+                  className="h-3 w-3"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2.5"
@@ -1051,16 +1051,16 @@ function AccentChoices({ value, accents, onChange }) {
 
 function ChoiceGroup({ label, value, choices, onChange }) {
   return (
-    <div className="mt-3 flex flex-wrap gap-1 rounded-xl border border-line bg-paper p-1" role="group" aria-label={label}>
+    <div className="mt-3 inline-flex flex-wrap gap-1 rounded-[3px] border border-line bg-card p-0.5" role="group" aria-label={label}>
       {choices.map((choice) => (
         <button
           key={choice.value}
           type="button"
           aria-pressed={value === choice.value}
           onClick={() => onChange(choice.value)}
-          className={`min-h-9 flex-1 rounded-lg px-3 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine ${
+          className={`h-8 rounded-[2px] px-3.5 text-xs font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-pine ${
             value === choice.value
-              ? "bg-card text-ink shadow-sm"
+              ? "bg-pine text-white"
               : "text-ink-soft hover:text-ink"
           }`}
         >
@@ -1073,15 +1073,15 @@ function ChoiceGroup({ label, value, choices, onChange }) {
 
 function SettingSwitch({ checked, onChange, label, description, compact = false }) {
   return (
-    <label className={`flex items-start gap-3 rounded-xl border border-line bg-paper ${compact ? "p-3" : "p-4"}`}>
+    <label className={`flex cursor-pointer items-start gap-3 border-b border-line/70 ${compact ? "py-2.5" : "py-3"}`}>
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="mt-0.5 h-4 w-4 shrink-0 accent-pine"
+        className="mt-0.5 h-4 w-4 shrink-0 rounded-[2px] accent-pine"
       />
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium">{label}</span>
+        <span className="block text-[13px] font-medium text-ink">{label}</span>
         {description ? <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">{description}</span> : null}
       </span>
     </label>

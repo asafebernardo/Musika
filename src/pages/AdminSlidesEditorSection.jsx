@@ -6,13 +6,13 @@ const FALLBACK_SONGS = [
   {
     id: "demo-1",
     numero: 1,
-    titulo: "Cantai ao Senhor (Exemplo)",
-    banda: "Ministério de Louvor",
-    compositor: "Domínio Público",
-    tema: "Louvor",
+    titulo: "Horizonte de Luz (Exemplo)",
+    banda: "Banda Horizonte",
+    compositor: "Lucas Andrade",
+    tema: "Abertura / Início",
     letra:
-      "Cantai ao Senhor um cântico novo\nCantai ao Senhor, todas as terras\nCantai ao Senhor, bendizei o Seu nome\nProclamai a Sua salvação.\n\nAnunciai entre as nações a Sua glória\nEntre todos os povos as Suas maravilhas\nPorque grande é o Senhor e mui digno de ser louvado.",
-    refrao: "Jesus é o Senhor, amém, aleluia!\nEle reina para sempre com poder e glória.",
+      "Quando o som começa a ecoar\nCada acorde encontra o seu lugar\nNossa voz se espalha pelo ar\nNa melodia que nos faz cantar.\n\nNosso ritmo guia cada passo\nNa harmonia desse compasso\nOnde a música une cada coração.",
+    refrao: "A música nos move do início ao fim!\nEm cada nota, a nossa canção.",
     cronologica: true,
     refraoPrimeiro: false,
   },
@@ -352,34 +352,34 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
   }, [fullscreenOpen, slides.length]);
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-5">
+    <div className="mx-auto w-full max-w-7xl space-y-6">
       {/* Cabeçalho e seletor de música */}
-      <section className="rounded-2xl border border-line bg-card p-5 shadow-sm sm:p-6">
+      <section className="border-b border-line/80 pb-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-base font-semibold text-ink">Editor de slides das músicas</h3>
-              <span className="rounded-full bg-pine/10 px-2.5 py-0.5 text-xs font-semibold text-pine">
-                Conceito · Somente no painel (sem API)
+              <h3 className="text-sm font-semibold text-ink">Editor de slides das músicas</h3>
+              <span className="rounded-[2px] border border-line bg-card px-2 py-0.5 text-[11px] font-medium text-ink-soft">
+                Projeção
               </span>
             </div>
-            <p className="mt-1 text-sm text-ink-soft">
-              Escolha uma música da lista existente para visualizar toda a letra à esquerda e montar ou projetar os slides à direita.
+            <p className="mt-0.5 text-xs text-ink-soft">
+              Escolha uma música para visualizar a letra à esquerda e organizar ou projetar os slides à direita.
             </p>
           </div>
           <button
             type="button"
             onClick={openFullscreenDemo}
             disabled={!activeSlide}
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-pine px-4 text-sm font-semibold text-white shadow-sm hover:bg-pine-dark disabled:opacity-50"
+            className="inline-flex h-8.5 items-center gap-2 rounded-[3px] bg-pine px-3.5 text-xs font-semibold text-white hover:bg-pine-dark disabled:opacity-50"
           >
-            <FullscreenIcon className="h-4 w-4" />
-            Tela cheia demonstrativo
+            <FullscreenIcon className="h-3.5 w-3.5" />
+            Apresentar em tela cheia
           </button>
         </div>
 
         {/* Barra de seleção da música */}
-        <div className="mt-5 grid gap-3 border-t border-line pt-4 md:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
+        <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
           <label className="block space-y-1">
             <span className="text-xs font-medium text-ink-soft">Filtrar música</span>
             <input
@@ -387,7 +387,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar por número, título ou trecho…"
-              className="h-10 w-full rounded-xl border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
+              className="h-9 w-full rounded-[3px] border border-line bg-card px-2.5 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
             />
           </label>
 
@@ -400,7 +400,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
               onChange={(event) => setSelectedSongId(event.target.value)}
               disabled={loadingSongs}
               aria-label="Escolher música para os slides"
-              className="h-10 w-full rounded-xl border border-line bg-paper px-3 text-sm font-medium text-ink outline-none focus:ring-2 focus:ring-pine"
+              className="h-9 w-full rounded-[3px] border border-line bg-card px-2.5 text-[13px] font-medium text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
             >
               {filteredSongs.length === 0 ? (
                 <option value="">Nenhuma música encontrada para "{search}"</option>
@@ -421,16 +421,16 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
       </section>
 
       {/* Corpo principal: Esquerda (Toda a letra) | Direita (Configurações simples + Prévia/Tela cheia) */}
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_440px] xl:grid-cols-[minmax(0,1fr)_480px]">
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_420px] xl:grid-cols-[minmax(0,1fr)_460px]">
         {/* COLUNA ESQUERDA: Toda a letra da música selecionada */}
-        <section className="flex flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+        <section className="flex flex-col">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/80 pb-3.5">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="rounded-lg bg-pine/10 px-2 py-0.5 font-mono text-xs font-semibold text-pine">
+                <span className="rounded-[2px] border border-line bg-card px-1.5 py-0.5 font-mono text-xs font-medium text-ink-soft">
                   #{String(selectedSong?.numero || 1).padStart(3, "0")}
                 </span>
-                <h4 className="truncate text-base font-semibold text-ink">
+                <h4 className="truncate text-sm font-semibold text-ink">
                   {selectedSong?.titulo || "Selecione uma música"}
                 </h4>
               </div>
@@ -444,14 +444,14 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
             <div
               role="group"
               aria-label="Modo de exibição da letra"
-              className="inline-flex rounded-xl border border-line bg-paper p-1"
+              className="inline-flex rounded-[3px] border border-line bg-card p-0.5"
             >
               <button
                 type="button"
                 onClick={() => setLyricViewMode("completa")}
-                className={`h-8 rounded-lg px-3 text-xs font-medium transition-colors ${
+                className={`h-7.5 rounded-[2px] px-2.5 text-xs font-medium transition-colors ${
                   lyricViewMode === "completa"
-                    ? "bg-card font-semibold text-ink shadow-sm"
+                    ? "bg-pine text-white"
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
@@ -460,9 +460,9 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
               <button
                 type="button"
                 onClick={() => setLyricViewMode("blocos")}
-                className={`h-8 rounded-lg px-3 text-xs font-medium transition-colors ${
+                className={`h-7.5 rounded-[2px] px-2.5 text-xs font-medium transition-colors ${
                   lyricViewMode === "blocos"
-                    ? "bg-card font-semibold text-ink shadow-sm"
+                    ? "bg-pine text-white"
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
@@ -472,9 +472,9 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
           </div>
 
           {selectedSong ? (
-            <div className="space-y-6 p-5 sm:p-6">
+            <div className="space-y-6 pt-5">
               {lyricViewMode === "completa" ? (
-                <div className="rounded-2xl border border-line bg-paper/60 p-4 sm:p-6">
+                <div className="border-b border-line/80 pb-6">
                   <Lyrics
                     letra={selectedSong.letra || ""}
                     refrao={selectedSong.refrao || ""}
@@ -494,9 +494,9 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
               ) : null}
 
               {/* Blocos da letra para envio rápido ou leitura estruturada */}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h5 className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                  <h5 className="text-xs font-semibold text-ink-soft">
                     {lyricViewMode === "completa"
                       ? "Partes da letra (clique para criar um slide rapidamente)"
                       : "Estrofes e refrão da música"}
@@ -510,80 +510,75 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                         "capa",
                       )
                     }
-                    className="rounded-lg border border-line bg-paper px-2.5 py-1 text-xs font-medium text-ink hover:border-pine hover:text-pine"
+                    className="h-7.5 rounded-[3px] border border-line bg-card px-2.5 text-xs font-medium text-ink hover:border-pine hover:text-pine"
                   >
                     + Slide de título
                   </button>
                 </div>
 
                 {songParts.refrao ? (
-                  <div className="rounded-xl border border-pine/30 bg-pine/5 p-4">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <span className="rounded-full bg-pine/15 px-2.5 py-0.5 text-[11px] font-semibold text-pine">
+                  <div className="border-l-2 border-pine pl-3.5">
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-pine">
                         Refrão
                       </span>
                       <button
                         type="button"
                         onClick={() => handleQuickAddChunk("Refrão", songParts.refrao, "refrao")}
-                        className="inline-flex h-7 items-center rounded-lg bg-pine px-2.5 text-xs font-semibold text-white hover:bg-pine-dark"
+                        className="inline-flex h-7 items-center rounded-[3px] bg-pine px-2.5 text-xs font-semibold text-white hover:bg-pine-dark"
                       >
                         + Adicionar slide
                       </button>
                     </div>
-                    <p className="whitespace-pre-wrap font-lyric text-sm italic leading-relaxed text-ink">
+                    <p className="whitespace-pre-wrap font-lyric text-[13px] italic leading-relaxed text-ink">
                       {songParts.refrao}
                     </p>
                   </div>
                 ) : null}
 
                 {songParts.verses.length > 0 ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="divide-y divide-line/80 border-t border-line/80">
                     {songParts.verses.map((verse, idx) => (
-                      <div
-                        key={idx}
-                        className="flex flex-col justify-between rounded-xl border border-line bg-paper p-4"
-                      >
-                        <div>
-                          <div className="mb-2 flex items-center justify-between gap-2">
-                            <span className="text-xs font-semibold text-ink-soft">
-                              Estrofe {idx + 1}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleQuickAddChunk(`Estrofe ${idx + 1}`, verse, "estrofe")
-                              }
-                              className="inline-flex h-7 items-center rounded-lg border border-line bg-card px-2.5 text-xs font-medium text-pine hover:border-pine hover:bg-pine/5"
-                            >
-                              + Adicionar slide
-                            </button>
-                          </div>
-                          <p className="whitespace-pre-wrap font-lyric text-sm leading-relaxed text-ink">
-                            {verse}
-                          </p>
+                      <div key={idx} className="py-3.5">
+                        <div className="mb-1.5 flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-ink-soft">
+                            Estrofe {idx + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleQuickAddChunk(`Estrofe ${idx + 1}`, verse, "estrofe")
+                            }
+                            className="inline-flex h-7 items-center rounded-[3px] border border-line bg-card px-2.5 text-xs font-medium text-pine hover:border-pine"
+                          >
+                            + Adicionar slide
+                          </button>
                         </div>
+                        <p className="whitespace-pre-wrap font-lyric text-[13px] leading-relaxed text-ink">
+                          {verse}
+                        </p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="rounded-xl border border-line bg-paper p-4 text-sm text-ink-soft">
+                  <p className="py-4 text-xs text-ink-soft">
                     Esta música ainda não possui estrofes cadastradas.
                   </p>
                 )}
               </div>
             </div>
           ) : (
-            <p className="p-6 text-sm text-ink-soft">Nenhuma música selecionada.</p>
+            <p className="py-6 text-sm text-ink-soft">Nenhuma música selecionada.</p>
           )}
         </section>
 
         {/* COLUNA DIREITA: Prévia + Tela cheia demonstrativo + Configurações simples de criar slides */}
-        <aside className="space-y-5 lg:sticky lg:top-4">
-          {/* Card 1: Prévia ao vivo do Slide + Botão Tela Cheia */}
-          <section className="rounded-2xl border border-line bg-card p-5 shadow-sm">
+        <aside className="divide-y divide-line/80 border-t border-line/80 pt-6 lg:sticky lg:top-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+          {/* Bloco 1: Prévia ao vivo do Slide + Botão Tela Cheia */}
+          <section className="pb-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-pine">
+                <p className="text-xs font-semibold text-ink">
                   Demonstração do slide
                 </p>
                 <p className="mt-0.5 text-xs text-ink-soft">
@@ -595,7 +590,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                 type="button"
                 onClick={openFullscreenDemo}
                 disabled={!activeSlide}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-pine px-3 text-xs font-semibold text-white hover:bg-pine-dark disabled:opacity-50"
+                className="inline-flex h-8 items-center gap-1.5 rounded-[3px] bg-pine px-3 text-xs font-semibold text-white hover:bg-pine-dark disabled:opacity-50"
               >
                 <FullscreenIcon className="h-3.5 w-3.5" />
                 Tela cheia
@@ -604,7 +599,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
 
             {/* Palco de prévia do slide */}
             <div
-              className={`relative mt-3 flex w-full flex-col justify-between overflow-hidden rounded-2xl border border-line p-6 shadow-inner transition-colors ${
+              className={`relative mt-3 flex w-full flex-col justify-between overflow-hidden rounded-[3px] border border-line p-5 transition-colors ${
                 aspectRatio === "4:3" ? "aspect-[4/3]" : "aspect-video"
               } ${activeTheme.bgClass}`}
             >
@@ -666,7 +661,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                 type="button"
                 onClick={() => setActiveSlideIndex((prev) => Math.max(prev - 1, 0))}
                 disabled={activeSlideIndex <= 0}
-                className="h-9 flex-1 rounded-lg border border-line bg-paper px-3 text-xs font-medium hover:bg-card disabled:opacity-40"
+                className="h-8.5 flex-1 rounded-[3px] border border-line bg-card px-3 text-xs font-medium hover:bg-paper disabled:opacity-40"
               >
                 ‹ Slide anterior
               </button>
@@ -676,24 +671,24 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                   setActiveSlideIndex((prev) => Math.min(prev + 1, Math.max(0, slides.length - 1)))
                 }
                 disabled={activeSlideIndex >= slides.length - 1}
-                className="h-9 flex-1 rounded-lg border border-line bg-paper px-3 text-xs font-medium hover:bg-card disabled:opacity-40"
+                className="h-8.5 flex-1 rounded-[3px] border border-line bg-card px-3 text-xs font-medium hover:bg-paper disabled:opacity-40"
               >
                 Próximo slide ›
               </button>
             </div>
           </section>
 
-          {/* Card 2: Configurações simples de criar novos slides */}
-          <section className="space-y-4 rounded-2xl border border-line bg-card p-5 shadow-sm">
+          {/* Bloco 2: Configurações simples de criar novos slides */}
+          <section className="space-y-5 pt-6">
             <div>
-              <h4 className="text-sm font-semibold text-ink">Configurações simples de slides</h4>
+              <h4 className="text-sm font-semibold text-ink">Configurações de slides</h4>
               <p className="mt-0.5 text-xs text-ink-soft">
                 Gere slides automaticamente da letra ou adicione novos slides personalizados.
               </p>
             </div>
 
             {/* Divisão automática da letra */}
-            <div className="space-y-2.5 rounded-xl border border-line bg-paper p-3.5">
+            <div className="space-y-2.5 border-t border-line/80 pt-3.5">
               <p className="text-xs font-semibold text-ink">Gerar a partir da letra</p>
               <label className="flex cursor-pointer items-center gap-2.5 text-xs">
                 <input
@@ -704,7 +699,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                     setIncludeTitleSlide(checked);
                     regenerateSlides({ includeTitleSlide: checked });
                   }}
-                  className="h-4 w-4 accent-pine"
+                  className="h-3.5 w-3.5 rounded-[2px] accent-pine"
                 />
                 <span>Criar slide de capa com o título da música</span>
               </label>
@@ -718,14 +713,14 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                     setRepeatChorus(checked);
                     regenerateSlides({ repeatChorus: checked });
                   }}
-                  className="h-4 w-4 accent-pine"
+                  className="h-3.5 w-3.5 rounded-[2px] accent-pine"
                 />
                 <span>Repetir o refrão após cada estrofe</span>
               </label>
 
               <div className="flex items-center justify-between gap-2 pt-1">
                 <span className="text-xs text-ink-soft">Linhas por slide:</span>
-                <div className="inline-flex rounded-lg border border-line bg-card p-0.5">
+                <div className="inline-flex rounded-[3px] border border-line bg-card p-0.5">
                   {[
                     { value: 0, label: "Estrofe" },
                     { value: 2, label: "2 linhas" },
@@ -738,7 +733,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                         setMaxLinesPerSlide(option.value);
                         regenerateSlides({ maxLinesPerSlide: option.value });
                       }}
-                      className={`h-7 rounded-md px-2.5 text-[11px] font-medium ${
+                      className={`h-7 rounded-[2px] px-2.5 text-[11px] font-medium ${
                         maxLinesPerSlide === option.value
                           ? "bg-pine text-white"
                           : "text-ink-soft hover:text-ink"
@@ -752,14 +747,14 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
             </div>
 
             {/* Criar novo slide manual */}
-            <form onSubmit={handleAddSlide} className="space-y-2.5 rounded-xl border border-line bg-paper p-3.5">
+            <form onSubmit={handleAddSlide} className="space-y-2.5 border-t border-line/80 pt-3.5">
               <p className="text-xs font-semibold text-ink">Criar novo slide</p>
               <div className="flex gap-2">
                 <select
                   value={newSlideLabel}
                   onChange={(event) => setNewSlideLabel(event.target.value)}
                   aria-label="Tipo do novo slide"
-                  className="h-9 rounded-lg border border-line bg-card px-2.5 text-xs font-medium text-ink outline-none focus:ring-2 focus:ring-pine"
+                  className="h-8.5 rounded-[3px] border border-line bg-card px-2.5 text-xs font-medium text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                 >
                   <option value="Estrofe">Estrofe</option>
                   <option value="Refrão">Refrão</option>
@@ -770,7 +765,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                 <button
                   type="submit"
                   disabled={!newSlideText.trim()}
-                  className="h-9 flex-1 rounded-lg bg-pine px-3 text-xs font-semibold text-white hover:bg-pine-dark disabled:opacity-50"
+                  className="h-8.5 flex-1 rounded-[3px] bg-pine px-3 text-xs font-semibold text-white hover:bg-pine-dark disabled:opacity-50"
                 >
                   + Adicionar slide
                 </button>
@@ -780,12 +775,12 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                 value={newSlideText}
                 onChange={(event) => setNewSlideText(event.target.value)}
                 placeholder="Digite ou cole o trecho da letra para o novo slide…"
-                className="w-full rounded-lg border border-line bg-card p-2.5 text-xs leading-relaxed text-ink outline-none focus:ring-2 focus:ring-pine"
+                className="w-full rounded-[3px] border border-line bg-card p-2.5 text-xs leading-relaxed text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
               />
             </form>
 
             {/* Aparência simples do slide */}
-            <div className="space-y-3 rounded-xl border border-line bg-paper p-3.5">
+            <div className="space-y-3 border-t border-line/80 pt-3.5">
               <p className="text-xs font-semibold text-ink">Aparência da projeção</p>
 
               <div className="space-y-1.5">
@@ -796,13 +791,13 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                       key={item.id}
                       type="button"
                       onClick={() => setThemeId(item.id)}
-                      className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors ${
+                      className={`inline-flex h-7.5 items-center gap-1.5 rounded-[3px] border px-2.5 text-xs font-medium transition-colors ${
                         themeId === item.id
                           ? "border-pine bg-pine/10 text-pine"
                           : "border-line bg-card text-ink-soft hover:text-ink"
                       }`}
                     >
-                      <span className={`h-3 w-3 rounded-full border ${item.swatch}`} />
+                      <span className={`h-2.5 w-2.5 rounded-[2px] border ${item.swatch}`} />
                       {item.label}
                     </button>
                   ))}
@@ -812,13 +807,13 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <span className="mb-1 block text-[11px] text-ink-soft">Tamanho do texto</span>
-                  <div className="inline-flex w-full rounded-lg border border-line bg-card p-0.5">
+                  <div className="inline-flex w-full rounded-[3px] border border-line bg-card p-0.5">
                     {FONT_SIZES.map((size) => (
                       <button
                         key={size.id}
                         type="button"
                         onClick={() => setFontSizeId(size.id)}
-                        className={`h-7 flex-1 rounded-md text-[11px] font-medium ${
+                        className={`h-7 flex-1 rounded-[2px] text-[11px] font-medium ${
                           fontSizeId === size.id
                             ? "bg-pine text-white"
                             : "text-ink-soft hover:text-ink"
@@ -836,14 +831,14 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                     <button
                       type="button"
                       onClick={() => setAlign((prev) => (prev === "center" ? "left" : "center"))}
-                      className="h-8 flex-1 rounded-lg border border-line bg-card px-2 text-[11px] font-medium text-ink hover:bg-paper"
+                      className="h-8 flex-1 rounded-[3px] border border-line bg-card px-2 text-[11px] font-medium text-ink hover:bg-paper"
                     >
                       {align === "center" ? "Centralizado" : "À esquerda"}
                     </button>
                     <button
                       type="button"
                       onClick={() => setAspectRatio((prev) => (prev === "16:9" ? "4:3" : "16:9"))}
-                      className="h-8 rounded-lg border border-line bg-card px-2.5 text-[11px] font-semibold text-pine hover:bg-paper"
+                      className="h-8 rounded-[3px] border border-line bg-card px-2.5 text-[11px] font-semibold text-pine hover:bg-paper"
                     >
                       {aspectRatio}
                     </button>
@@ -856,14 +851,14 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                   type="checkbox"
                   checked={showFooter}
                   onChange={(event) => setShowFooter(event.target.checked)}
-                  className="h-4 w-4 accent-pine"
+                  className="h-3.5 w-3.5 rounded-[2px] accent-pine"
                 />
                 <span>Exibir título da música e contador no slide</span>
               </label>
             </div>
 
             {/* Lista rápida dos slides criados + edição rápida do slide ativo */}
-            <div className="space-y-2">
+            <div className="space-y-2.5 border-t border-line/80 pt-3.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-ink">
                   Ordem dos slides ({slides.length})
@@ -878,29 +873,27 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
               </div>
 
               {activeSlide ? (
-                <div className="rounded-xl border border-line bg-paper p-2.5">
-                  <label className="block space-y-1">
-                    <span className="text-[11px] font-medium text-ink-soft">
-                      Editar texto do slide selecionado ({activeSlide.label})
-                    </span>
-                    <textarea
-                      rows={2}
-                      value={activeSlide.text}
-                      onChange={(event) => handleUpdateActiveSlideText(event.target.value)}
-                      className="w-full rounded-lg border border-line bg-card p-2 text-xs text-ink outline-none focus:ring-2 focus:ring-pine"
-                    />
-                  </label>
-                </div>
+                <label className="block space-y-1">
+                  <span className="text-[11px] font-medium text-ink-soft">
+                    Editar texto do slide selecionado ({activeSlide.label})
+                  </span>
+                  <textarea
+                    rows={2}
+                    value={activeSlide.text}
+                    onChange={(event) => handleUpdateActiveSlideText(event.target.value)}
+                    className="w-full rounded-[3px] border border-line bg-card p-2 text-xs text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
+                  />
+                </label>
               ) : null}
 
-              <ul className="max-h-56 divide-y divide-line overflow-y-auto rounded-xl border border-line bg-paper">
+              <ul className="max-h-56 divide-y divide-line/80 overflow-y-auto border-y border-line/80">
                 {slides.map((slide, index) => {
                   const isCurrent = index === activeSlideIndex;
                   return (
                     <li
                       key={slide.id}
-                      className={`flex items-center gap-2 px-3 py-2 text-xs ${
-                        isCurrent ? "bg-pine/10" : "hover:bg-card"
+                      className={`flex items-center gap-2 px-2 py-2 text-xs ${
+                        isCurrent ? "bg-card" : "hover:bg-card/60"
                       }`}
                     >
                       <button
@@ -922,7 +915,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                           onClick={() => handleMoveSlide(index, -1)}
                           disabled={index === 0}
                           aria-label="Mover slide para cima"
-                          className="h-6 w-6 rounded border border-line bg-card text-[11px] disabled:opacity-30"
+                          className="h-6 w-6 rounded-[2px] border border-line bg-card text-[11px] disabled:opacity-30"
                         >
                           ↑
                         </button>
@@ -931,7 +924,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                           onClick={() => handleMoveSlide(index, 1)}
                           disabled={index === slides.length - 1}
                           aria-label="Mover slide para baixo"
-                          className="h-6 w-6 rounded border border-line bg-card text-[11px] disabled:opacity-30"
+                          className="h-6 w-6 rounded-[2px] border border-line bg-card text-[11px] disabled:opacity-30"
                         >
                           ↓
                         </button>
@@ -940,7 +933,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                           onClick={() => handleRemoveSlide(index)}
                           disabled={slides.length <= 1}
                           aria-label="Remover slide"
-                          className="h-6 w-6 rounded border border-danger/30 bg-card text-[11px] text-danger hover:bg-danger-soft disabled:opacity-30"
+                          className="h-6 w-6 rounded-[2px] border border-danger/30 bg-card text-[11px] text-danger hover:bg-danger-soft disabled:opacity-30"
                         >
                           ×
                         </button>

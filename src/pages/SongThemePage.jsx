@@ -26,10 +26,17 @@ export default function SongThemePage() {
   const theme = themes.find((item) => item.id === themeId);
   const themeSongIds = theme?.songIds || [];
   const includedIds = useMemo(() => new Set(themeSongIds), [themeSongIds]);
-  const themeSongs = useMemo(
-    () => filterSongs(songs, "").filter((song) => includedIds.has(Number(song.id))),
-    [includedIds, songs],
-  );
+  const themeSongs = useMemo(() => {
+    const normalizedThemeName = String(theme?.name ?? "")
+      .trim()
+      .toLocaleLowerCase("pt-BR");
+    return filterSongs(songs, "").filter(
+      (song) =>
+        includedIds.has(Number(song.id)) ||
+        (normalizedThemeName &&
+          String(song.tema ?? "").trim().toLocaleLowerCase("pt-BR") === normalizedThemeName),
+    );
+  }, [includedIds, songs, theme?.name]);
 
   useEffect(() => {
     if (showEdit) editInputRef.current?.focus();

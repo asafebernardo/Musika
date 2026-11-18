@@ -3,6 +3,7 @@ import { request } from "@/api/songs.js";
 import { useAuth } from "@/lib/auth.jsx";
 import { getAppUrl } from "@/lib/sites.js";
 import { getAppSettings } from "@/lib/appSettings.js";
+import { toggleTheme, useTheme } from "@/lib/theme.js";
 import AdminContentPage from "@/pages/AdminContentPage.jsx";
 
 const emptyAccessForm = { name: "", email: "", password: "", setupToken: "" };
@@ -10,6 +11,8 @@ const emptyAccessForm = { name: "", email: "", password: "", setupToken: "" };
 export default function AdminPage() {
   const { user, loading: authLoading, available, login, setupAdmin, logout, deleteAccount } = useAuth();
   const { appName } = getAppSettings();
+  const panelTheme = useTheme();
+  const isPanelDark = panelTheme === "dark";
   const [setupRequired, setSetupRequired] = useState(null);
   const [setupError, setSetupError] = useState("");
   const [form, setForm] = useState(emptyAccessForm);
@@ -101,56 +104,58 @@ export default function AdminPage() {
   const showSetup = setupRequired === true;
   const showRegistration = showSetup;
   const accessPanel = (
-    <section className="max-w-4xl overflow-hidden rounded-lg border border-line bg-card">
-        <div className="border-b border-line px-5 py-4 sm:px-6">
-          <h2 className="text-base font-semibold text-ink">Equipe & Acessos</h2>
-          <p className="mt-1 text-sm text-ink-soft">
-            Lista somente para administradores. O painel não cadastra nem remove outras contas.
-          </p>
-        </div>
-        {peopleLoading ? (
-          <p className="px-5 py-6 text-sm text-ink-soft">Carregando pessoas…</p>
-        ) : people.length ? (
-          <ul className="divide-y divide-line">
-            {people.map((person) => {
-              const personFullName = [person.name, person.lastName].filter(Boolean).join(" ").trim();
-              return (
-                <li key={person.id} className="flex items-center gap-4 px-5 py-3.5 sm:px-6">
-                  {person.avatarUrl ? (
-                    <img
-                      src={person.avatarUrl}
-                      alt={personFullName}
-                      className="h-9 w-9 shrink-0 rounded-md border border-line object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-line bg-paper text-xs font-semibold text-ink">
-                      {person.name.slice(0, 1).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-ink">{personFullName}</p>
-                    <p className="truncate text-xs text-ink-soft">
-                      {person.email}
-                      {person.phone ? ` · ${person.phone}` : ""}
-                    </p>
+    <section className="max-w-4xl">
+      <div className="border-b border-line/80 pb-4">
+        <h2 className="text-sm font-semibold text-ink">Equipe & Acessos</h2>
+        <p className="mt-1 text-xs text-ink-soft">
+          Lista somente para administradores. O painel não cadastra nem remove outras contas.
+        </p>
+      </div>
+      {peopleLoading ? (
+        <p className="py-6 text-sm text-ink-soft">Carregando pessoas…</p>
+      ) : people.length ? (
+        <ul className="divide-y divide-line/80 border-b border-line/80">
+          {people.map((person) => {
+            const personFullName = [person.name, person.lastName].filter(Boolean).join(" ").trim();
+            return (
+              <li key={person.id} className="flex items-center gap-4 py-3">
+                {person.avatarUrl ? (
+                  <img
+                    src={person.avatarUrl}
+                    alt={personFullName}
+                    className="h-8 w-8 shrink-0 rounded-[3px] border border-line object-cover"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[3px] border border-line bg-card text-xs font-semibold text-ink">
+                    {person.name.slice(0, 1).toUpperCase()}
                   </div>
-                  <span className="hidden rounded-md border border-line bg-paper px-2.5 py-1 text-xs font-medium text-ink-soft sm:inline-flex">
-                    {person.role === "admin" ? "Administrador" : "Membro"}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="px-5 py-6 text-sm text-ink-soft">Nenhuma pessoa cadastrada.</p>
-        )}
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-medium text-ink">{personFullName}</p>
+                  <p className="truncate text-xs text-ink-soft">
+                    {person.email}
+                    {person.phone ? ` · ${person.phone}` : ""}
+                  </p>
+                </div>
+                <span className="hidden rounded-[3px] border border-line bg-card px-2 py-0.5 text-[11px] font-medium text-ink-soft sm:inline-flex">
+                  {person.role === "admin" ? "Administrador" : "Membro"}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="py-6 text-sm text-ink-soft">Nenhuma pessoa cadastrada.</p>
+      )}
       {peopleError ? (
-        <p role="alert" className="border-t border-line px-5 py-4 text-sm text-danger">{peopleError}</p>
+        <p role="alert" className="py-4 text-sm text-danger">
+          {peopleError}
+        </p>
       ) : null}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line bg-paper/60 px-5 py-4 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 pt-6">
         <div>
-          <p className="text-sm font-medium">Excluir sua conta</p>
-          <p className="mt-1 text-xs text-ink-soft">
+          <p className="text-sm font-medium text-ink">Excluir sua conta</p>
+          <p className="mt-0.5 text-xs text-ink-soft">
             A exclusão encerra sua sessão. A última conta administradora não pode ser excluída.
           </p>
           {formError ? <p role="alert" className="mt-2 text-sm text-danger">{formError}</p> : null}
@@ -158,7 +163,7 @@ export default function AdminPage() {
         <button
           type="button"
           onClick={deleteOwnAccount}
-          className="h-9 rounded-md border border-danger/30 px-3.5 text-xs font-medium text-danger hover:bg-danger-soft sm:text-sm"
+          className="h-8.5 rounded-[3px] border border-danger/30 bg-card px-3.5 text-xs font-medium text-danger hover:bg-danger-soft"
         >
           Excluir minha conta
         </button>
@@ -194,6 +199,15 @@ export default function AdminPage() {
             {user?.role === "admin" ? "Painel de administração" : "Acesso administrativo"}
           </h1>
         </div>
+        <button
+          type="button"
+          onClick={() => toggleTheme({ force: true })}
+          aria-label={isPanelDark ? "Alternar painel para modo claro" : "Alternar painel para modo escuro"}
+          title={isPanelDark ? "Mudar para modo claro" : "Mudar para modo escuro"}
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-line bg-paper px-3 text-xs font-medium text-ink-soft transition-colors hover:border-ink-soft/40 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
+        >
+          <span>{isPanelDark ? "☀ Claro" : "☾ Escuro"}</span>
+        </button>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 lg:p-8">

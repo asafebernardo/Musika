@@ -1,15 +1,5 @@
 /**
  * Dados e textos exibidos na página "Informações" (acessada pelo menu Mais+).
- *
- * Estrutura:
- * - titulo: Nome principal do aplicativo exibido abaixo da logo.
- * - versao: Data da última compilação/alteração no formato DD.MM.AA.
- * - subtitulo: Título do card principal de apresentação.
- * - boasVindas: Saudação inicial em destaque.
- * - introducao: Parágrafo de apresentação do propósito do aplicativo.
- * - versiculo: Citação bíblica estilizada em destaque (texto + referência).
- * - mensagem: Parágrafos sobre o propósito ministerial e teocêntrico do louvor.
- * - direitosAutorais: Nota de reconhecimento e respeito aos direitos autorais.
  */
 export const APP_DESCRIPTION = {
   titulo: "Musika",
@@ -17,19 +7,20 @@ export const APP_DESCRIPTION = {
   subtitulo: "Sobre o aplicativo",
   boasVindas: "Seja muito bem-vindo(a)!",
   introducao:
-    "Este aplicativo foi criado com carinho para auxiliar na consulta de cifras e letras de louvores cristãos.",
+    "Este aplicativo foi desenvolvido para organizar repertórios e facilitar a consulta rápida de letras, arranjos vocais, cifras e demonstrações de áudio para cantores, bandas, músicos e equipes.",
   versiculo: {
-    introducao: "A Bíblia nos convida:",
-    citacao: "“Cantai ao Senhor, bendizei o seu nome; proclamai a sua salvação, dia após dia.”",
-    referencia: "Salmos 96:2",
+    introducao: "Sintonia e repertório:",
+    citacao:
+      "“A música conecta pessoas, transforma momentos e dá vida a cada acorde, voz e melodia.”",
+    referencia: "Repertório & Performance",
   },
   mensagem: [
-    "Nosso desejo é que esta ferramenta seja uma bênção e um instrumento de auxílio para a Igreja, incentivando um louvor fundamentado na Palavra de Deus, verdadeiramente teocêntrico, no qual o Senhor seja sempre o centro de tudo.",
-    "Que cada acorde, cada letra e cada canção sejam uma oportunidade de exaltar a Deus, pois somente a Ele pertencem toda honra, toda glória e todo louvor!",
+    "Nosso objetivo é oferecer uma plataforma prática, moderna e versátil para qualquer pessoa, artista solo, banda musical ou empresa gerenciar seu catálogo de músicas em ensaios, shows e apresentações ao vivo.",
+    "Com leitura adaptável, divisão de vozes por cores, transposição instantânea de cifras e áudio de referência integrado, todo o seu repertório fica sempre organizado e acessível em qualquer dispositivo.",
   ],
   direitosAutorais: {
     titulo: "Sobre os direitos autorais:",
     texto:
-      "As letras, cifras e músicas disponibilizadas pertencem aos seus respectivos autores, compositores e detentores dos direitos autorais. Reconhecemos e respeitamos o trabalho de cada um, preservando os devidos créditos.",
+      "As letras, cifras e músicas disponibilizadas pertencem aos seus respectivos autores, compositores e detentores dos direitos autorais. Reconhecemos e respeitamos o trabalho de cada artista, preservando os devidos créditos.",
   },
 };

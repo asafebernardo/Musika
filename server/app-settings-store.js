@@ -65,7 +65,7 @@ export async function getAppManifest() {
   return {
     name: appName,
     short_name: appName.slice(0, 12),
-    description: `${appName}: músicas cristãs, letras e cifras em um só aplicativo.`,
+    description: `${appName}: repertório musical, letras, vozes e cifras em um só aplicativo.`,
     lang: "pt-BR",
     start_url: "/?pwa=1",
     scope: "/",

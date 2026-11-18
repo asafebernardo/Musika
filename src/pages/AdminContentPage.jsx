@@ -14,9 +14,16 @@ import MarqueeText from "@/components/MarqueeText.jsx";
 import SongScroll from "@/components/SongScroll.jsx";
 import VocalArrangementEditor from "@/components/VocalArrangementEditor.jsx";
 import { emptySongForm, fieldsFromSong, payloadFromSongForm } from "@/lib/songEditor.js";
+import {
+  buildUpdatesForAlbumSelection,
+  buildUpdatesForComposerSelection,
+  getRelatedSongInfoOptions,
+  useSongInfoRegistry,
+} from "@/lib/songInfoRegistry.js";
 import { filterSongs, withNumbers } from "@/lib/songs.js";
+import { syncSongSingleTheme, useSongThemes } from "@/lib/songThemes.js";
 import { getAppSettings } from "@/lib/appSettings.js";
-import { ACCENT_OPTIONS, useAccent, useTheme } from "@/lib/theme.js";
+import { ACCENT_OPTIONS, toggleTheme, useAccent, useTheme } from "@/lib/theme.js";
 import AdminPersonalizationSection from "@/pages/AdminPersonalizationSection.jsx";
 import AdminRegistriesSection from "@/pages/AdminRegistriesSection.jsx";
 import AdminFinalPreviewSection from "@/pages/AdminFinalPreviewSection.jsx";
@@ -93,6 +100,8 @@ const SECTION_TITLES = {
 
 export default function AdminContentPage({ user, onLogout, accessPanel }) {
   const { appName } = getAppSettings();
+  const panelTheme = useTheme();
+  const isPanelDark = panelTheme === "dark";
   const [songs, setSongs] = useState([]);
   const [loadingSongs, setLoadingSongs] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -100,6 +109,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
   const [activePersonalizationSection, setActivePersonalizationSection] = useState("identidade");
   const [activeUserAccountSection, setActiveUserAccountSection] = useState("perfil");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidePreviewCollapsed, setSidePreviewCollapsed] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewOrientation, setPreviewOrientation] = useState("portrait");
   const [customPreviewMode, setCustomPreviewMode] = useState(null);
@@ -112,6 +122,8 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [songToDelete, setSongToDelete] = useState(null);
+  const [deletingSong, setDeletingSong] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -203,6 +215,17 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
     setActiveSection("letra");
   };
 
+  const backToSongList = () => {
+    if (dirty && !window.confirm("Descartar as alterações não salvas?")) return;
+    setSelectedId(null);
+    setEditing(false);
+    setForm({ ...emptySongForm });
+    setDirty(false);
+    setError("");
+    setNotice("");
+    setActiveSection("letra");
+  };
+
   const selectSong = (song) => {
     if (dirty && !window.confirm("Descartar as alterações não salvas?")) return;
     setSelectedId(song.id);
@@ -242,7 +265,8 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
       const result = selectedId
         ? await updateSong(selectedId, payload)
         : await createSong(payload);
-      const saved = result.song;
+      const saved = result.song ?? result;
+      syncSongSingleTheme(saved.id, saved.tema);
       setSongs((current) =>
         withNumbers([
           ...current.filter((song) => song.id !== saved.id),
@@ -261,25 +285,34 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
     }
   };
 
-  const removeSong = async (song) => {
-    if (!window.confirm(`Excluir “${song.titulo}” do catálogo? Esta ação não pode ser desfeita.`)) {
-      return;
-    }
+  const removeSong = (song) => {
+    if (!song) return;
+    setError("");
+    setNotice("");
+    setSongToDelete(song);
+  };
+
+  const confirmRemoveSong = async () => {
+    if (!songToDelete) return;
+    setDeletingSong(true);
     setError("");
     setNotice("");
     try {
-      await deleteSong(song.id);
-      setSongs((current) => current.filter((entry) => entry.id !== song.id));
-      if (selectedId === song.id) {
+      await deleteSong(songToDelete.id);
+      setSongs((current) => current.filter((entry) => entry.id !== songToDelete.id));
+      if (selectedId === songToDelete.id) {
         setSelectedId(null);
         setEditing(false);
         setForm({ ...emptySongForm });
         setDirty(false);
         setActiveSection("letra");
       }
-      setNotice("Música excluída do catálogo.");
+      setNotice(`Música “${songToDelete.titulo}” excluída do catálogo.`);
+      setSongToDelete(null);
     } catch (deleteError) {
       setError(messageForSongError(deleteError));
+    } finally {
+      setDeletingSong(false);
     }
   };
 
@@ -411,18 +444,30 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
               <p className="text-[11px] font-medium text-ink-soft">
                 Administração{activeGroup ? ` / ${activeGroup.label}` : ""} /{" "}
                 {SECTION_TITLES[activeSection]}
+                {editing && !isUtilitySection
+                  ? ` / ${selectedId ? "Editar música" : "Cadastro de nova música"}`
+                  : ""}
               </p>
               <h2 className="truncate text-base font-semibold tracking-tight text-ink">
-                {editing && !isUtilitySection ? form.titulo || "Nova música" : SECTION_TITLES[activeSection]}
+                {editing && !isUtilitySection
+                  ? form.titulo || "Cadastro de nova música"
+                  : SECTION_TITLES[activeSection]}
               </h2>
             </div>
             {editing && !isUtilitySection ? (
               <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={backToSongList}
+                  className="inline-flex h-8.5 items-center rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink transition-colors hover:bg-paper"
+                >
+                  ‹ Voltar à listagem
+                </button>
                 {dirty ? (
                   <button
                     type="button"
                     onClick={discardChanges}
-                    className="hidden h-9 rounded-md border border-line px-3.5 text-xs font-medium hover:bg-paper sm:inline-flex sm:items-center sm:text-sm"
+                    className="hidden h-8.5 rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper sm:inline-flex sm:items-center"
                   >
                     Descartar
                   </button>
@@ -431,7 +476,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                   <button
                     type="button"
                     onClick={() => selectedSong && removeSong(selectedSong)}
-                    className="hidden h-9 rounded-md border border-danger/30 px-3.5 text-xs font-medium text-danger hover:bg-danger-soft sm:inline-flex sm:items-center sm:text-sm"
+                    className="hidden h-8.5 rounded-[3px] border border-danger/30 bg-card px-3 text-xs font-medium text-danger hover:bg-danger-soft sm:inline-flex sm:items-center"
                   >
                     Excluir
                   </button>
@@ -440,22 +485,47 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                   type="button"
                   onClick={saveSong}
                   disabled={saving || !dirty}
-                  className="h-9 rounded-md bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+                  className="h-8.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {saving ? "Salvando…" : "Salvar"}
                 </button>
               </div>
+            ) : !isUtilitySection ? (
+              <button
+                type="button"
+                onClick={startNewSong}
+                className="inline-flex h-8.5 shrink-0 items-center gap-1.5 rounded-[3px] bg-pine px-3.5 text-xs font-semibold text-white transition-colors hover:bg-pine-dark focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-pine"
+              >
+                <span aria-hidden className="text-sm leading-none">
+                  +
+                </span>
+                Nova música
+              </button>
             ) : null}
             {isSongSection ? (
               <button
                 type="button"
                 onClick={() => setPreviewOpen(true)}
                 aria-haspopup="dialog"
-                className="h-9 shrink-0 rounded-md border border-line px-2.5 text-xs font-medium hover:bg-paper sm:px-3 sm:text-sm"
+                className="h-8.5 shrink-0 rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper"
               >
-                Visualizar
+                Prévia
               </button>
             ) : null}
+            <button
+              type="button"
+              onClick={() => toggleTheme({ force: true })}
+              aria-label={isPanelDark ? "Alternar painel para modo claro" : "Alternar painel para modo escuro"}
+              title={isPanelDark ? "Mudar para modo claro" : "Mudar para modo escuro"}
+              className="inline-flex h-8.5 shrink-0 items-center gap-1.5 rounded-[3px] border border-line bg-paper px-2.5 text-xs font-medium text-ink-soft transition-colors hover:border-ink-soft/40 hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-pine sm:px-3"
+            >
+              {isPanelDark ? (
+                <SunMiniIcon className="h-4 w-4 text-ink" />
+              ) : (
+                <MoonMiniIcon className="h-4 w-4 text-ink" />
+              )}
+              <span className="hidden sm:inline">{isPanelDark ? "Claro" : "Escuro"}</span>
+            </button>
           </div>
           <nav
             className="flex gap-1 overflow-x-auto border-t border-line px-3 py-2 lg:hidden"
@@ -526,7 +596,9 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
           className={`grid min-h-0 flex-1 ${
             isUtilitySection
               ? "grid-cols-1 overflow-y-auto"
-              : "grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_380px] lg:overflow-hidden"
+              : sidePreviewCollapsed
+                ? "grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_48px] lg:overflow-hidden"
+                : "grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_380px] lg:overflow-hidden"
           }`}
         >
           <main
@@ -549,12 +621,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
             ) : isRegistrySection ? (
               <AdminRegistriesSection
                 activeTab={activeRegistryTab}
-                onTabChange={(nextTab) =>
-                  setActiveSection(nextTab === "informacoes" ? "ficha-tecnica" : "temas-musicas")
-                }
                 songs={visibleSongs}
-                loadingSongs={loadingSongs}
-                onSongSaved={handleSongSavedFromRegistry}
               />
             ) : isPersonalizationSection ? (
               <AdminPersonalizationSection activeTab={activePersonalizationSection} />
@@ -588,7 +655,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                   </p>
                 ) : null}
                 {activeSection === "letra" ? (
-                  <>
+                  !editing ? (
                     <SongPickerSection
                       songs={visibleSongs}
                       totalSongs={songs.length}
@@ -597,24 +664,26 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                       onSearch={setSearch}
                       selectedId={selectedId}
                       onSelect={selectSong}
-                      onNew={startNewSong}
-                      fillHeight={!editing}
+                      fillHeight
                     />
-                    {editing ? (
-                      <SongEditorSection
-                        section={activeSection}
-                        form={form}
-                        onUpdate={updateForm}
-                        onAudioChange={handleAudioChange}
-                        onClearAudio={clearAudio}
-                      />
-                    ) : null}
-                  </>
+                  ) : (
+                    <SongEditorSection
+                      section={activeSection}
+                      form={form}
+                      songs={songs}
+                      onUpdate={updateForm}
+                      onAudioChange={handleAudioChange}
+                      onClearAudio={clearAudio}
+                      onOpenSection={setActiveSection}
+                    />
+                  )
                 ) : editing ? (
                   <SongEditorSection
                     section={activeSection}
                     form={form}
+                    songs={songs}
                     onUpdate={updateForm}
+                    onOpenSection={setActiveSection}
                   />
                 ) : (
                   <EmptyEditorSection
@@ -629,22 +698,40 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
           </main>
 
           {hasSideMobilePreview ? (
-            <aside className="border-t border-line bg-paper p-4 lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
-              <MobilePreview
-                form={form}
-                number={number}
-                previewMode={previewMode}
-                onPreviewModeChange={setCustomPreviewMode}
-                customPreviewTheme={customPreviewTheme}
-                onTogglePreviewTheme={(nextTheme) => setCustomPreviewTheme(nextTheme)}
-                onOpenExpand={(nextOrientation) => {
-                  if (nextOrientation) setPreviewOrientation(nextOrientation);
-                  setPreviewOpen(true);
-                }}
-                editing={editing}
-                orientation="portrait"
-              />
-            </aside>
+            sidePreviewCollapsed ? (
+              <aside className="flex items-center justify-between border-t border-line bg-card px-4 py-2.5 lg:flex-col lg:justify-start lg:border-l lg:border-t-0 lg:px-1.5 lg:py-4">
+                <button
+                  type="button"
+                  onClick={() => setSidePreviewCollapsed(false)}
+                  aria-label="Expandir prévia ao vivo"
+                  title="Expandir prévia ao vivo"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-line bg-paper text-ink-soft transition-colors hover:border-ink-soft/40 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
+                >
+                  <PreviewCollapseIcon collapsed className="h-4 w-4" />
+                </button>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft lg:mt-4 lg:[writing-mode:vertical-rl]">
+                  Prévia ao vivo
+                </span>
+              </aside>
+            ) : (
+              <aside className="border-t border-line bg-paper p-4 lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
+                <MobilePreview
+                  form={form}
+                  number={number}
+                  previewMode={previewMode}
+                  onPreviewModeChange={setCustomPreviewMode}
+                  customPreviewTheme={customPreviewTheme}
+                  onTogglePreviewTheme={(nextTheme) => setCustomPreviewTheme(nextTheme)}
+                  onOpenExpand={(nextOrientation) => {
+                    if (nextOrientation) setPreviewOrientation(nextOrientation);
+                    setPreviewOpen(true);
+                  }}
+                  onCollapse={() => setSidePreviewCollapsed(true)}
+                  editing={editing}
+                  orientation="portrait"
+                />
+              </aside>
+            )
           ) : null}
         </div>
       </section>
@@ -661,6 +748,62 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
           onOrientationChange={setPreviewOrientation}
           onClose={() => setPreviewOpen(false)}
         />
+      ) : null}
+      {songToDelete ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px]"
+          onClick={() => !deletingSong && setSongToDelete(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-song-modal-title"
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-md overflow-hidden rounded-2xl border border-line bg-card text-ink shadow-2xl"
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-6">
+              <h3 id="delete-song-modal-title" className="text-base font-semibold text-ink">
+                Excluir música do catálogo
+              </h3>
+              <button
+                type="button"
+                disabled={deletingSong}
+                onClick={() => setSongToDelete(null)}
+                aria-label="Fechar modal"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-paper text-base text-ink-soft hover:text-ink disabled:opacity-50"
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-3 p-5 sm:p-6">
+              <p className="text-sm leading-relaxed text-ink">
+                Tem certeza que deseja excluir a música{" "}
+                <strong className="font-semibold">“{songToDelete.titulo}”</strong> do catálogo?
+              </p>
+              <p className="text-xs leading-relaxed text-ink-soft">
+                Esta ação remove a música permanentemente e não pode ser desfeita.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2 border-t border-line bg-paper/40 px-5 py-4 sm:px-6">
+              <button
+                type="button"
+                disabled={deletingSong}
+                onClick={() => setSongToDelete(null)}
+                className="h-9.5 rounded-lg border border-line bg-card px-4 text-sm font-medium hover:bg-paper disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={deletingSong}
+                onClick={confirmRemoveSong}
+                className="h-9.5 rounded-lg bg-danger px-4 text-sm font-semibold text-white hover:brightness-95 disabled:opacity-60"
+              >
+                {deletingSong ? "Excluindo…" : "Confirmar exclusão"}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );
@@ -730,6 +873,29 @@ function SidebarCollapseIcon({ collapsed, className }) {
         <path d="m13 9 3 3-3 3" />
       ) : (
         <path d="m15 9-3 3 3 3" />
+      )}
+    </svg>
+  );
+}
+
+function PreviewCollapseIcon({ collapsed, className }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="2.5" />
+      <path d="M15 4v16" />
+      {collapsed ? (
+        <path d="m11 9-3 3 3 3" />
+      ) : (
+        <path d="m9 9 3 3-3 3" />
       )}
     </svg>
   );
@@ -926,47 +1092,35 @@ function SongPickerSection({
   onSearch,
   selectedId,
   onSelect,
-  onNew,
   fillHeight,
 }) {
   return (
     <section
-      className={`overflow-hidden rounded-lg border border-line bg-card ${
+      className={`${
         fillHeight ? "flex min-h-0 flex-1 flex-col" : ""
       }`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line/80 pb-4">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold tracking-tight text-ink">Catálogo de músicas</h3>
             {!loading ? (
-              <span className="inline-flex items-center rounded-md border border-line bg-paper px-2 py-0.5 font-mono text-[11px] font-medium tabular-nums text-ink-soft">
+              <span className="inline-flex items-center rounded-[3px] border border-line bg-card px-1.5 py-0.5 font-mono text-[11px] font-medium tabular-nums text-ink-soft">
                 {totalSongs}
               </span>
             ) : null}
           </div>
           <p className="mt-0.5 text-xs text-ink-soft">
-            Selecione uma música na lista para editar ou crie um novo registro.
+            Selecione um registro para abrir o editor ou utilize o botão + Nova música na barra superior.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onNew}
-          className="inline-flex h-8.5 items-center gap-1.5 rounded-md bg-pine px-3.5 text-xs font-semibold text-white transition-all hover:bg-pine-dark active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine sm:h-9"
-        >
-          <span aria-hidden className="text-sm leading-none">
-            +
-          </span>
-          Nova música
-        </button>
-      </div>
-      {totalSongs ? (
-        <div className="border-b border-line bg-paper/40 px-4 py-2.5 sm:px-5">
-          <div className="relative flex items-center">
+
+        {totalSongs ? (
+          <div className="relative flex w-full items-center sm:w-80">
             <svg
               viewBox="0 0 24 24"
               aria-hidden
-              className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-ink-soft"
+              className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-ink-soft"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
@@ -980,28 +1134,29 @@ function SongPickerSection({
               type="search"
               value={search}
               onChange={(event) => onSearch(event.target.value)}
-              placeholder="Filtrar por número, título ou trecho da letra…"
+              placeholder="Filtrar por número, título ou letra…"
               aria-label="Buscar músicas"
-              className="h-9 w-full rounded-md border border-line bg-paper pl-8.5 pr-8 text-xs transition-shadow outline-none focus:border-pine/60 focus:ring-1 focus:ring-pine sm:text-sm"
+              className="h-9 w-full rounded-[3px] border border-line bg-card pl-8 pr-7 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
             />
             {search ? (
               <button
                 type="button"
                 onClick={() => onSearch("")}
                 aria-label="Limpar busca"
-                className="absolute right-2 inline-flex h-6 w-6 items-center justify-center rounded-md text-ink-soft hover:bg-card hover:text-ink"
+                className="absolute right-1.5 inline-flex h-6 w-6 items-center justify-center rounded-[2px] text-ink-soft hover:text-ink"
               >
                 ×
               </button>
             ) : null}
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
+
       {loading ? (
-        <p className="px-5 py-6 text-sm text-ink-soft">Carregando catálogo…</p>
+        <p className="py-6 text-sm text-ink-soft">Carregando catálogo…</p>
       ) : songs.length ? (
         <ul
-          className={`divide-y divide-line overflow-y-auto ${
+          className={`divide-y divide-line/80 border-b border-line/80 overflow-y-auto ${
             fillHeight ? "min-h-0 flex-1" : "max-h-60"
           }`}
         >
@@ -1013,24 +1168,24 @@ function SongPickerSection({
                   type="button"
                   onClick={() => onSelect(song)}
                   aria-current={isSelected ? "true" : undefined}
-                  className={`group relative flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pine sm:px-5 ${
+                  className={`group relative flex w-full items-center gap-3 px-2 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-pine ${
                     isSelected
-                      ? "bg-paper before:absolute before:bottom-0 before:left-0 before:top-0 before:w-0.5 before:bg-pine"
-                      : "hover:bg-paper/65"
+                      ? "bg-card before:absolute before:bottom-0 before:left-0 before:top-0 before:w-0.5 before:bg-pine"
+                      : "hover:bg-card/65"
                   }`}
                 >
                   <span
-                    className={`inline-flex w-10 shrink-0 items-center justify-center rounded border py-0.5 font-mono text-xs font-medium tabular-nums transition-colors ${
+                    className={`inline-flex w-10 shrink-0 items-center justify-center rounded-[2px] border py-0.5 font-mono text-xs font-medium tabular-nums ${
                       isSelected
-                        ? "border-pine/40 bg-pine/15 text-ink"
-                        : "border-line bg-paper text-ink-soft group-hover:text-ink"
+                        ? "border-pine/40 bg-pine/10 text-ink"
+                        : "border-line bg-card text-ink-soft group-hover:text-ink"
                     }`}
                   >
                     {String(song.numero).padStart(3, "0")}
                   </span>
 
                   <span
-                    className={`min-w-0 flex-1 truncate text-sm transition-colors ${
+                    className={`min-w-0 flex-1 truncate text-[13px] ${
                       isSelected ? "font-semibold text-ink" : "font-medium text-ink"
                     }`}
                   >
@@ -1040,7 +1195,7 @@ function SongPickerSection({
                   {song.audioArquivo ? (
                     <span
                       title="Com demonstração de áudio"
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded border border-line bg-paper px-2 py-0.5 text-[11px] font-medium text-ink"
+                      className="inline-flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-ink-soft"
                     >
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                       <span className="hidden sm:inline">Com áudio</span>
@@ -1048,27 +1203,16 @@ function SongPickerSection({
                   ) : (
                     <span
                       title="Sem demonstração de áudio"
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded border border-line/70 bg-paper/50 px-2 py-0.5 text-[11px] text-ink-soft/75"
+                      className="inline-flex shrink-0 items-center gap-1.5 text-[11px] text-ink-soft/60"
                     >
-                      <span className="h-1.5 w-1.5 rounded-full bg-ink-soft/35" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-ink-soft/30" />
                       <span className="hidden sm:inline">Sem áudio</span>
                     </span>
                   )}
 
-                  <span
-                    className={`inline-flex h-7 shrink-0 items-center gap-1 rounded border px-2 text-xs font-medium transition-all ${
-                      isSelected
-                        ? "border-pine/40 bg-pine/15 text-ink"
-                        : "border-transparent text-ink-soft group-hover:border-line group-hover:bg-card group-hover:text-ink"
-                    }`}
-                  >
+                  <span className="inline-flex shrink-0 items-center gap-1 pl-2 text-xs font-medium text-ink-soft group-hover:text-pine">
                     <span>{isSelected ? "Editando" : "Editar"}</span>
-                    <span
-                      aria-hidden
-                      className="transition-transform duration-150 group-hover:translate-x-0.5"
-                    >
-                      ›
-                    </span>
+                    <span aria-hidden>›</span>
                   </span>
                 </button>
               </li>
@@ -1076,7 +1220,7 @@ function SongPickerSection({
           })}
         </ul>
       ) : (
-        <p className="px-5 py-6 text-sm text-ink-soft">
+        <p className="py-6 text-sm text-ink-soft">
           {search ? "Nenhuma música encontrada." : "O catálogo ainda está vazio."}
         </p>
       )}
@@ -1084,85 +1228,267 @@ function SongPickerSection({
   );
 }
 
-function SongEditorSection({ section, form, onUpdate, onAudioChange, onClearAudio }) {
+function SongEditorSection({
+  section,
+  form,
+  songs = [],
+  onUpdate,
+  onAudioChange,
+  onClearAudio,
+  onOpenSection,
+}) {
+  const { themes } = useSongThemes();
+  const { mergedEntries: infoEntries } = useSongInfoRegistry(songs);
+
+  const themeOptions = useMemo(() => {
+    const names = themes.map((item) => item.name.trim()).filter(Boolean);
+    const currentTema = String(form.tema ?? "").trim();
+    if (currentTema && !names.some((n) => n.toLocaleLowerCase("pt-BR") === currentTema.toLocaleLowerCase("pt-BR"))) {
+      names.push(currentTema);
+    }
+    return [...new Set(names)].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [themes, form.tema]);
+
+  const relatedInfo = useMemo(
+    () => getRelatedSongInfoOptions(infoEntries, form.compositor, form.album),
+    [infoEntries, form.compositor, form.album],
+  );
+
+  const handleComposerChange = (event) => {
+    const nextCompositor = event.target.value;
+    onUpdate(buildUpdatesForComposerSelection(infoEntries, nextCompositor, form));
+  };
+
+  const handleAlbumChange = (event) => {
+    const nextAlbum = event.target.value;
+    onUpdate(
+      buildUpdatesForAlbumSelection(infoEntries, form.compositor, nextAlbum, form),
+    );
+  };
+
   if (section === "letra") {
+    const bandOptions =
+      form.banda && !relatedInfo.bands.includes(form.banda)
+        ? [form.banda, ...relatedInfo.bands]
+        : relatedInfo.bands;
+    const albumOptions =
+      form.album && !relatedInfo.albums.includes(form.album)
+        ? [form.album, ...relatedInfo.albums]
+        : relatedInfo.albums;
+    const yearOptions =
+      form.anoLancamento && !relatedInfo.years.includes(form.anoLancamento)
+        ? [form.anoLancamento, ...relatedInfo.years]
+        : relatedInfo.years;
+    const noteOptions =
+      form.adicionais && !relatedInfo.additionalNotes.includes(form.adicionais)
+        ? [form.adicionais, ...relatedInfo.additionalNotes]
+        : relatedInfo.additionalNotes;
+
+    const desktopFieldClass =
+      "h-9 w-full rounded-[3px] border border-line bg-card px-2.5 text-[13px] text-ink transition-colors outline-none focus:border-pine focus:ring-1 focus:ring-pine disabled:cursor-not-allowed disabled:bg-paper/60 disabled:text-ink-soft/70";
+    const desktopLabelClass = "text-xs font-medium text-ink-soft";
+
     return (
-      <div className="space-y-5">
-        <section className="space-y-5 rounded-lg border border-line bg-card p-5 sm:p-6">
-          <div>
-            <h3 className="text-base font-semibold tracking-tight text-ink">Informações da música</h3>
-            <p className="mt-1 text-xs text-ink-soft sm:text-sm">
-              Defina o título e a demonstração de áudio junto com o conteúdo principal.
-            </p>
-          </div>
-          <label className="block space-y-2">
-            <span className="text-xs font-medium text-ink-soft sm:text-sm">Título</span>
-            <input
-              value={form.titulo}
-              onChange={(event) => onUpdate({ titulo: event.target.value })}
-              maxLength={200}
-              placeholder="Título da música"
-              className="h-9.5 w-full rounded-md border border-line bg-paper px-3 text-sm outline-none focus:border-pine/60 focus:ring-1 focus:ring-pine"
-            />
-          </label>
-          <div className="space-y-2.5">
-            <span className="block text-xs font-medium text-ink-soft sm:text-sm">Demonstração de áudio</span>
-            {form.audioDataUrl || (form.audioArquivo && !form.removeAudio) ? (
-              <div className="space-y-3 rounded-md border border-line bg-paper p-3.5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="min-w-0 flex-1 truncate font-mono text-xs text-ink sm:text-sm">
-                    {form.audioNome || form.audioArquivo}
-                  </span>
-                  <div className="flex gap-2">
-                    <label className="inline-flex h-8 cursor-pointer items-center rounded-md border border-line bg-card px-3 text-xs font-medium hover:bg-paper">
-                      Trocar áudio
-                      <input
-                        type="file"
-                        accept="audio/*,.mp1,.mp2,.mp3,.mpeg,.wav,.m4a,.ogg,.aac,.flac"
-                        className="sr-only"
-                        onChange={onAudioChange}
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      onClick={onClearAudio}
-                      className="h-8 rounded-md border border-danger/30 px-3 text-xs font-medium text-danger hover:bg-danger-soft"
-                    >
-                      Remover
-                    </button>
-                  </div>
-                </div>
-                <audio
-                  controls
-                  preload="metadata"
-                  src={form.audioDataUrl || getAudioUrl(form.audioArquivo)}
-                  className="h-9 w-full"
-                />
+      <div className="divide-y divide-line/80">
+        {/* Bloco 1: Dados Principais e Ficha Técnica */}
+        <section className="pb-7">
+          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
+            <h3 className="text-sm font-semibold tracking-tight text-ink">
+              Informações da música
+            </h3>
+            {onOpenSection ? (
+              <div className="flex items-center gap-3 text-xs">
+                <button
+                  type="button"
+                  onClick={() => onOpenSection("temas-musicas")}
+                  className="font-medium text-ink-soft transition-colors hover:text-pine hover:underline"
+                >
+                  Gerenciar temas
+                </button>
+                <span aria-hidden className="text-line">
+                  ·
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onOpenSection("ficha-tecnica")}
+                  className="font-medium text-ink-soft transition-colors hover:text-pine hover:underline"
+                >
+                  Gerenciar compositores
+                </button>
               </div>
-            ) : (
-              <label className="group flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-line bg-paper/60 px-4 py-5 text-center text-sm text-ink-soft transition-all duration-150 hover:border-ink-soft/50 hover:bg-paper">
-                <span className="mb-1.5 inline-flex h-8 w-8 items-center justify-center rounded-md border border-line bg-card text-ink-soft transition-transform duration-150 group-hover:scale-105 group-hover:text-ink">
-                  <svg
-                    viewBox="0 0 24 24"
-                    aria-hidden
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.9"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M9 18V5l12-2v13" />
-                    <circle cx="6" cy="18" r="3" />
-                    <circle cx="18" cy="16" r="3" />
-                  </svg>
-                </span>
-                <span className="text-xs font-medium text-ink sm:text-sm">
-                  Adicionar demonstração de áudio
-                </span>
-                <span className="mt-0.5 text-xs text-ink-soft">
-                  MP3, WAV, M4A, OGG e outros formatos de áudio
-                </span>
+            ) : null}
+          </div>
+
+          <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2 lg:grid-cols-12">
+            {/* Linha 1: Título, Tema e Autor/Compositor */}
+            <label className="block space-y-1.5 sm:col-span-2 lg:col-span-5">
+              <span className={desktopLabelClass}>Título</span>
+              <input
+                value={form.titulo}
+                onChange={(event) => onUpdate({ titulo: event.target.value })}
+                maxLength={200}
+                placeholder="Informe o título da música"
+                className={desktopFieldClass}
+              />
+            </label>
+
+            <label className="block space-y-1.5 lg:col-span-3">
+              <span className={desktopLabelClass}>Tema</span>
+              <select
+                id="song-editor-tema"
+                value={form.tema}
+                onChange={(event) => onUpdate({ tema: event.target.value })}
+                className={desktopFieldClass}
+              >
+                <option value="">Selecionar tema…</option>
+                {themeOptions.map((themeName) => (
+                  <option key={themeName} value={themeName}>
+                    {themeName}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block space-y-1.5 lg:col-span-4">
+              <span className={desktopLabelClass}>Autor / Compositor</span>
+              <select
+                value={form.compositor}
+                onChange={handleComposerChange}
+                className={desktopFieldClass}
+              >
+                <option value="">Selecionar autor / compositor…</option>
+                {relatedInfo.composers.map((composer) => (
+                  <option key={composer} value={composer}>
+                    {composer}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {/* Linha 2: Campos Dependentes (Álbum, Ano, Banda/Intérprete, Observações) */}
+            <label className="block space-y-1.5 lg:col-span-3">
+              <span className={desktopLabelClass}>Álbum</span>
+              <select
+                value={form.album}
+                onChange={handleAlbumChange}
+                disabled={!relatedInfo.hasSelectedComposer}
+                className={desktopFieldClass}
+              >
+                <option value="">
+                  {!relatedInfo.hasSelectedComposer
+                    ? "—"
+                    : albumOptions.length === 0
+                      ? "Sem álbuns vinculados"
+                      : "Selecionar álbum…"}
+                </option>
+                {albumOptions.map((album) => (
+                  <option key={album} value={album}>
+                    {album}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block space-y-1.5 lg:col-span-2">
+              <span className={desktopLabelClass}>Ano de lançamento</span>
+              <select
+                value={form.anoLancamento}
+                onChange={(event) => onUpdate({ anoLancamento: event.target.value })}
+                disabled={!relatedInfo.hasSelectedComposer}
+                className={desktopFieldClass}
+              >
+                <option value="">
+                  {!relatedInfo.hasSelectedComposer
+                    ? "—"
+                    : yearOptions.length === 0
+                      ? "Sem ano"
+                      : "Selecionar…"}
+                </option>
+                {yearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block space-y-1.5 lg:col-span-3">
+              <span className={desktopLabelClass}>Banda / Intérprete</span>
+              <select
+                value={form.banda}
+                onChange={(event) => onUpdate({ banda: event.target.value })}
+                disabled={!relatedInfo.hasSelectedComposer}
+                className={desktopFieldClass}
+              >
+                <option value="">
+                  {!relatedInfo.hasSelectedComposer
+                    ? "—"
+                    : bandOptions.length === 0
+                      ? "Sem banda vinculada"
+                      : "Selecionar intérprete…"}
+                </option>
+                {bandOptions.map((band) => (
+                  <option key={band} value={band}>
+                    {band}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block space-y-1.5 sm:col-span-2 lg:col-span-4">
+              <span className={desktopLabelClass}>Observações</span>
+              <select
+                value={form.adicionais}
+                onChange={(event) => onUpdate({ adicionais: event.target.value })}
+                disabled={!relatedInfo.hasSelectedComposer}
+                className={desktopFieldClass}
+              >
+                <option value="">
+                  {!relatedInfo.hasSelectedComposer
+                    ? "—"
+                    : noteOptions.length === 0
+                      ? "Sem observações"
+                      : "Selecionar observação…"}
+                </option>
+                {noteOptions.map((note) => (
+                  <option key={note} value={note}>
+                    {note}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </section>
+
+        {/* Bloco 2: Demonstração de Áudio */}
+        <section className="py-7">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold tracking-tight text-ink">
+                Demonstração de áudio
+              </h3>
+              <p className="mt-0.5 text-xs text-ink-soft">
+                Arquivo de referência (MP3, WAV, M4A, OGG ou FLAC).
+              </p>
+            </div>
+
+            {!(form.audioDataUrl || (form.audioArquivo && !form.removeAudio)) ? (
+              <label className="inline-flex h-8.5 cursor-pointer items-center gap-2 self-start rounded-[3px] border border-line bg-card px-3.5 text-xs font-medium text-ink transition-colors hover:bg-paper sm:self-auto">
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                  className="h-3.5 w-3.5 text-ink-soft"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 18V5l12-2v13" />
+                  <circle cx="6" cy="18" r="3" />
+                  <circle cx="18" cy="16" r="3" />
+                </svg>
+                <span>Selecionar arquivo de áudio…</span>
                 <input
                   type="file"
                   accept="audio/*,.mp1,.mp2,.mp3,.mpeg,.wav,.m4a,.ogg,.aac,.flac"
@@ -1170,57 +1496,99 @@ function SongEditorSection({ section, form, onUpdate, onAudioChange, onClearAudi
                   onChange={onAudioChange}
                 />
               </label>
-            )}
+            ) : null}
           </div>
+
+          {form.audioDataUrl || (form.audioArquivo && !form.removeAudio) ? (
+            <div className="mt-4 flex flex-col gap-3 border-l-2 border-pine pl-3.5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 flex-1 space-y-2">
+                <p className="truncate font-mono text-xs text-ink">
+                  {form.audioNome || form.audioArquivo}
+                </p>
+                <audio
+                  controls
+                  preload="metadata"
+                  src={form.audioDataUrl || getAudioUrl(form.audioArquivo)}
+                  className="h-8 w-full max-w-md"
+                />
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <label className="inline-flex h-8 cursor-pointer items-center rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper">
+                  Substituir
+                  <input
+                    type="file"
+                    accept="audio/*,.mp1,.mp2,.mp3,.mpeg,.wav,.m4a,.ogg,.aac,.flac"
+                    className="sr-only"
+                    onChange={onAudioChange}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={onClearAudio}
+                  className="h-8 rounded-[3px] border border-danger/30 bg-card px-3 text-xs font-medium text-danger hover:bg-danger-soft"
+                >
+                  Remover
+                </button>
+              </div>
+            </div>
+          ) : null}
         </section>
-        <section className="space-y-6 rounded-lg border border-line bg-card p-5 sm:p-6">
+
+        {/* Bloco 3: Letra e Refrão */}
+        <section className="space-y-5 pt-7">
           <div>
-            <h3 className="text-base font-semibold tracking-tight text-ink">Letra e refrão</h3>
-            <p className="mt-1 text-xs text-ink-soft sm:text-sm">
-              Edite o texto que será exibido no aplicativo.
-            </p>
+            <h3 className="text-sm font-semibold tracking-tight text-ink">Letra e refrão</h3>
           </div>
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-ink-soft sm:text-sm">Letra</label>
-          <LyricEditor
-            label="Letra"
-            text={form.letra}
-            marks={[]}
-            showVoiceTools={false}
-            placeholder={"Primeira estrofe\n\nSegunda estrofe"}
-            minClass="min-h-[320px]"
-            onChange={({ text }) => onUpdate({ letra: text })}
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-ink-soft sm:text-sm">Refrão</label>
-          <LyricEditor
-            label="Refrão"
-            text={form.refrao}
-            marks={[]}
-            showVoiceTools={false}
-            placeholder="Texto do refrão"
-            italic
-            minClass="min-h-36"
-            onChange={({ text }) => onUpdate({ refrao: text })}
-          />
-        </div>
-        {form.refrao.trim() ? (
-          <div className="grid gap-3 md:grid-cols-2">
-            <CheckOption
-              checked={form.refraoPrimeiro}
-              onChange={(refraoPrimeiro) => onUpdate({ refraoPrimeiro })}
-              title="Refrão primeiro"
-              description="Exibe o refrão antes das estrofes."
-            />
-            <CheckOption
-              checked={form.cronologica}
-              onChange={(cronologica) => onUpdate({ cronologica })}
-              title="Ordem cronológica"
-              description="Repete o refrão após cada estrofe."
-            />
+
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+            <div className="space-y-1.5 lg:col-span-7">
+              <label className={desktopLabelClass}>Letra</label>
+              <LyricEditor
+                label="Letra"
+                text={form.letra}
+                marks={[]}
+                showVoiceTools={false}
+                placeholder={"Primeira estrofe\n\nSegunda estrofe"}
+                minClass="min-h-[260px]"
+                editorClassName="rounded-[3px] bg-card px-3.5 py-2.5 text-left text-[13px] text-ink focus:border-pine focus:ring-1 focus:ring-pine"
+                onChange={({ text }) => onUpdate({ letra: text })}
+              />
+            </div>
+
+            <div className="space-y-4 lg:col-span-5">
+              <div className="space-y-1.5">
+                <label className={desktopLabelClass}>Refrão</label>
+                <LyricEditor
+                  label="Refrão"
+                  text={form.refrao}
+                  marks={[]}
+                  showVoiceTools={false}
+                  placeholder="Texto do refrão (opcional)"
+                  italic
+                  minClass="min-h-[140px]"
+                  editorClassName="rounded-[3px] bg-card px-3.5 py-2.5 text-left text-[13px] text-ink focus:border-pine focus:ring-1 focus:ring-pine"
+                  onChange={({ text }) => onUpdate({ refrao: text })}
+                />
+              </div>
+
+              {form.refrao.trim() ? (
+                <div className="space-y-2.5 border-t border-line/70 pt-3.5">
+                  <CheckOption
+                    checked={form.refraoPrimeiro}
+                    onChange={(refraoPrimeiro) => onUpdate({ refraoPrimeiro })}
+                    title="Refrão primeiro"
+                    description="Exibe o refrão antes das estrofes."
+                  />
+                  <CheckOption
+                    checked={form.cronologica}
+                    onChange={(cronologica) => onUpdate({ cronologica })}
+                    title="Ordem cronológica"
+                    description="Repete o refrão após cada estrofe."
+                  />
+                </div>
+              ) : null}
+            </div>
           </div>
-        ) : null}
         </section>
       </div>
     );
@@ -1228,10 +1596,10 @@ function SongEditorSection({ section, form, onUpdate, onAudioChange, onClearAudi
 
   if (section === "vozes") {
     return (
-      <section className="space-y-5 rounded-lg border border-line bg-card p-5 sm:p-6">
-        <div>
-          <h3 className="text-base font-semibold tracking-tight text-ink">Arranjo de vozes</h3>
-          <p className="mt-1 text-xs text-ink-soft sm:text-sm">
+      <section className="space-y-5">
+        <div className="border-b border-line/80 pb-4">
+          <h3 className="text-sm font-semibold tracking-tight text-ink">Arranjo de vozes</h3>
+          <p className="mt-1 text-xs text-ink-soft">
             Selecione trechos do texto para marcar cada voz. A prévia à direita atualiza em tempo real.
           </p>
         </div>
@@ -1247,10 +1615,10 @@ function SongEditorSection({ section, form, onUpdate, onAudioChange, onClearAudi
   }
 
   return (
-    <section className="space-y-6 rounded-lg border border-line bg-card p-5 sm:p-6">
-      <div>
-        <h3 className="text-base font-semibold tracking-tight text-ink">Cifras</h3>
-        <p className="mt-1 text-xs text-ink-soft sm:text-sm">
+    <section className="space-y-6">
+      <div className="border-b border-line/80 pb-4">
+        <h3 className="text-sm font-semibold tracking-tight text-ink">Cifras</h3>
+        <p className="mt-1 text-xs text-ink-soft">
           Associe os acordes às linhas. A visualização mobile mostra a cifra como será lida no app.
         </p>
       </div>
@@ -1278,16 +1646,16 @@ function SongEditorSection({ section, form, onUpdate, onAudioChange, onClearAudi
 
 function CheckOption({ checked, onChange, title, description }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-md border border-line p-3.5 hover:bg-paper/60">
+    <label className="flex cursor-pointer items-start gap-2.5 py-1">
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="mt-1 h-4 w-4 accent-pine"
+        className="mt-0.5 h-3.5 w-3.5 rounded-[2px] accent-pine"
       />
-      <span>
-        <span className="block text-sm font-medium">{title}</span>
-        <span className="mt-1 block text-xs leading-5 text-ink-soft">{description}</span>
+      <span className="text-xs leading-snug">
+        <span className="font-medium text-ink">{title}</span>
+        {description ? <span className="text-ink-soft"> — {description}</span> : null}
       </span>
     </label>
   );
@@ -1295,22 +1663,22 @@ function CheckOption({ checked, onChange, title, description }) {
 
 function EmptyEditorSection({ section, onCreate, onGoToLyrics, hasSongs }) {
   return (
-    <section className="rounded-lg border border-line bg-card p-8 text-center sm:p-12">
+    <section className="border-b border-line/80 pb-10 pt-4">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
         {SECTION_TITLES[section]}
       </p>
-      <h3 className="mt-2 text-lg font-semibold text-ink">Selecione uma música para editar</h3>
-      <p className="mx-auto mt-1.5 max-w-lg text-sm leading-6 text-ink-soft">
+      <h3 className="mt-1.5 text-base font-semibold text-ink">Selecione uma música para editar</h3>
+      <p className="mt-1 max-w-lg text-xs leading-5 text-ink-soft">
         {hasSongs
-          ? "Escolha uma música na aba Letra para editar o arranjo ou as cifras."
-          : "Crie a primeira música pela aba Letra. O editor e a prévia mobile ficam lado a lado."}
+          ? "Escolha uma música na aba Letra & Áudio para editar o arranjo ou as cifras."
+          : "Crie a primeira música para começar a editar arranjos e cifras."}
       </p>
       <button
         type="button"
         onClick={hasSongs ? onGoToLyrics : onCreate}
-        className="mt-6 h-9.5 rounded-md bg-pine px-4 text-sm font-semibold text-white hover:bg-pine-dark"
+        className="mt-5 h-8.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark"
       >
-        {hasSongs ? "Selecionar na aba Letra" : "Criar primeira música"}
+        {hasSongs ? "Selecionar na listagem" : "Criar primeira música"}
       </button>
     </section>
   );
@@ -1324,6 +1692,7 @@ function MobilePreview({
   customPreviewTheme,
   onTogglePreviewTheme,
   onOpenExpand,
+  onCollapse,
   editing,
   orientation = "portrait",
   modal = false,
@@ -1402,9 +1771,22 @@ function MobilePreview({
             </div>
           </div>
         </div>
-        <span className="font-mono text-[11px] font-medium text-ink-soft">
-          {orientation === "landscape" ? "Paisagem" : "Retrato"} · {isPreviewDark ? "Escuro" : "Claro"}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] font-medium text-ink-soft">
+            {orientation === "landscape" ? "Paisagem" : "Retrato"} · {isPreviewDark ? "Escuro" : "Claro"}
+          </span>
+          {!modal && onCollapse ? (
+            <button
+              type="button"
+              onClick={onCollapse}
+              aria-label="Recolher prévia ao vivo"
+              title="Recolher prévia ao vivo"
+              className="inline-flex h-6 w-6 items-center justify-center rounded border border-line bg-card text-ink-soft transition-colors hover:border-ink-soft/50 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
+            >
+              <PreviewCollapseIcon collapsed={false} className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {/* Barra de controles rápidos da prévia */}

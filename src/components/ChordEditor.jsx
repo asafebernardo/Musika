@@ -20,7 +20,7 @@ export default function ChordEditor({
 
   if (!hasContent) {
     return (
-      <div className="rounded-xl border border-dashed border-line bg-paper px-3 py-8 text-center text-sm text-ink-soft">
+      <div className="rounded-[3px] border border-dashed border-line px-3 py-6 text-[12px] text-ink-soft">
         {emptyHint}
       </div>
     );
@@ -28,7 +28,7 @@ export default function ChordEditor({
 
   return (
     <div
-      className="space-y-1 rounded-xl border border-line bg-paper px-3 py-3 text-left font-lyric"
+      className="space-y-1 rounded-[3px] border border-line bg-card px-3.5 py-3 text-left font-lyric"
       role="group"
       aria-label={label}
     >

@@ -1,36 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
-import { messageForSongError, updateSong } from "@/api/songs.js";
-import MarqueeText from "@/components/MarqueeText.jsx";
 import SongScroll from "@/components/SongScroll.jsx";
 import { DEFAULT_THEMES } from "@/data/themes.js";
-import { getAppSettings } from "@/lib/appSettings.js";
-import { fieldsFromSong, payloadFromSongForm } from "@/lib/songEditor.js";
-import { filterSongs } from "@/lib/songs.js";
+import {
+  DEFAULT_SONG_INFO_REGISTRY,
+  useSongInfoRegistry,
+} from "@/lib/songInfoRegistry.js";
 import { useSongThemes } from "@/lib/songThemes.js";
 import { ACCENT_OPTIONS, useAccent, useTheme } from "@/lib/theme.js";
 
-const REGISTRY_TABS = [
-  { id: "temas", label: "Temas das músicas" },
-  { id: "informacoes", label: "Informações da música" },
-];
+function createEmptyInfoItem() {
+  return {
+    id: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    banda: "",
+    album: "",
+    anoLancamento: "",
+    adicionais: "",
+  };
+}
 
-const emptyInfoForm = {
-  banda: "",
-  compositor: "",
-  album: "",
-  anoLancamento: "",
-  tema: "",
-  adicionais: "",
-};
+function normalizeStr(value) {
+  return String(value ?? "").trim().toLocaleLowerCase("pt-BR");
+}
 
 export default function AdminRegistriesSection({
   activeTab = "temas",
-  onTabChange,
   songs = [],
-  loadingSongs = false,
-  onSongSaved,
 }) {
-  const { appName } = getAppSettings();
   const currentTheme = useTheme();
   const currentAccentId = useAccent();
   const accentOption =
@@ -45,6 +40,7 @@ export default function AdminRegistriesSection({
     "--pine": isPreviewDark ? accentOption.darkPine : accentOption.pine,
     "--pine-dark": isPreviewDark ? accentOption.darkPineDark : accentOption.pineDark,
   };
+
   const {
     themes,
     error: themeError,
@@ -53,153 +49,137 @@ export default function AdminRegistriesSection({
     deleteTheme,
   } = useSongThemes();
 
-  // Estado do CRUD de Temas das músicas
+  const {
+    entries: infoEntries,
+    error: infoRegistryError,
+    createEntry: createInfoEntry,
+    updateEntry: updateInfoEntry,
+    deleteEntry: deleteInfoEntry,
+  } = useSongInfoRegistry(songs);
+
+  // Estado do Cadastro de Temas (com modal flutuante)
+  const [themeModalOpen, setThemeModalOpen] = useState(false);
   const [editingThemeId, setEditingThemeId] = useState(null);
-  const [themeForm, setThemeForm] = useState({ name: "", description: "", songIds: [] });
-  const [themeSongSearch, setThemeSongSearch] = useState("");
+  const [themeForm, setThemeForm] = useState({ name: "", description: "" });
   const [themeNotice, setThemeNotice] = useState("");
   const [selectedPreviewThemeId, setSelectedPreviewThemeId] = useState(null);
+  const [themeToDelete, setThemeToDelete] = useState(null);
 
-  // Estado do CRUD de Informações da música
-  const [songSearch, setSongSearch] = useState("");
-  const [selectedSongId, setSelectedSongId] = useState(songs[0]?.id ?? null);
-  const [infoForm, setInfoForm] = useState(emptyInfoForm);
-  const [savingInfo, setSavingInfo] = useState(false);
-  const [infoError, setInfoError] = useState("");
+  // Estado do Cadastro de Informações (com modal flutuante)
+  const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [editingInfoId, setEditingInfoId] = useState(null);
+  const [infoComposer, setInfoComposer] = useState("");
+  const [infoItems, setInfoItems] = useState(() => [createEmptyInfoItem()]);
+  const [infoSearch, setInfoSearch] = useState("");
   const [infoNotice, setInfoNotice] = useState("");
+  const [selectedPreviewInfoId, setSelectedPreviewInfoId] = useState(null);
+  const [infoEntryToDelete, setInfoEntryToDelete] = useState(null);
 
   useEffect(() => {
-    if (!selectedSongId && songs.length > 0) {
-      setSelectedSongId(songs[0].id);
+    if (!themeModalOpen && !infoModalOpen && !themeToDelete && !infoEntryToDelete) {
+      return undefined;
     }
-  }, [songs, selectedSongId]);
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setThemeModalOpen(false);
+        setInfoModalOpen(false);
+        setThemeToDelete(null);
+        setInfoEntryToDelete(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [themeModalOpen, infoModalOpen, themeToDelete, infoEntryToDelete]);
 
-  const selectedSong = useMemo(
-    () => songs.find((song) => song.id === selectedSongId) ?? null,
-    [songs, selectedSongId],
-  );
-
-  useEffect(() => {
-    if (selectedSong) {
-      setInfoForm({
-        banda: selectedSong.banda || "",
-        compositor: selectedSong.compositor || "",
-        album: selectedSong.album || "",
-        anoLancamento: selectedSong.anoLancamento || "",
-        tema: selectedSong.tema || "",
-        adicionais: selectedSong.adicionais || "",
-      });
-    } else {
-      setInfoForm(emptyInfoForm);
-    }
-    setInfoError("");
-  }, [selectedSong]);
-
-  const filteredSongsForTheme = useMemo(
-    () => filterSongs(songs, themeSongSearch),
-    [songs, themeSongSearch],
-  );
-
-  const filteredSongsForInfo = useMemo(
-    () => filterSongs(songs, songSearch),
-    [songs, songSearch],
-  );
-
-  const existingBands = useMemo(
-    () =>
-      [...new Set(songs.map((song) => String(song.banda ?? "").trim()).filter(Boolean))].sort(
-        (a, b) => a.localeCompare(b, "pt-BR"),
-      ),
-    [songs],
-  );
-
-  const existingComposers = useMemo(
-    () =>
-      [
-        ...new Set(songs.map((song) => String(song.compositor ?? "").trim()).filter(Boolean)),
-      ].sort((a, b) => a.localeCompare(b, "pt-BR")),
-    [songs],
-  );
-
-  const availableThemeNames = useMemo(() => {
-    const names = new Set([
-      ...themes.map((item) => item.name),
-      ...DEFAULT_THEMES.map((item) => item.label),
-      ...songs.map((song) => String(song.tema ?? "").trim()).filter(Boolean),
-    ]);
-    return [...names].sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [themes, songs]);
-
-  const startNewTheme = () => {
-    setEditingThemeId(null);
-    setThemeForm({ name: "", description: "", songIds: [] });
-    setThemeNotice("");
+  const getSongsForTheme = (theme) => {
+    if (!theme) return [];
+    const targetName = normalizeStr(theme.name);
+    const idSet = new Set((theme.songIds || []).map(Number));
+    return songs.filter(
+      (song) =>
+        (targetName && normalizeStr(song.tema) === targetName) ||
+        idSet.has(Number(song.id)),
+    );
   };
 
-  const startEditTheme = (theme) => {
+  const openNewThemeModal = () => {
+    setEditingThemeId(null);
+    setThemeForm({ name: "", description: "" });
+    setThemeNotice("");
+    setThemeModalOpen(true);
+  };
+
+  const openEditThemeModal = (theme) => {
     setEditingThemeId(theme.id);
     setSelectedPreviewThemeId(theme.id);
     setThemeForm({
       name: theme.name,
       description: theme.description || "",
-      songIds: [...theme.songIds],
     });
     setThemeNotice("");
+    setThemeModalOpen(true);
   };
 
-  const toggleSongInThemeForm = (songId) => {
-    const numericId = Number(songId);
-    setThemeForm((current) => {
-      const exists = current.songIds.includes(numericId);
-      return {
-        ...current,
-        songIds: exists
-          ? current.songIds.filter((id) => id !== numericId)
-          : [...current.songIds, numericId],
-      };
-    });
+  const closeThemeModal = () => {
+    setThemeModalOpen(false);
+    setEditingThemeId(null);
+    setThemeForm({ name: "", description: "" });
   };
 
   const submitThemeForm = (event) => {
     event.preventDefault();
     setThemeNotice("");
     if (editingThemeId) {
-      const ok = updateTheme(editingThemeId, themeForm);
+      const currentThemeObj = themes.find((item) => item.id === editingThemeId);
+      const ok = updateTheme(editingThemeId, {
+        name: themeForm.name,
+        description: themeForm.description,
+        songIds: currentThemeObj?.songIds || [],
+      });
       if (ok) {
-        setThemeNotice("Tema atualizado com sucesso.");
-        setEditingThemeId(null);
-        setThemeForm({ name: "", description: "", songIds: [] });
+        setThemeNotice(
+          "Tema atualizado com sucesso. Ele já está disponível na caixa de opções ao editar uma música.",
+        );
+        closeThemeModal();
       }
     } else {
       const ok = createTheme(themeForm.name, {
         description: themeForm.description,
-        songIds: themeForm.songIds,
+        songIds: [],
       });
       if (ok) {
-        setThemeNotice("Tema cadastrado com sucesso.");
-        setThemeForm({ name: "", description: "", songIds: [] });
+        setThemeNotice(
+          "Tema cadastrado com sucesso. Na edição da música, clique no campo Tema para selecioná-lo.",
+        );
+        closeThemeModal();
       }
     }
   };
 
   const handleDeleteTheme = (theme) => {
-    if (!window.confirm(`Excluir o tema “${theme.name}”?`)) return;
-    if (deleteTheme(theme.id)) {
-      if (editingThemeId === theme.id) {
-        startNewTheme();
+    setThemeNotice("");
+    setThemeToDelete(theme);
+  };
+
+  const confirmDeleteTheme = () => {
+    if (!themeToDelete) return;
+    if (deleteTheme(themeToDelete.id)) {
+      if (editingThemeId === themeToDelete.id) {
+        closeThemeModal();
       }
-      if (selectedPreviewThemeId === theme.id) {
+      if (selectedPreviewThemeId === themeToDelete.id) {
         setSelectedPreviewThemeId(null);
       }
-      setThemeNotice("Tema removido.");
+      setThemeNotice(`Tema “${themeToDelete.name}” removido do cadastro.`);
     }
+    setThemeToDelete(null);
   };
 
   const loadSuggestedThemes = () => {
     let added = 0;
-    const existingLower = new Set(themes.map((item) => item.name.toLocaleLowerCase("pt-BR")));
+    const existingLower = new Set(themes.map((item) => normalizeStr(item.name)));
     for (const item of DEFAULT_THEMES) {
-      if (!existingLower.has(item.label.toLocaleLowerCase("pt-BR"))) {
+      if (!existingLower.has(normalizeStr(item.label))) {
         if (createTheme(item.label, { description: item.description, songIds: [] })) {
           added += 1;
         }
@@ -212,69 +192,138 @@ export default function AdminRegistriesSection({
     );
   };
 
-  const saveSongInfo = async (event) => {
-    event.preventDefault();
-    if (!selectedSong) return;
-    setSavingInfo(true);
-    setInfoError("");
+  // Funções do Cadastro de Informações (modal flutuante)
+  const openNewInfoModal = () => {
+    setEditingInfoId(null);
+    setInfoComposer("");
+    setInfoItems([createEmptyInfoItem()]);
     setInfoNotice("");
-    try {
-      const fullForm = {
-        ...fieldsFromSong(selectedSong),
-        banda: infoForm.banda,
-        compositor: infoForm.compositor,
-        album: infoForm.album,
-        anoLancamento: infoForm.anoLancamento,
-        tema: infoForm.tema,
-        adicionais: infoForm.adicionais,
-      };
-      const result = await updateSong(selectedSong.id, payloadFromSongForm(fullForm));
-      const saved = result.song ?? result;
-      if (onSongSaved) onSongSaved(saved);
-      setInfoNotice("Informações da música salvas com sucesso.");
-    } catch (err) {
-      setInfoError(messageForSongError(err));
-    } finally {
-      setSavingInfo(false);
+    setInfoModalOpen(true);
+  };
+
+  const openEditInfoModal = (entry, addBlankRow = false) => {
+    setEditingInfoId(entry.id);
+    setSelectedPreviewInfoId(entry.id);
+    setInfoComposer(entry.compositor);
+    const baseItems =
+      entry.items && entry.items.length > 0
+        ? entry.items.map((item) => ({ ...item }))
+        : [createEmptyInfoItem()];
+    setInfoItems(addBlankRow ? [...baseItems, createEmptyInfoItem()] : baseItems);
+    setInfoNotice("");
+    setInfoModalOpen(true);
+  };
+
+  const closeInfoModal = () => {
+    setInfoModalOpen(false);
+    setEditingInfoId(null);
+    setInfoComposer("");
+    setInfoItems([createEmptyInfoItem()]);
+  };
+
+  const updateInfoItemField = (index, field, value) => {
+    setInfoItems((current) =>
+      current.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)),
+    );
+  };
+
+  const addInfoItemRow = () => {
+    setInfoItems((current) => [...current, createEmptyInfoItem()]);
+  };
+
+  const removeInfoItemRow = (index) => {
+    setInfoItems((current) =>
+      current.length <= 1 ? [createEmptyInfoItem()] : current.filter((_, idx) => idx !== index),
+    );
+  };
+
+  const submitInfoRegistryForm = (event) => {
+    event.preventDefault();
+    setInfoNotice("");
+    if (editingInfoId) {
+      const ok = updateInfoEntry(editingInfoId, {
+        compositor: infoComposer,
+        items: infoItems,
+      });
+      if (ok) {
+        setInfoNotice(
+          "Cadastro de informações atualizado. As opções vinculadas a este compositor já estão atualizadas na edição da música.",
+        );
+        closeInfoModal();
+      }
+    } else {
+      const ok = createInfoEntry({
+        compositor: infoComposer,
+        items: infoItems,
+      });
+      if (ok) {
+        setInfoNotice(
+          "Informações vinculadas ao compositor cadastradas com sucesso. Na edição da música, selecione o compositor para ver essas opções.",
+        );
+        closeInfoModal();
+      }
     }
   };
 
-  const clearSongInfo = async () => {
-    if (!selectedSong) return;
-    if (
-      !window.confirm(
-        `Limpar todas as informações técnicas (banda, compositor, álbum, ano, tema e adicionais) de “${selectedSong.titulo}”?`,
-      )
-    ) {
-      return;
-    }
-    setSavingInfo(true);
-    setInfoError("");
+  const handleDeleteInfoEntry = (entry) => {
     setInfoNotice("");
-    try {
-      const fullForm = {
-        ...fieldsFromSong(selectedSong),
-        ...emptyInfoForm,
-      };
-      const result = await updateSong(selectedSong.id, payloadFromSongForm(fullForm));
-      const saved = result.song ?? result;
-      setInfoForm(emptyInfoForm);
-      if (onSongSaved) onSongSaved(saved);
-      setInfoNotice("Ficha técnica da música limpa.");
-    } catch (err) {
-      setInfoError(messageForSongError(err));
-    } finally {
-      setSavingInfo(false);
-    }
+    setInfoEntryToDelete(entry);
   };
+
+  const confirmDeleteInfoEntry = () => {
+    if (!infoEntryToDelete) return;
+    if (deleteInfoEntry(infoEntryToDelete.id)) {
+      if (editingInfoId === infoEntryToDelete.id) {
+        closeInfoModal();
+      }
+      if (selectedPreviewInfoId === infoEntryToDelete.id) {
+        setSelectedPreviewInfoId(null);
+      }
+      setInfoNotice(`Cadastro de “${infoEntryToDelete.compositor}” removido.`);
+    }
+    setInfoEntryToDelete(null);
+  };
+
+  const loadSuggestedInfoEntries = () => {
+    let added = 0;
+    const existingLower = new Set(infoEntries.map((item) => normalizeStr(item.compositor)));
+    for (const preset of DEFAULT_SONG_INFO_REGISTRY) {
+      if (!existingLower.has(normalizeStr(preset.compositor))) {
+        if (createInfoEntry({ compositor: preset.compositor, items: preset.items })) {
+          added += 1;
+        }
+      }
+    }
+    setInfoNotice(
+      added > 0
+        ? `${added} ${added === 1 ? "autor/compositor sugerido adicionado" : "autores/compositores sugeridos adicionados"}.`
+        : "Todos os cadastros sugeridos já estão registrados.",
+    );
+  };
+
+  const filteredInfoEntries = useMemo(() => {
+    const q = normalizeStr(infoSearch);
+    if (!q) return infoEntries;
+    return infoEntries.filter((entry) => {
+      if (normalizeStr(entry.compositor).includes(q)) return true;
+      return (entry.items || []).some(
+        (item) =>
+          normalizeStr(item.banda).includes(q) ||
+          normalizeStr(item.album).includes(q) ||
+          normalizeStr(item.anoLancamento).includes(q) ||
+          normalizeStr(item.adicionais).includes(q),
+      );
+    });
+  }, [infoEntries, infoSearch]);
 
   const previewTheme = useMemo(() => {
-    if (editingThemeId || themeForm.name.trim()) {
+    if (themeModalOpen && (editingThemeId || themeForm.name.trim())) {
+      const existing = themes.find((item) => item.id === editingThemeId);
       return {
         id: editingThemeId || "draft",
         name: themeForm.name.trim() || "Novo tema",
         description: themeForm.description.trim(),
-        songIds: themeForm.songIds,
+        songIds: existing?.songIds || [],
       };
     }
     return (
@@ -282,180 +331,108 @@ export default function AdminRegistriesSection({
       themes[0] ||
       null
     );
-  }, [editingThemeId, themeForm, themes, selectedPreviewThemeId]);
+  }, [themeModalOpen, editingThemeId, themeForm, themes, selectedPreviewThemeId]);
+
+  const previewThemeSongs = useMemo(
+    () => getSongsForTheme(previewTheme),
+    [previewTheme, songs],
+  );
+
+  const previewInfoEntry = useMemo(() => {
+    if (infoModalOpen && (editingInfoId || infoComposer.trim())) {
+      return {
+        id: editingInfoId || "draft-info",
+        compositor: infoComposer.trim() || "Novo Autor / Compositor",
+        items: infoItems.filter(
+          (item) =>
+            item.banda.trim() ||
+            item.album.trim() ||
+            item.anoLancamento.trim() ||
+            item.adicionais.trim(),
+        ),
+      };
+    }
+    return (
+      infoEntries.find((item) => item.id === selectedPreviewInfoId) ||
+      infoEntries[0] ||
+      null
+    );
+  }, [infoModalOpen, editingInfoId, infoComposer, infoItems, infoEntries, selectedPreviewInfoId]);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-2 xl:col-span-2">
-        <nav className="flex min-w-0 flex-1 gap-1 overflow-x-auto" aria-label="Abas de cadastros">
-          {REGISTRY_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => onTabChange?.(tab.id)}
-              aria-current={activeTab === tab.id ? "page" : undefined}
-              className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium ${
-                activeTab === tab.id
-                  ? "bg-pine text-white"
-                  : "text-ink-soft hover:bg-card hover:text-ink"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      <div className="min-w-0 space-y-6">
+    <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="min-w-0 space-y-5">
         {activeTab === "temas" ? (
           <>
-            <section className="rounded-2xl border border-line bg-card p-5 shadow-sm sm:p-6">
-              <div className="flex flex-wrap items-start justify-between gap-3">
+            {themeNotice ? (
+              <p
+                role="status"
+                className="rounded-[3px] border border-pine/30 bg-pine/5 px-3.5 py-2.5 text-xs text-pine"
+              >
+                {themeNotice}
+              </p>
+            ) : null}
+            {themeError && !themeModalOpen ? (
+              <p
+                role="alert"
+                className="rounded-[3px] border border-danger/30 bg-danger-soft px-3.5 py-2.5 text-xs text-danger"
+              >
+                {themeError}
+              </p>
+            ) : null}
+
+            <section>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/80 pb-4">
                 <div>
-                  <h3 className="text-base font-semibold">
-                    {editingThemeId ? "Editar tema de músicas" : "Novo tema de músicas"}
+                  <h3 className="text-sm font-semibold text-ink">
+                    Temas definidos no cadastro ({themes.length})
                   </h3>
-                  <p className="mt-1 text-sm text-ink-soft">
-                    Crie, edite ou exclua temas e vincule as músicas que fazem parte de cada lista.
+                  <p className="mt-0.5 text-xs text-ink-soft">
+                    Opções exibidas na caixa de seleção ao criar ou editar uma música (1 tema por música).
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={loadSuggestedThemes}
-                  className="h-9 rounded-full border border-line px-3.5 text-xs font-medium hover:bg-paper"
-                >
-                  Carregar temas sugeridos
-                </button>
-              </div>
-
-              <form onSubmit={submitThemeForm} className="mt-5 space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="block space-y-1.5">
-                    <span className="text-sm font-medium">Nome do tema</span>
-                    <input
-                      value={themeForm.name}
-                      onChange={(event) =>
-                        setThemeForm((current) => ({ ...current, name: event.target.value }))
-                      }
-                      maxLength={80}
-                      placeholder="Ex.: Adoração, Ceia, Jovens, Gratidão…"
-                      required
-                      className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
-                    />
-                  </label>
-                  <label className="block space-y-1.5">
-                    <span className="text-sm font-medium">Descrição (opcional)</span>
-                    <input
-                      value={themeForm.description}
-                      onChange={(event) =>
-                        setThemeForm((current) => ({
-                          ...current,
-                          description: event.target.value,
-                        }))
-                      }
-                      maxLength={240}
-                      placeholder="Breve descrição da finalidade do tema"
-                      className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
-                    />
-                  </label>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-sm font-medium">
-                      Músicas vinculadas ({themeForm.songIds.length})
-                    </span>
-                    <input
-                      type="search"
-                      value={themeSongSearch}
-                      onChange={(event) => setThemeSongSearch(event.target.value)}
-                      placeholder="Filtrar músicas para o tema…"
-                      className="h-9 w-full rounded-lg border border-line bg-paper px-3 text-xs outline-none focus:ring-2 focus:ring-pine sm:w-64"
-                    />
-                  </div>
-                  <div className="max-h-52 divide-y divide-line overflow-y-auto rounded-xl border border-line bg-paper">
-                    {loadingSongs ? (
-                      <p className="px-4 py-4 text-xs text-ink-soft">Carregando músicas…</p>
-                    ) : filteredSongsForTheme.length === 0 ? (
-                      <p className="px-4 py-4 text-xs text-ink-soft">Nenhuma música encontrada.</p>
-                    ) : (
-                      filteredSongsForTheme.map((song) => {
-                        const checked = themeForm.songIds.includes(Number(song.id));
-                        return (
-                          <label
-                            key={song.id}
-                            className="flex cursor-pointer items-center gap-3 px-3.5 py-2.5 text-sm hover:bg-card"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleSongInThemeForm(song.id)}
-                              className="h-4 w-4 shrink-0 accent-pine"
-                            />
-                            <span className="w-9 shrink-0 font-mono text-xs tabular-nums text-ink-soft">
-                              {String(song.numero).padStart(3, "0")}
-                            </span>
-                            <span className="min-w-0 flex-1 truncate font-medium">
-                              {song.titulo}
-                            </span>
-                          </label>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-
-                {themeError ? (
-                  <p role="alert" className="rounded-xl border border-danger/30 bg-danger-soft px-4 py-2.5 text-sm text-danger">
-                    {themeError}
-                  </p>
-                ) : null}
-                {themeNotice ? (
-                  <p role="status" className="rounded-xl border border-pine/20 bg-pine/5 px-4 py-2.5 text-sm text-pine">
-                    {themeNotice}
-                  </p>
-                ) : null}
-
-                <div className="flex flex-wrap justify-end gap-2">
-                  {editingThemeId ? (
-                    <button
-                      type="button"
-                      onClick={startNewTheme}
-                      className="h-10 rounded-lg border border-line px-4 text-sm font-medium hover:bg-paper"
-                    >
-                      Cancelar edição
-                    </button>
-                  ) : null}
+                <div className="flex flex-wrap items-center gap-2">
                   <button
-                    type="submit"
-                    className="h-10 rounded-lg bg-pine px-5 text-sm font-semibold text-white hover:bg-pine-dark"
+                    type="button"
+                    onClick={loadSuggestedThemes}
+                    className="h-8.5 rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper"
                   >
-                    {editingThemeId ? "Salvar alterações" : "Cadastrar tema"}
+                    Carregar sugeridos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openNewThemeModal}
+                    className="inline-flex h-8.5 items-center gap-1.5 rounded-[3px] bg-pine px-3.5 text-xs font-semibold text-white hover:bg-pine-dark"
+                  >
+                    <span aria-hidden className="text-sm leading-none">+</span>
+                    Novo tema
                   </button>
                 </div>
-              </form>
-            </section>
-
-            <section className="overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
-              <div className="border-b border-line px-5 py-4 sm:px-6">
-                <h3 className="text-base font-semibold">Temas cadastrados ({themes.length})</h3>
-                <p className="mt-1 text-sm text-ink-soft">
-                  Clique em um tema para visualizar na prévia mobile ou editar suas músicas.
-                </p>
               </div>
+
               {themes.length === 0 ? (
-                <p className="px-5 py-8 text-center text-sm text-ink-soft">
-                  Nenhum tema cadastrado ainda. Crie um tema acima ou carregue os temas sugeridos.
-                </p>
+                <div className="py-10">
+                  <p className="text-xs text-ink-soft">
+                    Nenhum tema cadastrado ainda. Clique em <strong>+ Novo tema</strong> para adicionar.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openNewThemeModal}
+                    className="mt-3 inline-flex h-8.5 items-center gap-1.5 rounded-[3px] bg-pine px-3.5 text-xs font-semibold text-white hover:bg-pine-dark"
+                  >
+                    + Cadastrar primeiro tema
+                  </button>
+                </div>
               ) : (
-                <ul className="divide-y divide-line">
+                <ul className="divide-y divide-line/80 border-b border-line/80">
                   {themes.map((theme) => {
                     const isSelected = previewTheme?.id === theme.id;
+                    const linkedSongs = getSongsForTheme(theme);
                     return (
                       <li
                         key={theme.id}
-                        className={`flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 sm:px-6 ${
-                          isSelected ? "bg-pine/5" : ""
+                        className={`flex flex-wrap items-center justify-between gap-3 px-2 py-3 ${
+                          isSelected ? "bg-card" : "hover:bg-card/60"
                         }`}
                       >
                         <button
@@ -463,27 +440,27 @@ export default function AdminRegistriesSection({
                           onClick={() => setSelectedPreviewThemeId(theme.id)}
                           className="min-w-0 flex-1 text-left"
                         >
-                          <p className="truncate text-sm font-semibold text-ink">{theme.name}</p>
+                          <p className="truncate text-[13px] font-semibold text-ink">{theme.name}</p>
                           <p className="mt-0.5 truncate text-xs text-ink-soft">
-                            {theme.description
-                              ? `${theme.description} · `
-                              : ""}
-                            {theme.songIds.length}{" "}
-                            {theme.songIds.length === 1 ? "música vinculada" : "músicas vinculadas"}
+                            {theme.description ? `${theme.description} · ` : ""}
+                            {linkedSongs.length}{" "}
+                            {linkedSongs.length === 1
+                              ? "música vinculada"
+                              : "músicas vinculadas"}
                           </p>
                         </button>
-                        <div className="flex shrink-0 items-center gap-2">
+                        <div className="flex shrink-0 items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => startEditTheme(theme)}
-                            className="h-8 rounded-lg border border-line px-3 text-xs font-medium hover:bg-paper"
+                            onClick={() => openEditThemeModal(theme)}
+                            className="h-7.5 rounded-[3px] border border-line bg-card px-2.5 text-xs font-medium text-ink hover:bg-paper"
                           >
                             Editar
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteTheme(theme)}
-                            className="h-8 rounded-lg border border-danger/30 px-3 text-xs font-medium text-danger hover:bg-danger-soft"
+                            className="h-7.5 rounded-[3px] border border-danger/30 bg-card px-2.5 text-xs font-medium text-danger hover:bg-danger-soft"
                           >
                             Excluir
                           </button>
@@ -497,239 +474,160 @@ export default function AdminRegistriesSection({
           </>
         ) : (
           <>
-            <section className="overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
-              <div className="border-b border-line px-5 py-4 sm:px-6">
-                <h3 className="text-base font-semibold">Selecionar música do catálogo</h3>
-                <p className="mt-1 text-sm text-ink-soft">
-                  Escolha uma música para cadastrar ou atualizar Banda, Compositor(es), Álbum, Ano de lançamento, Tema e Observações.
-                </p>
-              </div>
-              <div className="border-b border-line p-4">
-                <input
-                  type="search"
-                  value={songSearch}
-                  onChange={(event) => setSongSearch(event.target.value)}
-                  placeholder="Buscar música por número ou título…"
-                  className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
-                />
-              </div>
-              <ul className="max-h-56 divide-y divide-line overflow-y-auto">
-                {loadingSongs ? (
-                  <li className="px-5 py-4 text-sm text-ink-soft">Carregando catálogo…</li>
-                ) : filteredSongsForInfo.length === 0 ? (
-                  <li className="px-5 py-4 text-sm text-ink-soft">Nenhuma música encontrada.</li>
-                ) : (
-                  filteredSongsForInfo.map((song) => {
-                    const active = song.id === selectedSongId;
-                    const summaryParts = [
-                      song.banda,
-                      song.compositor,
-                      song.anoLancamento,
-                      song.tema,
-                    ].filter(Boolean);
-                    return (
-                      <li key={song.id}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedSongId(song.id);
-                            setInfoNotice("");
-                          }}
-                          className={`flex w-full items-center gap-3 px-5 py-3 text-left transition-colors ${
-                            active ? "bg-pine/10 text-pine" : "hover:bg-paper"
-                          }`}
-                        >
-                          <span className="w-10 shrink-0 font-mono text-xs tabular-nums text-ink-soft">
-                            {String(song.numero).padStart(3, "0")}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium text-ink">
-                              {song.titulo}
-                            </span>
-                            <span className="mt-0.5 block truncate text-xs text-ink-soft">
-                              {summaryParts.length > 0
-                                ? summaryParts.join(" · ")
-                                : "Sem ficha técnica cadastrada"}
-                            </span>
-                          </span>
-                          <span className="shrink-0 text-xs font-medium text-pine">
-                            {active ? "Selecionada" : "Editar ficha"}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })
-                )}
-              </ul>
-            </section>
+            {infoNotice ? (
+              <p
+                role="status"
+                className="rounded-[3px] border border-pine/30 bg-pine/5 px-3.5 py-2.5 text-xs text-pine"
+              >
+                {infoNotice}
+              </p>
+            ) : null}
+            {infoRegistryError && !infoModalOpen ? (
+              <p
+                role="alert"
+                className="rounded-[3px] border border-danger/30 bg-danger-soft px-3.5 py-2.5 text-xs text-danger"
+              >
+                {infoRegistryError}
+              </p>
+            ) : null}
 
-            {selectedSong ? (
-              <section className="rounded-2xl border border-line bg-card p-5 shadow-sm sm:p-6">
-                <div className="flex flex-wrap items-start justify-between gap-3">
+            <section>
+              <div className="border-b border-line/80 pb-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-pine">
-                      Música #{String(selectedSong.numero).padStart(3, "0")}
-                    </p>
-                    <h3 className="mt-1 text-lg font-semibold">{selectedSong.titulo}</h3>
-                    <p className="mt-1 text-sm text-ink-soft">
-                      Preencha as informações técnicas exibidas na tela de Informações da música.
+                    <h3 className="text-sm font-semibold text-ink">
+                      Autores / Compositores e Informações ({infoEntries.length})
+                    </h3>
+                    <p className="mt-0.5 text-xs text-ink-soft">
+                      Álbuns, anos de lançamento e bandas vinculados a cada compositor para seleção na edição da música.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={clearSongInfo}
-                    disabled={savingInfo}
-                    className="h-9 rounded-lg border border-danger/30 px-3 text-xs font-medium text-danger hover:bg-danger-soft disabled:opacity-50"
-                  >
-                    Limpar informações
-                  </button>
-                </div>
-
-                <form onSubmit={saveSongInfo} className="mt-5 space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="block space-y-1.5">
-                      <span className="text-sm font-medium">Banda / Intérprete</span>
-                      <input
-                        list="admin-bands-list"
-                        value={infoForm.banda}
-                        onChange={(event) =>
-                          setInfoForm((current) => ({ ...current, banda: event.target.value }))
-                        }
-                        maxLength={200}
-                        placeholder="Ex.: Diante do Trono, Coral, Ministério…"
-                        className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
-                      />
-                      <datalist id="admin-bands-list">
-                        {existingBands.map((band) => (
-                          <option key={band} value={band} />
-                        ))}
-                      </datalist>
-                    </label>
-
-                    <label className="block space-y-1.5">
-                      <span className="text-sm font-medium">Compositor(es)</span>
-                      <input
-                        list="admin-composers-list"
-                        value={infoForm.compositor}
-                        onChange={(event) =>
-                          setInfoForm((current) => ({
-                            ...current,
-                            compositor: event.target.value,
-                          }))
-                        }
-                        maxLength={200}
-                        placeholder="Ex.: Asaph Borba, Ana Paula Valadão…"
-                        className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
-                      />
-                      <datalist id="admin-composers-list">
-                        {existingComposers.map((composer) => (
-                          <option key={composer} value={composer} />
-                        ))}
-                      </datalist>
-                    </label>
-
-                    <label className="block space-y-1.5">
-                      <span className="text-sm font-medium">Álbum</span>
-                      <input
-                        value={infoForm.album}
-                        onChange={(event) =>
-                          setInfoForm((current) => ({ ...current, album: event.target.value }))
-                        }
-                        maxLength={200}
-                        placeholder="Nome do álbum ou coletânea"
-                        className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
-                      />
-                    </label>
-
-                    <label className="block space-y-1.5">
-                      <span className="text-sm font-medium">Ano de lançamento</span>
-                      <input
-                        value={infoForm.anoLancamento}
-                        onChange={(event) =>
-                          setInfoForm((current) => ({
-                            ...current,
-                            anoLancamento: event.target.value,
-                          }))
-                        }
-                        maxLength={20}
-                        placeholder="Ex.: 1998, 2015…"
-                        className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
-                      />
-                    </label>
-                  </div>
-
-                  <label className="block space-y-1.5">
-                    <span className="text-sm font-medium">Tema da música</span>
-                    <input
-                      list="admin-song-themes-list"
-                      value={infoForm.tema}
-                      onChange={(event) =>
-                        setInfoForm((current) => ({ ...current, tema: event.target.value }))
-                      }
-                      maxLength={300}
-                      placeholder="Ex.: Louvor, Adoração, Gratidão…"
-                      className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-pine"
-                    />
-                    <datalist id="admin-song-themes-list">
-                      {availableThemeNames.map((themeName) => (
-                        <option key={themeName} value={themeName} />
-                      ))}
-                    </datalist>
-                  </label>
-
-                  <label className="block space-y-1.5">
-                    <span className="text-sm font-medium">Informações adicionais / Observações</span>
-                    <textarea
-                      rows={3}
-                      value={infoForm.adicionais}
-                      onChange={(event) =>
-                        setInfoForm((current) => ({ ...current, adicionais: event.target.value }))
-                      }
-                      maxLength={2000}
-                      placeholder="Referência bíblica, andamento, compasso, versão ou notas históricas…"
-                      className="w-full rounded-lg border border-line bg-paper p-3 text-sm outline-none focus:ring-2 focus:ring-pine"
-                    />
-                  </label>
-
-                  {infoError ? (
-                    <p role="alert" className="rounded-xl border border-danger/30 bg-danger-soft px-4 py-2.5 text-sm text-danger">
-                      {infoError}
-                    </p>
-                  ) : null}
-                  {infoNotice ? (
-                    <p role="status" className="rounded-xl border border-pine/20 bg-pine/5 px-4 py-2.5 text-sm text-pine">
-                      {infoNotice}
-                    </p>
-                  ) : null}
-
-                  <div className="flex justify-end">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
-                      type="submit"
-                      disabled={savingInfo}
-                      className="h-10 rounded-lg bg-pine px-5 text-sm font-semibold text-white hover:bg-pine-dark disabled:opacity-50"
+                      type="button"
+                      onClick={loadSuggestedInfoEntries}
+                      className="h-8.5 rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper"
                     >
-                      {savingInfo ? "Salvando…" : "Salvar informações da música"}
+                      Carregar sugeridos
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openNewInfoModal}
+                      className="inline-flex h-8.5 items-center gap-1.5 rounded-[3px] bg-pine px-3.5 text-xs font-semibold text-white hover:bg-pine-dark"
+                    >
+                      <span aria-hidden className="text-sm leading-none">+</span>
+                      Cadastrar informações
                     </button>
                   </div>
-                </form>
-              </section>
-            ) : null}
+                </div>
+                <div className="mt-3">
+                  <input
+                    type="search"
+                    value={infoSearch}
+                    onChange={(event) => setInfoSearch(event.target.value)}
+                    placeholder="Filtrar por compositor, banda, álbum ou ano de lançamento…"
+                    className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine sm:max-w-md"
+                  />
+                </div>
+              </div>
+
+              {filteredInfoEntries.length === 0 ? (
+                <div className="py-10">
+                  <p className="text-xs text-ink-soft">
+                    Nenhum cadastro encontrado. Clique em <strong>+ Cadastrar informações</strong> para adicionar.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openNewInfoModal}
+                    className="mt-3 inline-flex h-8.5 items-center gap-1.5 rounded-[3px] bg-pine px-3.5 text-xs font-semibold text-white hover:bg-pine-dark"
+                  >
+                    + Novo cadastro de informações
+                  </button>
+                </div>
+              ) : (
+                <ul className="divide-y divide-line/80 border-b border-line/80">
+                  {filteredInfoEntries.map((entry) => {
+                    const isSelected = previewInfoEntry?.id === entry.id;
+                    const albums = [
+                      ...new Set(entry.items.map((i) => i.album).filter(Boolean)),
+                    ];
+                    const years = [
+                      ...new Set(entry.items.map((i) => i.anoLancamento).filter(Boolean)),
+                    ];
+                    const bands = [
+                      ...new Set(entry.items.map((i) => i.banda).filter(Boolean)),
+                    ];
+                    return (
+                      <li
+                        key={entry.id}
+                        className={`flex flex-wrap items-start justify-between gap-3 px-2 py-3.5 ${
+                          isSelected ? "bg-card" : "hover:bg-card/60"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPreviewInfoId(entry.id)}
+                          className="min-w-0 flex-1 text-left"
+                        >
+                          <p className="truncate text-[13px] font-semibold text-ink">
+                            {entry.compositor}
+                          </p>
+                          <p className="mt-1 text-xs text-ink-soft">
+                            {[
+                              bands.length > 0 ? `Banda(s): ${bands.join(", ")}` : null,
+                              albums.length > 0 ? `Álbum(ns): ${albums.join(", ")}` : null,
+                              years.length > 0 ? `Ano(s): ${years.join(", ")}` : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ") || "Sem vínculos adicionais"}
+                          </p>
+                        </button>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openEditInfoModal(entry, true)}
+                            className="h-7.5 rounded-[3px] border border-line bg-card px-2.5 text-xs font-medium text-pine hover:bg-paper"
+                          >
+                            + Álbum / Ano
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openEditInfoModal(entry, false)}
+                            className="h-7.5 rounded-[3px] border border-line bg-card px-2.5 text-xs font-medium text-ink hover:bg-paper"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteInfoEntry(entry)}
+                            className="h-7.5 rounded-[3px] border border-danger/30 bg-card px-2.5 text-xs font-medium text-danger hover:bg-danger-soft"
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
           </>
         )}
       </div>
 
-      <aside className="xl:sticky xl:top-4 xl:self-start">
-        <div className="rounded-2xl border border-line bg-card p-5 shadow-sm">
-          <div>
-            <h3 className="text-sm font-semibold">Prévia mobile</h3>
-            <p className="mt-1 text-xs text-ink-soft">
-              {activeTab === "temas"
-                ? "Visualização da tela de Temas das músicas no aplicativo."
-                : "Visualização da ficha de Informações da música no aplicativo."}
-            </p>
-          </div>
+      <aside className="border-t border-line/80 pt-5 xl:sticky xl:top-4 xl:self-start xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
+            Prévia mobile
+          </p>
+          <p className="mt-0.5 text-xs text-ink-soft">
+            {activeTab === "temas"
+              ? "Músicas com o tema selecionado."
+              : "Opções vinculadas ao compositor."}
+          </p>
+        </div>
 
-          <div className="mx-auto mt-4 max-w-[340px] rounded-[2.4rem] border-[6px] border-neutral-800 bg-neutral-900 p-1.5 shadow-xl ring-1 ring-black/20">
+        <div className="mx-auto mt-3.5 max-w-[340px] rounded-[2.4rem] border-[6px] border-neutral-800 bg-neutral-900 p-1.5 shadow-xl ring-1 ring-black/20">
             <div
               style={appPreviewVars}
               className="flex h-[min(600px,calc(100dvh-230px))] min-h-[450px] flex-col overflow-hidden rounded-[2rem] bg-paper text-ink"
@@ -755,21 +653,10 @@ export default function AdminRegistriesSection({
                     <p className="truncate text-sm font-semibold">
                       {previewTheme ? previewTheme.name : "Temas"}
                     </p>
-                  ) : selectedSong ? (
-                    <h4 className="flex min-h-5 min-w-0 items-stretch gap-2.5 text-white">
-                      <span className="flex w-[3ch] shrink-0 items-center justify-end text-sm font-semibold tabular-nums">
-                        {String(selectedSong.numero).padStart(3, "0")}
-                      </span>
-                      <span aria-hidden className="w-px shrink-0 self-stretch bg-white/35" />
-                      <span className="flex min-w-0 flex-1 items-center">
-                        <MarqueeText
-                          text={selectedSong.titulo}
-                          className="text-sm font-semibold leading-tight"
-                        />
-                      </span>
-                    </h4>
                   ) : (
-                    <p className="truncate text-sm font-semibold">{appName}</p>
+                    <p className="truncate text-sm font-semibold">
+                      {previewInfoEntry ? previewInfoEntry.compositor : "Informações"}
+                    </p>
                   )}
                 </div>
               </header>
@@ -784,27 +671,25 @@ export default function AdminRegistriesSection({
                             {previewTheme.description}
                           </p>
                         ) : null}
-                        {previewTheme.songIds.length === 0 ? (
+                        {previewThemeSongs.length === 0 ? (
                           <p className="py-12 text-center text-xs text-ink-soft">
-                            Marque músicas no formulário para visualizar a lista deste tema.
+                            Nenhuma música está com o tema “{previewTheme.name}” selecionado no momento. Na edição da música, escolha este tema na caixa de opções.
                           </p>
                         ) : (
                           <ul className="divide-y divide-line rounded-xl border border-line bg-card">
-                            {songs
-                              .filter((song) => previewTheme.songIds.includes(Number(song.id)))
-                              .map((song) => (
-                                <li
-                                  key={song.id}
-                                  className="flex items-center gap-2.5 px-3 py-2.5 text-xs"
-                                >
-                                  <span className="w-7 shrink-0 font-mono text-[11px] tabular-nums text-pine">
-                                    {String(song.numero).padStart(3, "0")}
-                                  </span>
-                                  <span className="min-w-0 flex-1 truncate font-medium text-ink">
-                                    {song.titulo}
-                                  </span>
-                                </li>
-                              ))}
+                            {previewThemeSongs.map((song) => (
+                              <li
+                                key={song.id}
+                                className="flex items-center gap-2.5 px-3 py-2.5 text-xs"
+                              >
+                                <span className="w-7 shrink-0 font-mono text-[11px] tabular-nums text-pine">
+                                  {String(song.numero).padStart(3, "0")}
+                                </span>
+                                <span className="min-w-0 flex-1 truncate font-medium text-ink">
+                                  {song.titulo}
+                                </span>
+                              </li>
+                            ))}
                           </ul>
                         )}
                       </>
@@ -814,38 +699,66 @@ export default function AdminRegistriesSection({
                       </p>
                     )}
                   </div>
-                ) : selectedSong ? (
+                ) : previewInfoEntry ? (
                   <div className="space-y-3 p-3.5">
-                    <p className="text-xs font-semibold text-ink-soft">Informações da música</p>
-                    <dl className="divide-y divide-line rounded-2xl border border-line bg-card">
-                      {[
-                        { label: "Título", value: selectedSong.titulo },
-                        { label: "Banda / Intérprete", value: infoForm.banda },
-                        { label: "Compositor(es)", value: infoForm.compositor },
-                        { label: "Álbum", value: infoForm.album },
-                        { label: "Ano de lançamento", value: infoForm.anoLancamento },
-                        { label: "Tema", value: infoForm.tema },
-                        { label: "Informações adicionais", value: infoForm.adicionais, multiline: true },
-                      ].map(({ label, value, multiline }) => {
-                        const text = String(value ?? "").trim();
-                        return (
-                          <div key={label} className="px-3.5 py-2.5">
-                            <dt className="text-[11px] font-medium text-ink-soft">{label}</dt>
-                            <dd
-                              className={`mt-0.5 text-xs ${
-                                text ? "text-ink" : "italic text-ink-soft/65"
-                              } ${multiline ? "whitespace-pre-wrap leading-relaxed" : "break-words"}`}
-                            >
-                              {text || "Não informado"}
-                            </dd>
-                          </div>
-                        );
-                      })}
-                    </dl>
+                    <div className="rounded-xl border border-line bg-card px-3.5 py-2.5">
+                      <p className="text-[11px] font-medium text-ink-soft">
+                        Autor / Compositor / Banda
+                      </p>
+                      <p className="mt-0.5 text-sm font-semibold text-ink">
+                        {previewInfoEntry.compositor}
+                      </p>
+                    </div>
+
+                    <p className="text-xs font-semibold text-ink-soft">
+                      Opções vinculadas para escolha na edição da música ({previewInfoEntry.items.length})
+                    </p>
+
+                    {previewInfoEntry.items.length === 0 ? (
+                      <p className="rounded-xl border border-line bg-card p-4 text-center text-xs text-ink-soft">
+                        Preencha álbum, ano de lançamento ou banda para visualizar os vínculos deste compositor.
+                      </p>
+                    ) : (
+                      <div className="space-y-2.5">
+                        {previewInfoEntry.items.map((item, idx) => (
+                          <dl
+                            key={item.id || idx}
+                            className="divide-y divide-line rounded-2xl border border-line bg-card"
+                          >
+                            {[
+                              { label: "Banda / Intérprete", value: item.banda },
+                              { label: "Nome do Álbum", value: item.album },
+                              { label: "Ano de lançamento", value: item.anoLancamento },
+                              {
+                                label: "Informações adicionais",
+                                value: item.adicionais,
+                                multiline: true,
+                              },
+                            ].map(({ label, value, multiline }) => {
+                              const text = String(value ?? "").trim();
+                              return (
+                                <div key={label} className="px-3.5 py-2">
+                                  <dt className="text-[11px] font-medium text-ink-soft">
+                                    {label}
+                                  </dt>
+                                  <dd
+                                    className={`mt-0.5 text-xs ${
+                                      text ? "text-ink" : "italic text-ink-soft/65"
+                                    } ${multiline ? "whitespace-pre-wrap leading-relaxed" : "break-words"}`}
+                                  >
+                                    {text || "Não informado"}
+                                  </dd>
+                                </div>
+                              );
+                            })}
+                          </dl>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="p-6 text-center text-xs text-ink-soft">
-                    Selecione uma música para ver a prévia das informações.
+                    Cadastre ou selecione um autor/compositor para ver suas opções vinculadas.
                   </p>
                 )}
               </SongScroll>
@@ -857,8 +770,403 @@ export default function AdminRegistriesSection({
               </div>
             </div>
           </div>
-        </div>
       </aside>
+
+      {/* Modal Flutuante: Cadastro / Edição de Tema */}
+      {themeModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px]"
+          onClick={closeThemeModal}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="theme-modal-title"
+            onClick={(event) => event.stopPropagation()}
+            className="flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-[4px] border border-line bg-card text-ink shadow-2xl"
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+              <div>
+                <h3 id="theme-modal-title" className="text-sm font-semibold">
+                  {editingThemeId ? "Editar tema de músicas" : "Novo tema de músicas"}
+                </h3>
+                <p className="mt-0.5 text-xs text-ink-soft">
+                  Este tema aparecerá na caixa de opções ao editar uma música.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeThemeModal}
+                aria-label="Fechar modal"
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[3px] border border-line bg-paper text-sm text-ink-soft hover:text-ink"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={submitThemeForm} className="space-y-4 overflow-y-auto p-5">
+              <label className="block space-y-1.5">
+                <span className="text-xs font-medium text-ink-soft">Nome do tema</span>
+                <input
+                  autoFocus
+                  value={themeForm.name}
+                  onChange={(event) =>
+                    setThemeForm((current) => ({ ...current, name: event.target.value }))
+                  }
+                  maxLength={80}
+                  placeholder="Ex.: Abertura, Acústico, Animadas, Repertório Show…"
+                  required
+                  className="h-9 w-full rounded-[3px] border border-line bg-card px-2.5 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
+                />
+              </label>
+
+              <label className="block space-y-1.5">
+                <span className="text-xs font-medium text-ink-soft">Descrição (opcional)</span>
+                <input
+                  value={themeForm.description}
+                  onChange={(event) =>
+                    setThemeForm((current) => ({
+                      ...current,
+                      description: event.target.value,
+                    }))
+                  }
+                  maxLength={240}
+                  placeholder="Breve descrição da finalidade do tema"
+                  className="h-9 w-full rounded-[3px] border border-line bg-card px-2.5 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
+                />
+              </label>
+
+              {themeError ? (
+                <p
+                  role="alert"
+                  className="rounded-[3px] border border-danger/30 bg-danger-soft px-3 py-2 text-xs text-danger"
+                >
+                  {themeError}
+                </p>
+              ) : null}
+
+              <div className="flex flex-wrap justify-end gap-2 border-t border-line pt-4">
+                <button
+                  type="button"
+                  onClick={closeThemeModal}
+                  className="h-8.5 rounded-[3px] border border-line bg-card px-3.5 text-xs font-medium hover:bg-paper"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="h-8.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark"
+                >
+                  {editingThemeId ? "Salvar alterações" : "Cadastrar tema"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Modal Flutuante: Cadastro / Edição de Informações (Autor/Compositor e vínculos) */}
+      {infoModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px]"
+          onClick={closeInfoModal}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="info-modal-title"
+            onClick={(event) => event.stopPropagation()}
+            className="flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden rounded-[4px] border border-line bg-card text-ink shadow-2xl"
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+              <div>
+                <h3 id="info-modal-title" className="text-sm font-semibold">
+                  {editingInfoId
+                    ? "Editar Autor / Compositor e vínculos"
+                    : "Cadastrar Autor / Compositor e vínculos"}
+                </h3>
+                <p className="mt-0.5 text-xs text-ink-soft">
+                  Álbuns, anos de lançamento e bandas vinculados a este autor/compositor.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeInfoModal}
+                aria-label="Fechar modal"
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[3px] border border-line bg-paper text-sm text-ink-soft hover:text-ink"
+              >
+                ×
+              </button>
+            </div>
+
+            <form
+              onSubmit={submitInfoRegistryForm}
+              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            >
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-medium text-ink-soft">
+                    Autor / Compositor / Banda (chave principal)
+                  </span>
+                  <input
+                    autoFocus
+                    list="registry-composers-datalist"
+                    value={infoComposer}
+                    onChange={(event) => setInfoComposer(event.target.value)}
+                    maxLength={200}
+                    placeholder="Ex.: Banda Horizonte, Lucas Andrade, Coletivo Harmonia…"
+                    required
+                    className="h-9 w-full rounded-[3px] border border-line bg-card px-2.5 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
+                  />
+                  <datalist id="registry-composers-datalist">
+                    {infoEntries.map((entry) => (
+                      <option key={entry.id} value={entry.compositor} />
+                    ))}
+                  </datalist>
+                </label>
+
+                <div className="space-y-3 border-t border-line/80 pt-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-semibold text-ink">
+                        Álbuns e lançamentos vinculados ({infoItems.length})
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addInfoItemRow}
+                      className="inline-flex h-7.5 items-center gap-1 rounded-[3px] border border-line bg-card px-2.5 text-xs font-medium text-pine hover:bg-paper"
+                    >
+                      <span aria-hidden className="text-sm leading-none">+</span>
+                      Adicionar vínculo
+                    </button>
+                  </div>
+
+                  <div className="divide-y divide-line/80 border-t border-line/80">
+                    {infoItems.map((item, index) => (
+                      <div key={item.id || index} className="space-y-3 py-4">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium text-ink-soft">
+                            Vínculo #{index + 1}
+                          </span>
+                          {infoItems.length > 1 ? (
+                            <button
+                              type="button"
+                              onClick={() => removeInfoItemRow(index)}
+                              className="text-xs font-medium text-danger hover:underline"
+                            >
+                              Remover
+                            </button>
+                          ) : null}
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <label className="block space-y-1">
+                            <span className="text-xs font-medium text-ink-soft">
+                              Banda / Intérprete
+                            </span>
+                            <input
+                              value={item.banda}
+                              onChange={(event) =>
+                                updateInfoItemField(index, "banda", event.target.value)
+                              }
+                              maxLength={200}
+                              placeholder="Ex.: Banda Horizonte, Trio Acústico…"
+                              className="h-9 w-full rounded-[3px] border border-line bg-card px-2.5 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
+                            />
+                          </label>
+
+                          <label className="block space-y-1">
+                            <span className="text-xs font-medium text-ink-soft">
+                              Nome do Álbum
+                            </span>
+                            <input
+                              value={item.album}
+                              onChange={(event) =>
+                                updateInfoItemField(index, "album", event.target.value)
+                              }
+                              maxLength={200}
+                              placeholder="Ex.: Sessão Acústica, Ao Vivo…"
+                              className="h-9 w-full rounded-[3px] border border-line bg-card px-2.5 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
+                            />
+                          </label>
+
+                          <label className="block space-y-1">
+                            <span className="text-xs font-medium text-ink-soft">
+                              Ano de lançamento
+                            </span>
+                            <input
+                              value={item.anoLancamento}
+                              onChange={(event) =>
+                                updateInfoItemField(index, "anoLancamento", event.target.value)
+                              }
+                              maxLength={20}
+                              placeholder="Ex.: 2021, 2024…"
+                              className="h-9 w-full rounded-[3px] border border-line bg-card px-2.5 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
+                            />
+                          </label>
+                        </div>
+
+                        <label className="block space-y-1">
+                          <span className="text-xs font-medium text-ink-soft">
+                            Observações (opcional)
+                          </span>
+                          <input
+                            value={item.adicionais}
+                            onChange={(event) =>
+                              updateInfoItemField(index, "adicionais", event.target.value)
+                            }
+                            maxLength={2000}
+                            placeholder="Andamento (BPM), compasso, versão, gravadora ou notas de palco…"
+                            className="h-9 w-full rounded-[3px] border border-line bg-card px-2.5 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
+                          />
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {infoRegistryError ? (
+                  <p
+                    role="alert"
+                    className="rounded-[3px] border border-danger/30 bg-danger-soft px-3 py-2 text-xs text-danger"
+                  >
+                    {infoRegistryError}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-line bg-card px-5 py-3.5">
+                <button
+                  type="button"
+                  onClick={closeInfoModal}
+                  className="h-8.5 rounded-[3px] border border-line bg-card px-3.5 text-xs font-medium hover:bg-paper"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="h-8.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark"
+                >
+                  {editingInfoId
+                    ? "Salvar alterações"
+                    : "Cadastrar informações do compositor"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Modal Flutuante de Confirmação de Exclusão de Tema */}
+      {themeToDelete ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px]"
+          onClick={() => setThemeToDelete(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-theme-modal-title"
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-md overflow-hidden rounded-[4px] border border-line bg-card text-ink shadow-2xl"
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+              <h3 id="delete-theme-modal-title" className="text-sm font-semibold text-ink">
+                Excluir tema
+              </h3>
+              <button
+                type="button"
+                onClick={() => setThemeToDelete(null)}
+                aria-label="Fechar modal"
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[3px] border border-line bg-paper text-sm text-ink-soft hover:text-ink"
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-2.5 p-5">
+              <p className="text-[13px] leading-relaxed text-ink">
+                Tem certeza que deseja excluir o tema{" "}
+                <strong className="font-semibold">“{themeToDelete.name}”</strong> do cadastro?
+              </p>
+              <p className="text-xs leading-relaxed text-ink-soft">
+                Esta ação remove o tema da lista de opções disponíveis. As músicas do catálogo não serão apagadas.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2 border-t border-line px-5 py-3.5">
+              <button
+                type="button"
+                onClick={() => setThemeToDelete(null)}
+                className="h-8.5 rounded-[3px] border border-line bg-card px-3.5 text-xs font-medium hover:bg-paper"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteTheme}
+                className="h-8.5 rounded-[3px] bg-danger px-4 text-xs font-semibold text-white hover:brightness-95"
+              >
+                Confirmar exclusão
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Modal Flutuante de Confirmação de Exclusão de Informações (Autor/Compositor) */}
+      {infoEntryToDelete ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px]"
+          onClick={() => setInfoEntryToDelete(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-info-modal-title"
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-md overflow-hidden rounded-[4px] border border-line bg-card text-ink shadow-2xl"
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+              <h3 id="delete-info-modal-title" className="text-sm font-semibold text-ink">
+                Excluir cadastro de informações
+              </h3>
+              <button
+                type="button"
+                onClick={() => setInfoEntryToDelete(null)}
+                aria-label="Fechar modal"
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[3px] border border-line bg-paper text-sm text-ink-soft hover:text-ink"
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-2.5 p-5">
+              <p className="text-[13px] leading-relaxed text-ink">
+                Tem certeza que deseja excluir o cadastro de{" "}
+                <strong className="font-semibold">“{infoEntryToDelete.compositor}”</strong> e todos os seus álbuns, anos de lançamento e bandas vinculados?
+              </p>
+              <p className="text-xs leading-relaxed text-ink-soft">
+                Esta ação remove estas opções do cadastro de informações. As músicas já salvas no catálogo não serão apagadas.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2 border-t border-line px-5 py-3.5">
+              <button
+                type="button"
+                onClick={() => setInfoEntryToDelete(null)}
+                className="h-8.5 rounded-[3px] border border-line bg-card px-3.5 text-xs font-medium hover:bg-paper"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteInfoEntry}
+                className="h-8.5 rounded-[3px] bg-danger px-4 text-xs font-semibold text-white hover:brightness-95"
+              >
+                Confirmar exclusão
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -38,7 +38,7 @@ const MENU_OPTIONS = [
 const AVAILABLE_PLANS = [
   {
     id: "comunidade",
-    name: "Plano Comunidade",
+    name: "Plano Essencial / Solo",
     badge: "Entrada",
     monthlyPrice: 29,
     annualMonthlyPrice: 23,
@@ -54,7 +54,7 @@ const AVAILABLE_PLANS = [
   },
   {
     id: "ministerio",
-    name: "Plano Ministério Pro",
+    name: "Plano Banda & Artista Pro",
     badge: "Mais escolhido",
     monthlyPrice: 69,
     annualMonthlyPrice: 55,
@@ -62,7 +62,7 @@ const AVAILABLE_PLANS = [
     membersLimit: "Até 300 membros",
     adminsLimit: "Até 5 administradores",
     features: [
-      "Tudo do plano Comunidade sem limites de músicas",
+      "Tudo do plano Essencial sem limites de músicas",
       "Divisão de vozes por cores (Homens, Mulheres e Todos)",
       "Player de demonstrações de áudio (10 GB em nuvem)",
       "White-Label completo (Nome, ícones e 12 paletas)",
@@ -70,7 +70,7 @@ const AVAILABLE_PLANS = [
   },
   {
     id: "denominacional",
-    name: "Plano Denominacional & Rede",
+    name: "Plano Produtora & Corporativo",
     badge: "Completo + Híbrido",
     monthlyPrice: 149,
     annualMonthlyPrice: 119,
@@ -105,7 +105,7 @@ const AVAILABLE_PLANS = [
 function getDefaultSubscription() {
   return {
     planId: "ministerio",
-    planName: "Plano Ministério Pro",
+    planName: "Plano Banda & Artista Pro",
     billingCycle: "annual",
     price: 55,
     status: "Ativo",
@@ -158,7 +158,7 @@ function getDefaultInvoices() {
       competence: "Novembro / 2026",
       dueDate: "15/11/2026",
       paidAt: "15/11/2026",
-      planName: "Plano Ministério Pro (Anual)",
+      planName: "Plano Banda & Artista Pro (Anual)",
       method: "Cartão •••• 4829",
       amount: 55.0,
       status: "paid",
@@ -168,7 +168,7 @@ function getDefaultInvoices() {
       competence: "Outubro / 2026",
       dueDate: "15/10/2026",
       paidAt: "15/10/2026",
-      planName: "Plano Ministério Pro (Anual)",
+      planName: "Plano Banda & Artista Pro (Anual)",
       method: "Cartão •••• 4829",
       amount: 55.0,
       status: "paid",
@@ -178,7 +178,7 @@ function getDefaultInvoices() {
       competence: "Setembro / 2026",
       dueDate: "15/09/2026",
       paidAt: "14/09/2026",
-      planName: "Plano Ministério Pro (Anual)",
+      planName: "Plano Banda & Artista Pro (Anual)",
       method: "PIX",
       amount: 55.0,
       status: "paid",
@@ -601,7 +601,7 @@ export default function UserProfileMenu({
                 {feedback.text ? (
                   <div
                     role="status"
-                    className={`mb-5 rounded-2xl border px-4 py-3 text-xs font-medium sm:text-sm ${
+                    className={`mb-5 rounded-[3px] border px-3.5 py-2.5 text-[12px] font-medium ${
                       feedback.type === "error"
                         ? "border-danger/30 bg-danger-soft text-danger"
                         : "border-pine/25 bg-pine/10 text-pine"
@@ -613,36 +613,36 @@ export default function UserProfileMenu({
 
                 {/* 1. ABA MEU PERFIL E CONTATO */}
                 {currentTab === "perfil" ? (
-                  <form onSubmit={handleSaveProfile} className="space-y-6">
-                    <div>
-                      <h3 className="text-base font-semibold text-ink">
+                  <form onSubmit={handleSaveProfile} className="divide-y divide-line/80">
+                    <div className="pb-5">
+                      <h3 className="text-[15px] font-semibold text-ink">
                         Dados do Meu Usuário
                       </h3>
-                      <p className="mt-1 text-xs text-ink-soft">
+                      <p className="mt-1 text-[12px] text-ink-soft">
                         Configure seu nome, sobrenome, foto de perfil, e-mail de acesso e telefone de contato.
                       </p>
                     </div>
 
                     {/* Foto de Perfil */}
-                    <div className="flex flex-wrap items-center gap-5 rounded-2xl border border-line bg-paper/50 p-4">
+                    <div className="flex flex-wrap items-center gap-5 py-6">
                       {profileForm.avatarUrl ? (
                         <img
                           src={profileForm.avatarUrl}
                           alt={fullName}
-                          className="h-20 w-20 shrink-0 rounded-full border-2 border-pine/30 object-cover shadow-xs"
+                          className="h-16 w-16 shrink-0 rounded-full border border-line object-cover"
                         />
                       ) : (
-                        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-pine text-2xl font-bold text-white shadow-xs">
+                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-pine text-xl font-bold text-white">
                           {initials}
                         </div>
                       )}
-                      <div className="min-w-0 flex-1 space-y-2">
-                        <p className="text-sm font-semibold text-ink">Foto de perfil</p>
-                        <p className="text-xs text-ink-soft">
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <p className="text-[13px] font-semibold text-ink">Foto de perfil</p>
+                        <p className="text-[12px] text-ink-soft">
                           Envie uma imagem do seu computador ou celular (JPG, PNG ou WebP).
                         </p>
                         <div className="flex flex-wrap items-center gap-2 pt-1">
-                          <label className="inline-flex h-9 cursor-pointer items-center rounded-xl bg-pine px-3.5 text-xs font-semibold text-white hover:bg-pine-dark">
+                          <label className="inline-flex h-8 cursor-pointer items-center rounded-[3px] bg-pine px-3 text-[12px] font-semibold text-white hover:bg-pine-dark">
                             <span>Alterar foto</span>
                             <input
                               type="file"
@@ -657,7 +657,7 @@ export default function UserProfileMenu({
                               onClick={() =>
                                 setProfileForm((curr) => ({ ...curr, avatarUrl: "" }))
                               }
-                              className="inline-flex h-9 items-center rounded-xl border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper"
+                              className="inline-flex h-8 items-center rounded-[3px] border border-line bg-card px-3 text-[12px] font-medium text-ink hover:bg-paper"
                             >
                               Remover foto
                             </button>
@@ -667,9 +667,9 @@ export default function UserProfileMenu({
                     </div>
 
                     {/* Campos Nome, Sobrenome, Email, Contato */}
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid gap-x-5 gap-y-4 py-6 sm:grid-cols-2">
                       <label className="block space-y-1.5">
-                        <span className="text-xs font-semibold text-ink">Nome *</span>
+                        <span className="text-[12px] font-semibold text-ink">Nome *</span>
                         <input
                           type="text"
                           required
@@ -679,12 +679,12 @@ export default function UserProfileMenu({
                             setProfileForm((curr) => ({ ...curr, name: e.target.value }))
                           }
                           placeholder="Seu primeiro nome"
-                          className="h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
+                          className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                         />
                       </label>
 
                       <label className="block space-y-1.5">
-                        <span className="text-xs font-semibold text-ink">Sobrenome</span>
+                        <span className="text-[12px] font-semibold text-ink">Sobrenome</span>
                         <input
                           type="text"
                           maxLength={80}
@@ -693,12 +693,12 @@ export default function UserProfileMenu({
                             setProfileForm((curr) => ({ ...curr, lastName: e.target.value }))
                           }
                           placeholder="Seu sobrenome"
-                          className="h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
+                          className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                         />
                       </label>
 
                       <label className="block space-y-1.5">
-                        <span className="text-xs font-semibold text-ink">E-mail *</span>
+                        <span className="text-[12px] font-semibold text-ink">E-mail *</span>
                         <input
                           type="email"
                           required
@@ -708,12 +708,12 @@ export default function UserProfileMenu({
                             setProfileForm((curr) => ({ ...curr, email: e.target.value }))
                           }
                           placeholder="seuemail@exemplo.com"
-                          className="h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
+                          className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                         />
                       </label>
 
                       <label className="block space-y-1.5">
-                        <span className="text-xs font-semibold text-ink">
+                        <span className="text-[12px] font-semibold text-ink">
                           Contato (Telefone / WhatsApp)
                         </span>
                         <input
@@ -724,16 +724,16 @@ export default function UserProfileMenu({
                             setProfileForm((curr) => ({ ...curr, phone: e.target.value }))
                           }
                           placeholder="(11) 99999-9999"
-                          className="h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
+                          className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                         />
                       </label>
                     </div>
 
-                    <div className="flex items-center justify-end gap-3 border-t border-line pt-4">
+                    <div className="flex items-center justify-end gap-3 pt-5">
                       <button
                         type="submit"
                         disabled={saving}
-                        className="inline-flex h-11 items-center rounded-xl bg-pine px-6 text-sm font-semibold text-white hover:bg-pine-dark disabled:opacity-60"
+                        className="inline-flex h-9 items-center rounded-[3px] bg-pine px-5 text-[12px] font-semibold text-white hover:bg-pine-dark disabled:opacity-60"
                       >
                         {saving ? "Salvando…" : "Salvar dados do perfil"}
                       </button>
@@ -743,30 +743,30 @@ export default function UserProfileMenu({
 
                 {/* 2. ABA PLANO PAGO ATUAL */}
                 {currentTab === "plano" ? (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-base font-semibold text-ink">Plano Pago Atual</h3>
-                      <p className="mt-1 text-xs text-ink-soft">
+                  <div className="divide-y divide-line/80">
+                    <div className="pb-5">
+                      <h3 className="text-[15px] font-semibold text-ink">Plano Pago Atual</h3>
+                      <p className="mt-1 text-[12px] text-ink-soft">
                         Consulte os detalhes da sua assinatura ativa, ciclo de cobrança e altere de plano quando desejar.
                       </p>
                     </div>
 
                     {/* Resumo do Plano Atual */}
-                    <div className="rounded-2xl border-2 border-pine bg-pine/5 p-5">
+                    <div className="py-6">
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="rounded-full bg-pine px-2.5 py-0.5 text-[11px] font-semibold text-white">
+                            <span className="rounded-[2px] bg-pine px-2 py-0.5 text-[11px] font-semibold text-white">
                               {subscriptionState.status || "Ativo"}
                             </span>
-                            <span className="text-xs font-medium text-ink-soft">
+                            <span className="text-[12px] font-medium text-ink-soft">
                               Desde {subscriptionState.startedAt || "15/01/2026"}
                             </span>
                           </div>
-                          <h4 className="mt-2 text-xl font-bold text-ink">
+                          <h4 className="mt-1.5 text-lg font-bold text-ink">
                             {subscriptionState.planName}
                           </h4>
-                          <p className="mt-1 text-xs text-ink-soft">
+                          <p className="mt-1 text-[12px] text-ink-soft">
                             Próxima renovação / status:{" "}
                             <strong className="font-semibold text-ink">
                               {subscriptionState.nextBillingDate}
@@ -775,11 +775,11 @@ export default function UserProfileMenu({
                         </div>
 
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-pine">
+                          <p className="text-xl font-bold text-pine">
                             R$ {Number(subscriptionState.price || 55).toFixed(2).replace(".", ",")}
                             {subscriptionState.billingCycle === "one-time" ? "" : "/mês"}
                           </p>
-                          <p className="text-xs text-ink-soft">
+                          <p className="text-[12px] text-ink-soft">
                             {subscriptionState.billingCycle === "annual"
                               ? "Ciclo Anual (com desconto)"
                               : subscriptionState.billingCycle === "one-time"
@@ -791,11 +791,11 @@ export default function UserProfileMenu({
 
                       {/* Seletor de Ciclo Mensal / Anual */}
                       {subscriptionState.billingCycle !== "one-time" ? (
-                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-pine/20 pt-4">
-                          <span className="text-xs font-medium text-ink">
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line/70 pt-4">
+                          <span className="text-[12px] font-medium text-ink">
                             Ciclo de faturamento da assinatura:
                           </span>
-                          <div className="inline-flex rounded-xl border border-line bg-card p-1">
+                          <div className="inline-flex rounded-[3px] border border-line bg-card p-0.5">
                             <button
                               type="button"
                               onClick={() => {
@@ -804,7 +804,7 @@ export default function UserProfileMenu({
                                   AVAILABLE_PLANS[1];
                                 handleSelectPlan(currentPlan, "monthly");
                               }}
-                              className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                              className={`rounded-[2px] px-3 py-1 text-[12px] font-semibold ${
                                 subscriptionState.billingCycle === "monthly"
                                   ? "bg-pine text-white"
                                   : "text-ink-soft hover:text-ink"
@@ -820,7 +820,7 @@ export default function UserProfileMenu({
                                   AVAILABLE_PLANS[1];
                                 handleSelectPlan(currentPlan, "annual");
                               }}
-                              className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                              className={`rounded-[2px] px-3 py-1 text-[12px] font-semibold ${
                                 subscriptionState.billingCycle === "annual"
                                   ? "bg-pine text-white"
                                   : "text-ink-soft hover:text-ink"
@@ -834,11 +834,11 @@ export default function UserProfileMenu({
                     </div>
 
                     {/* Opções de Planos para Troca */}
-                    <div className="space-y-3">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+                    <div className="space-y-4 pt-6">
+                      <h4 className="text-[12px] font-semibold text-ink">
                         Planos disponíveis para sua conta
                       </h4>
-                      <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="divide-y divide-line/80 border-t border-line/80">
                         {AVAILABLE_PLANS.map((plan) => {
                           const isCurrent = subscriptionState.planId === plan.id;
                           const displayPrice = plan.oneTime
@@ -849,31 +849,27 @@ export default function UserProfileMenu({
                           return (
                             <div
                               key={plan.id}
-                              className={`flex flex-col justify-between rounded-2xl border p-4 transition-all ${
-                                isCurrent
-                                  ? "border-pine bg-pine/5 ring-1 ring-pine/30"
-                                  : "border-line bg-paper/40 hover:bg-paper"
-                              }`}
+                              className="flex flex-col justify-between gap-4 py-4 sm:flex-row sm:items-center"
                             >
-                              <div>
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-sm font-bold text-ink">{plan.name}</span>
-                                  <span className="rounded-full bg-card px-2.5 py-0.5 text-[10px] font-semibold text-pine">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-[14px] font-bold text-ink">{plan.name}</span>
+                                  <span className="rounded-[2px] border border-pine/30 bg-pine/5 px-2 py-0.5 text-[10px] font-semibold text-pine">
                                     {plan.badge}
                                   </span>
-                                </div>
-                                <p className="mt-2 text-lg font-bold text-ink">
-                                  R$ {displayPrice},00
-                                  <span className="text-xs font-normal text-ink-soft">
-                                    {plan.oneTime ? " (único)" : "/mês"}
+                                  <span className="text-[13px] font-bold text-pine">
+                                    R$ {displayPrice},00
+                                    <span className="text-[11px] font-normal text-ink-soft">
+                                      {plan.oneTime ? " (único)" : "/mês"}
+                                    </span>
                                   </span>
-                                </p>
-                                <p className="mt-1 text-[11px] font-medium text-ink-soft">
+                                </div>
+                                <p className="mt-1 text-[12px] font-medium text-ink-soft">
                                   {plan.songsLimit} · {plan.membersLimit}
                                 </p>
-                                <ul className="mt-3 space-y-1 text-xs text-ink-soft">
+                                <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-soft">
                                   {plan.features.map((feat) => (
-                                    <li key={feat} className="flex items-start gap-1.5">
+                                    <li key={feat} className="flex items-center gap-1.5">
                                       <span className="text-pine">✓</span>
                                       <span>{feat}</span>
                                     </li>
@@ -885,13 +881,13 @@ export default function UserProfileMenu({
                                 type="button"
                                 disabled={isCurrent || saving}
                                 onClick={() => handleSelectPlan(plan)}
-                                className={`mt-4 h-9 w-full rounded-xl text-xs font-semibold transition-colors ${
+                                className={`h-8 shrink-0 rounded-[3px] px-3.5 text-[12px] font-semibold transition-colors ${
                                   isCurrent
                                     ? "cursor-default border border-pine/30 bg-pine/10 text-pine"
                                     : "bg-pine text-white hover:bg-pine-dark"
                                 }`}
                               >
-                                {isCurrent ? "Plano atual selecionado" : "Mudar para este plano"}
+                                {isCurrent ? "Plano atual" : "Selecionar plano"}
                               </button>
                             </div>
                           );
@@ -903,20 +899,20 @@ export default function UserProfileMenu({
 
                 {/* 3. ABA FATURAS E RECIBOS */}
                 {currentTab === "faturas" ? (
-                  <div className="space-y-6">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="divide-y divide-line/80">
+                    <div className="flex flex-wrap items-center justify-between gap-3 pb-5">
                       <div>
-                        <h3 className="text-base font-semibold text-ink">
+                        <h3 className="text-[15px] font-semibold text-ink">
                           Histórico de Faturas e Recibos
                         </h3>
-                        <p className="mt-1 text-xs text-ink-soft">
+                        <p className="mt-1 text-[12px] text-ink-soft">
                           Consulte faturas pagas, recibos fiscais e eventuais cobranças em aberto.
                         </p>
                       </div>
                       <button
                         type="button"
                         onClick={handleGenerateSampleInvoice}
-                        className="inline-flex h-9 items-center rounded-xl border border-line bg-paper px-3.5 text-xs font-semibold text-ink hover:bg-card"
+                        className="inline-flex h-8 items-center rounded-[3px] border border-line bg-card px-3 text-[12px] font-semibold text-ink hover:bg-paper"
                       >
                         + Adiantar próxima fatura
                       </button>
@@ -924,26 +920,26 @@ export default function UserProfileMenu({
 
                     {/* Visualizador de Recibo Selecionado */}
                     {selectedInvoice ? (
-                      <div className="rounded-2xl border-2 border-pine/40 bg-paper/70 p-5 space-y-4">
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
+                      <div className="space-y-4 py-5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-wider text-pine">
+                            <p className="text-[11px] font-semibold text-pine">
                               Demonstrativo de Fatura / Recibo
                             </p>
-                            <h4 className="text-base font-bold text-ink">
+                            <h4 className="text-[15px] font-bold text-ink">
                               Fatura #{selectedInvoice.id} — {selectedInvoice.competence}
                             </h4>
                           </div>
                           <button
                             type="button"
                             onClick={() => setSelectedInvoice(null)}
-                            className="rounded-lg border border-line bg-card px-2.5 py-1 text-xs font-medium text-ink hover:bg-paper"
+                            className="h-8 rounded-[3px] border border-line bg-card px-2.5 text-[12px] font-medium text-ink hover:bg-paper"
                           >
-                            Voltar para lista
+                            Fechar demonstrativo
                           </button>
                         </div>
 
-                        <div className="grid gap-3 text-xs sm:grid-cols-2">
+                        <div className="grid gap-3 text-[12px] sm:grid-cols-2">
                           <div>
                             <p className="text-ink-soft">Titular / Pagador:</p>
                             <p className="font-semibold text-ink">
@@ -974,8 +970,8 @@ export default function UserProfileMenu({
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
-                          <span className="text-sm font-bold text-ink">
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                          <span className="text-[13px] font-bold text-ink">
                             Valor Total: R${" "}
                             {Number(selectedInvoice.amount).toFixed(2).replace(".", ",")}
                           </span>
@@ -989,7 +985,7 @@ export default function UserProfileMenu({
                                     curr ? { ...curr, status: "paid", paidAt: "Hoje" } : null,
                                   );
                                 }}
-                                className="inline-flex h-9 items-center rounded-xl bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark"
+                                className="inline-flex h-8 items-center rounded-[3px] bg-pine px-3.5 text-[12px] font-semibold text-white hover:bg-pine-dark"
                               >
                                 Confirmar pagamento agora
                               </button>
@@ -997,7 +993,7 @@ export default function UserProfileMenu({
                             <button
                               type="button"
                               onClick={() => window.print()}
-                              className="inline-flex h-9 items-center rounded-xl border border-line bg-card px-3.5 text-xs font-semibold text-ink hover:bg-paper"
+                              className="inline-flex h-8 items-center rounded-[3px] border border-line bg-card px-3 text-[12px] font-semibold text-ink hover:bg-paper"
                             >
                               Imprimir / Salvar PDF
                             </button>
@@ -1007,22 +1003,22 @@ export default function UserProfileMenu({
                     ) : null}
 
                     {/* Tabela/Lista de Faturas */}
-                    <div className="overflow-hidden rounded-2xl border border-line bg-card">
-                      <ul className="divide-y divide-line">
+                    <div>
+                      <ul className="divide-y divide-line/80">
                         {invoicesState.map((invoice) => {
                           const isPaid = invoice.status === "paid";
                           return (
                             <li
                               key={invoice.id}
-                              className="flex flex-wrap items-center justify-between gap-4 p-4 hover:bg-paper/50"
+                              className="flex flex-wrap items-center justify-between gap-4 py-3.5 transition-colors hover:bg-card/40"
                             >
                               <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <span className="font-mono text-xs font-bold text-ink">
+                                  <span className="font-mono text-[12px] font-bold text-ink">
                                     {invoice.id}
                                   </span>
                                   <span
-                                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                                    className={`rounded-[2px] px-2 py-0.5 text-[10px] font-semibold ${
                                       isPaid
                                         ? "bg-pine/10 text-pine"
                                         : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
@@ -1030,25 +1026,25 @@ export default function UserProfileMenu({
                                   >
                                     {isPaid ? "Paga" : "Em aberto"}
                                   </span>
-                                  <span className="text-xs font-semibold text-ink">
+                                  <span className="text-[12px] font-semibold text-ink">
                                     {invoice.competence}
                                   </span>
                                 </div>
-                                <p className="mt-1 text-xs text-ink-soft">
+                                <p className="mt-1 text-[12px] text-ink-soft">
                                   {invoice.planName} · Vencimento: {invoice.dueDate} ·{" "}
                                   {invoice.method}
                                 </p>
                               </div>
 
-                              <div className="flex items-center gap-3">
-                                <span className="text-sm font-bold text-ink">
+                              <div className="flex items-center gap-2.5">
+                                <span className="text-[13px] font-bold text-ink">
                                   R$ {Number(invoice.amount).toFixed(2).replace(".", ",")}
                                 </span>
                                 {!isPaid ? (
                                   <button
                                     type="button"
                                     onClick={() => handlePayPendingInvoice(invoice.id)}
-                                    className="h-8 rounded-lg bg-pine px-3 text-xs font-semibold text-white hover:bg-pine-dark"
+                                    className="h-8 rounded-[3px] bg-pine px-3 text-[12px] font-semibold text-white hover:bg-pine-dark"
                                   >
                                     Pagar
                                   </button>
@@ -1056,7 +1052,7 @@ export default function UserProfileMenu({
                                 <button
                                   type="button"
                                   onClick={() => setSelectedInvoice(invoice)}
-                                  className="h-8 rounded-lg border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper"
+                                  className="h-8 rounded-[3px] border border-line bg-card px-3 text-[12px] font-medium text-ink hover:bg-paper"
                                 >
                                   Ver fatura
                                 </button>
@@ -1071,111 +1067,113 @@ export default function UserProfileMenu({
 
                 {/* 4. ABA CADASTRO DE DADOS DE PAGAMENTO (FATURAMENTO) */}
                 {currentTab === "dados-pagamento" ? (
-                  <form onSubmit={handleSaveBillingDetails} className="space-y-6">
-                    <div>
-                      <h3 className="text-base font-semibold text-ink">
+                  <form onSubmit={handleSaveBillingDetails} className="divide-y divide-line/80">
+                    <div className="pb-5">
+                      <h3 className="text-[15px] font-semibold text-ink">
                         Cadastro de Dados de Pagamento e Faturamento
                       </h3>
-                      <p className="mt-1 text-xs text-ink-soft">
+                      <p className="mt-1 text-[12px] text-ink-soft">
                         Estes dados constarão nas suas faturas, recibos e notas de assinatura.
                       </p>
                     </div>
 
-                    <div className="grid gap-4 sm:grid-cols-3">
-                      <label className="block space-y-1.5">
-                        <span className="text-xs font-semibold text-ink">Tipo de Documento</span>
-                        <select
-                          value={billingForm.documentType}
-                          onChange={(e) =>
-                            setBillingForm((curr) => ({ ...curr, documentType: e.target.value }))
-                          }
-                          className="h-11 w-full rounded-xl border border-line bg-card px-3 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
-                        >
-                          <option value="CPF">Pessoa Física (CPF)</option>
-                          <option value="CNPJ">Igreja / PJ (CNPJ)</option>
-                        </select>
-                      </label>
+                    <div className="space-y-4 py-6">
+                      <div className="grid gap-x-5 gap-y-4 sm:grid-cols-3">
+                        <label className="block space-y-1.5">
+                          <span className="text-[12px] font-semibold text-ink">Tipo de Documento</span>
+                          <select
+                            value={billingForm.documentType}
+                            onChange={(e) =>
+                              setBillingForm((curr) => ({ ...curr, documentType: e.target.value }))
+                            }
+                            className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
+                          >
+                            <option value="CPF">Pessoa Física (CPF)</option>
+                            <option value="CNPJ">Empresa / Banda / PJ (CNPJ)</option>
+                          </select>
+                        </label>
 
-                      <label className="block space-y-1.5 sm:col-span-2">
-                        <span className="text-xs font-semibold text-ink">
-                          Número do {billingForm.documentType} *
-                        </span>
-                        <input
-                          type="text"
-                          required
-                          value={billingForm.documentNumber}
-                          onChange={(e) =>
-                            setBillingForm((curr) => ({
-                              ...curr,
-                              documentNumber: e.target.value,
-                            }))
-                          }
-                          placeholder={
-                            billingForm.documentType === "CNPJ"
-                              ? "00.000.000/0001-00"
-                              : "000.000.000-00"
-                          }
-                          className="h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
-                        />
-                      </label>
+                        <label className="block space-y-1.5 sm:col-span-2">
+                          <span className="text-[12px] font-semibold text-ink">
+                            Número do {billingForm.documentType} *
+                          </span>
+                          <input
+                            type="text"
+                            required
+                            value={billingForm.documentNumber}
+                            onChange={(e) =>
+                              setBillingForm((curr) => ({
+                                ...curr,
+                                documentNumber: e.target.value,
+                              }))
+                            }
+                            placeholder={
+                              billingForm.documentType === "CNPJ"
+                                ? "00.000.000/0001-00"
+                                : "000.000.000-00"
+                            }
+                            className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
+                        <label className="block space-y-1.5 sm:col-span-2">
+                          <span className="text-[12px] font-semibold text-ink">
+                            Nome Completo do Titular ou Razão Social *
+                          </span>
+                          <input
+                            type="text"
+                            required
+                            value={billingForm.holderName}
+                            onChange={(e) =>
+                              setBillingForm((curr) => ({ ...curr, holderName: e.target.value }))
+                            }
+                            placeholder="Nome do responsável ou razão social da instituição"
+                            className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
+                          />
+                        </label>
+
+                        <label className="block space-y-1.5">
+                          <span className="text-[12px] font-semibold text-ink">
+                            E-mail para Faturas *
+                          </span>
+                          <input
+                            type="email"
+                            required
+                            value={billingForm.billingEmail}
+                            onChange={(e) =>
+                              setBillingForm((curr) => ({ ...curr, billingEmail: e.target.value }))
+                            }
+                            placeholder="financeiro@empresa.com.br"
+                            className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
+                          />
+                        </label>
+
+                        <label className="block space-y-1.5">
+                          <span className="text-[12px] font-semibold text-ink">
+                            Telefone Financeiro
+                          </span>
+                          <input
+                            type="tel"
+                            value={billingForm.billingPhone}
+                            onChange={(e) =>
+                              setBillingForm((curr) => ({ ...curr, billingPhone: e.target.value }))
+                            }
+                            placeholder="(11) 99999-9999"
+                            className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
+                          />
+                        </label>
+                      </div>
                     </div>
 
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <label className="block space-y-1.5 sm:col-span-2">
-                        <span className="text-xs font-semibold text-ink">
-                          Nome Completo do Titular ou Razão Social *
-                        </span>
-                        <input
-                          type="text"
-                          required
-                          value={billingForm.holderName}
-                          onChange={(e) =>
-                            setBillingForm((curr) => ({ ...curr, holderName: e.target.value }))
-                          }
-                          placeholder="Nome do responsável ou razão social da instituição"
-                          className="h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
-                        />
-                      </label>
-
-                      <label className="block space-y-1.5">
-                        <span className="text-xs font-semibold text-ink">
-                          E-mail para Faturas *
-                        </span>
-                        <input
-                          type="email"
-                          required
-                          value={billingForm.billingEmail}
-                          onChange={(e) =>
-                            setBillingForm((curr) => ({ ...curr, billingEmail: e.target.value }))
-                          }
-                          placeholder="financeiro@igreja.org.br"
-                          className="h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
-                        />
-                      </label>
-
-                      <label className="block space-y-1.5">
-                        <span className="text-xs font-semibold text-ink">
-                          Telefone Financeiro
-                        </span>
-                        <input
-                          type="tel"
-                          value={billingForm.billingPhone}
-                          onChange={(e) =>
-                            setBillingForm((curr) => ({ ...curr, billingPhone: e.target.value }))
-                          }
-                          placeholder="(11) 99999-9999"
-                          className="h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
-                        />
-                      </label>
-                    </div>
-
-                    <div className="border-t border-line pt-4">
-                      <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-soft">
+                    <div className="py-6">
+                      <h4 className="mb-3 text-[12px] font-semibold text-ink">
                         Endereço de Cobrança
                       </h4>
-                      <div className="grid gap-4 sm:grid-cols-6">
+                      <div className="grid gap-x-5 gap-y-4 sm:grid-cols-6">
                         <label className="block space-y-1.5 sm:col-span-2">
-                          <span className="text-xs font-semibold text-ink">CEP</span>
+                          <span className="text-[12px] font-semibold text-ink">CEP</span>
                           <input
                             type="text"
                             value={billingForm.zipCode}
@@ -1183,12 +1181,12 @@ export default function UserProfileMenu({
                               setBillingForm((curr) => ({ ...curr, zipCode: e.target.value }))
                             }
                             placeholder="00000-000"
-                            className="h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
+                            className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                           />
                         </label>
 
                         <label className="block space-y-1.5 sm:col-span-4">
-                          <span className="text-xs font-semibold text-ink">Logradouro / Rua</span>
+                          <span className="text-[12px] font-semibold text-ink">Logradouro / Rua</span>
                           <input
                             type="text"
                             value={billingForm.street}
@@ -1196,12 +1194,12 @@ export default function UserProfileMenu({
                               setBillingForm((curr) => ({ ...curr, street: e.target.value }))
                             }
                             placeholder="Rua, Avenida, Alameda..."
-                            className="h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
+                            className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                           />
                         </label>
 
                         <label className="block space-y-1.5 sm:col-span-2">
-                          <span className="text-xs font-semibold text-ink">Número</span>
+                          <span className="text-[12px] font-semibold text-ink">Número</span>
                           <input
                             type="text"
                             value={billingForm.number}
@@ -1209,12 +1207,12 @@ export default function UserProfileMenu({
                               setBillingForm((curr) => ({ ...curr, number: e.target.value }))
                             }
                             placeholder="123"
-                            className="h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
+                            className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                           />
                         </label>
 
                         <label className="block space-y-1.5 sm:col-span-2">
-                          <span className="text-xs font-semibold text-ink">Complemento</span>
+                          <span className="text-[12px] font-semibold text-ink">Complemento</span>
                           <input
                             type="text"
                             value={billingForm.complement}
@@ -1222,12 +1220,12 @@ export default function UserProfileMenu({
                               setBillingForm((curr) => ({ ...curr, complement: e.target.value }))
                             }
                             placeholder="Bloco, Sala..."
-                            className="h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
+                            className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                           />
                         </label>
 
                         <label className="block space-y-1.5 sm:col-span-2">
-                          <span className="text-xs font-semibold text-ink">Bairro</span>
+                          <span className="text-[12px] font-semibold text-ink">Bairro</span>
                           <input
                             type="text"
                             value={billingForm.neighborhood}
@@ -1238,12 +1236,12 @@ export default function UserProfileMenu({
                               }))
                             }
                             placeholder="Centro"
-                            className="h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
+                            className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                           />
                         </label>
 
                         <label className="block space-y-1.5 sm:col-span-4">
-                          <span className="text-xs font-semibold text-ink">Cidade</span>
+                          <span className="text-[12px] font-semibold text-ink">Cidade</span>
                           <input
                             type="text"
                             value={billingForm.city}
@@ -1251,12 +1249,12 @@ export default function UserProfileMenu({
                               setBillingForm((curr) => ({ ...curr, city: e.target.value }))
                             }
                             placeholder="São Paulo"
-                            className="h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
+                            className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                           />
                         </label>
 
                         <label className="block space-y-1.5 sm:col-span-2">
-                          <span className="text-xs font-semibold text-ink">Estado (UF)</span>
+                          <span className="text-[12px] font-semibold text-ink">Estado (UF)</span>
                           <input
                             type="text"
                             maxLength={2}
@@ -1268,17 +1266,17 @@ export default function UserProfileMenu({
                               }))
                             }
                             placeholder="SP"
-                            className="h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
+                            className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                           />
                         </label>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-3 border-t border-line pt-4">
+                    <div className="flex items-center justify-end gap-3 pt-5">
                       <button
                         type="submit"
                         disabled={saving}
-                        className="inline-flex h-11 items-center rounded-xl bg-pine px-6 text-sm font-semibold text-white hover:bg-pine-dark disabled:opacity-60"
+                        className="inline-flex h-9 items-center rounded-[3px] bg-pine px-5 text-[12px] font-semibold text-white hover:bg-pine-dark disabled:opacity-60"
                       >
                         {saving ? "Salvando…" : "Salvar dados de pagamento"}
                       </button>
@@ -1288,10 +1286,10 @@ export default function UserProfileMenu({
 
                 {/* 5. ABA FORMA DE PAGAMENTO */}
                 {currentTab === "forma-pagamento" ? (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-base font-semibold text-ink">Forma de Pagamento</h3>
-                      <p className="mt-1 text-xs text-ink-soft">
+                  <div className="divide-y divide-line/80">
+                    <div className="pb-5">
+                      <h3 className="text-[15px] font-semibold text-ink">Forma de Pagamento</h3>
+                      <p className="mt-1 text-[12px] text-ink-soft">
                         Escolha como prefere pagar sua assinatura e gerencie seus cartões de crédito salvos.
                       </p>
                     </div>
@@ -1300,7 +1298,7 @@ export default function UserProfileMenu({
                     <div
                       role="radiogroup"
                       aria-label="Modalidade de pagamento"
-                      className="grid gap-3 sm:grid-cols-3"
+                      className="grid gap-3 py-6 sm:grid-cols-3"
                     >
                       {[
                         {
@@ -1332,39 +1330,39 @@ export default function UserProfileMenu({
                                 `Forma de pagamento alterada para ${method.title}!`,
                               )
                             }
-                            className={`flex flex-col items-start rounded-2xl border p-4 text-left transition-all ${
+                            className={`flex flex-col items-start rounded-[3px] border px-3.5 py-3 text-left transition-colors ${
                               selected
-                                ? "border-pine bg-pine/5 ring-2 ring-pine/25"
-                                : "border-line bg-paper/40 hover:bg-paper"
+                                ? "border-pine bg-pine/5"
+                                : "border-line bg-card hover:bg-paper"
                             }`}
                           >
                             <div className="flex w-full items-center justify-between">
-                              <span className="text-sm font-bold text-ink">{method.title}</span>
+                              <span className="text-[13px] font-bold text-ink">{method.title}</span>
                               {selected ? (
-                                <span className="h-2.5 w-2.5 rounded-full bg-pine" />
+                                <span className="h-2 w-2 rounded-full bg-pine" />
                               ) : null}
                             </div>
-                            <p className="mt-1 text-xs text-ink-soft">{method.subtitle}</p>
+                            <p className="mt-1 text-[11px] text-ink-soft">{method.subtitle}</p>
                           </button>
                         );
                       })}
                     </div>
 
                     {/* Seção de Cartões de Crédito */}
-                    <div className="rounded-2xl border border-line bg-paper/40 p-5 space-y-4">
+                    <div className="space-y-4 py-6">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
-                          <h4 className="text-sm font-semibold text-ink">
+                          <h4 className="text-[13px] font-semibold text-ink">
                             Cartões de Crédito Cadastrados
                           </h4>
-                          <p className="text-xs text-ink-soft">
+                          <p className="text-[12px] text-ink-soft">
                             Gerencie os cartões vinculados para cobrança recorrente.
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => setShowAddCard((prev) => !prev)}
-                          className="inline-flex h-9 items-center rounded-xl bg-pine px-3.5 text-xs font-semibold text-white hover:bg-pine-dark"
+                          className="inline-flex h-8 items-center rounded-[3px] bg-pine px-3 text-[12px] font-semibold text-white hover:bg-pine-dark"
                         >
                           {showAddCard ? "Cancelar novo cartão" : "+ Adicionar cartão"}
                         </button>
@@ -1373,14 +1371,14 @@ export default function UserProfileMenu({
                       {showAddCard ? (
                         <form
                           onSubmit={handleAddCard}
-                          className="space-y-4 rounded-2xl border border-line bg-card p-4"
+                          className="space-y-4 border-t border-line/80 pt-4"
                         >
-                          <p className="text-xs font-semibold uppercase tracking-wider text-pine">
+                          <p className="text-[12px] font-semibold text-pine">
                             Novo Cartão de Crédito
                           </p>
                           <div className="grid gap-3 sm:grid-cols-2">
                             <label className="block space-y-1 sm:col-span-2">
-                              <span className="text-xs font-medium text-ink">
+                              <span className="text-[12px] font-medium text-ink">
                                 Número do Cartão *
                               </span>
                               <input
@@ -1392,12 +1390,12 @@ export default function UserProfileMenu({
                                   setNewCardForm((curr) => ({ ...curr, number: e.target.value }))
                                 }
                                 placeholder="0000 0000 0000 0000"
-                                className="h-10 w-full rounded-xl border border-line bg-paper/50 px-3 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
+                                className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                               />
                             </label>
 
                             <label className="block space-y-1 sm:col-span-2">
-                              <span className="text-xs font-medium text-ink">
+                              <span className="text-[12px] font-medium text-ink">
                                 Nome Impresso no Cartão *
                               </span>
                               <input
@@ -1411,12 +1409,12 @@ export default function UserProfileMenu({
                                   }))
                                 }
                                 placeholder="NOME COMO ESTÁ NO CARTÃO"
-                                className="h-10 w-full rounded-xl border border-line bg-paper/50 px-3 text-sm uppercase text-ink outline-none focus:ring-2 focus:ring-pine"
+                                className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] uppercase text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                               />
                             </label>
 
                             <label className="block space-y-1">
-                              <span className="text-xs font-medium text-ink">Validade (MM/AA) *</span>
+                              <span className="text-[12px] font-medium text-ink">Validade (MM/AA) *</span>
                               <input
                                 type="text"
                                 required
@@ -1426,12 +1424,12 @@ export default function UserProfileMenu({
                                   setNewCardForm((curr) => ({ ...curr, expiry: e.target.value }))
                                 }
                                 placeholder="08/29"
-                                className="h-10 w-full rounded-xl border border-line bg-paper/50 px-3 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
+                                className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                               />
                             </label>
 
                             <label className="block space-y-1">
-                              <span className="text-xs font-medium text-ink">CVV *</span>
+                              <span className="text-[12px] font-medium text-ink">CVV *</span>
                               <input
                                 type="password"
                                 required
@@ -1441,7 +1439,7 @@ export default function UserProfileMenu({
                                   setNewCardForm((curr) => ({ ...curr, cvv: e.target.value }))
                                 }
                                 placeholder="123"
-                                className="h-10 w-full rounded-xl border border-line bg-paper/50 px-3 text-sm text-ink outline-none focus:ring-2 focus:ring-pine"
+                                className="h-9 w-full rounded-[3px] border border-line bg-card px-3 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
                               />
                             </label>
                           </div>
@@ -1449,7 +1447,7 @@ export default function UserProfileMenu({
                           <div className="flex justify-end gap-2 pt-2">
                             <button
                               type="submit"
-                              className="inline-flex h-10 items-center rounded-xl bg-pine px-5 text-xs font-semibold text-white hover:bg-pine-dark"
+                              className="inline-flex h-9 items-center rounded-[3px] bg-pine px-4 text-[12px] font-semibold text-white hover:bg-pine-dark"
                             >
                               Salvar cartão
                             </button>
@@ -1458,28 +1456,28 @@ export default function UserProfileMenu({
                       ) : null}
 
                       {(paymentState.cards || []).length > 0 ? (
-                        <ul className="space-y-2.5">
+                        <ul className="divide-y divide-line/80 border-t border-line/80">
                           {paymentState.cards.map((card) => (
                             <li
                               key={card.id}
-                              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-card p-3.5"
+                              className="flex flex-wrap items-center justify-between gap-3 py-3"
                             >
                               <div className="flex items-center gap-3">
-                                <span className="flex h-10 w-12 items-center justify-center rounded-lg border border-line bg-paper text-xs font-bold text-pine">
+                                <span className="flex h-8 w-11 items-center justify-center rounded-[3px] border border-line bg-card text-[11px] font-bold text-pine">
                                   {card.brand}
                                 </span>
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <p className="text-sm font-semibold text-ink">
+                                    <p className="text-[13px] font-semibold text-ink">
                                       {card.brand} •••• {card.last4}
                                     </p>
                                     {card.isDefault ? (
-                                      <span className="rounded-full bg-pine/10 px-2 py-0.5 text-[10px] font-semibold text-pine">
+                                      <span className="rounded-[2px] bg-pine/10 px-2 py-0.5 text-[10px] font-semibold text-pine">
                                         Principal
                                       </span>
                                     ) : null}
                                   </div>
-                                  <p className="text-xs text-ink-soft">
+                                  <p className="text-[11px] text-ink-soft">
                                     {card.holderName} · Validade {card.expiry}
                                   </p>
                                 </div>
@@ -1490,7 +1488,7 @@ export default function UserProfileMenu({
                                   <button
                                     type="button"
                                     onClick={() => handleSetDefaultCard(card.id)}
-                                    className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-paper"
+                                    className="h-8 rounded-[3px] border border-line px-2.5 text-[12px] font-medium text-ink hover:bg-paper"
                                   >
                                     Tornar principal
                                   </button>
@@ -1498,7 +1496,7 @@ export default function UserProfileMenu({
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveCard(card.id)}
-                                  className="rounded-lg border border-danger/30 px-2.5 py-1.5 text-xs font-medium text-danger hover:bg-danger-soft"
+                                  className="h-8 rounded-[3px] border border-danger/30 px-2.5 text-[12px] font-medium text-danger hover:bg-danger-soft"
                                 >
                                   Remover
                                 </button>
@@ -1507,7 +1505,7 @@ export default function UserProfileMenu({
                           ))}
                         </ul>
                       ) : (
-                        <p className="text-xs text-ink-soft">
+                        <p className="text-[12px] text-ink-soft">
                           Nenhum cartão cadastrado no momento.
                         </p>
                       )}
@@ -1515,7 +1513,7 @@ export default function UserProfileMenu({
 
                     {/* Informações de PIX ou Boleto */}
                     {paymentState.preferredType === "pix" ? (
-                      <div className="rounded-2xl border border-pine/30 bg-pine/5 p-4 text-xs space-y-2">
+                      <div className="space-y-1.5 pt-5 text-[12px]">
                         <p className="font-semibold text-pine">
                           Pagamento via PIX habilitado como preferencial
                         </p>
@@ -1527,7 +1525,7 @@ export default function UserProfileMenu({
                     ) : null}
 
                     {paymentState.preferredType === "boleto" ? (
-                      <div className="rounded-2xl border border-pine/30 bg-pine/5 p-4 text-xs space-y-2">
+                      <div className="space-y-1.5 pt-5 text-[12px]">
                         <p className="font-semibold text-pine">
                           Pagamento via Boleto Bancário habilitado
                         </p>
@@ -1545,31 +1543,31 @@ export default function UserProfileMenu({
 
   if (inline) {
     return (
-      <div className="mx-auto w-full max-w-5xl space-y-5">
-        <section className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-card p-5 sm:p-6">
+      <div className="mx-auto w-full max-w-5xl divide-y divide-line/80">
+        <section className="flex flex-wrap items-center justify-between gap-4 pb-6">
           <div className="flex min-w-0 items-center gap-3.5">
             {profileForm.avatarUrl ? (
               <img
                 src={profileForm.avatarUrl}
                 alt={fullName}
-                className="h-12 w-12 shrink-0 rounded-full border border-line object-cover"
+                className="h-11 w-11 shrink-0 rounded-full border border-line object-cover"
               />
             ) : (
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-pine text-base font-bold text-white">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-pine text-sm font-bold text-white">
                 {initials}
               </span>
             )}
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="truncate text-base font-semibold text-ink">
+                <h3 className="truncate text-[15px] font-semibold text-ink">
                   {fullName || "Minha Conta"}
                 </h3>
-                <span className="inline-flex items-center gap-1 rounded-full bg-pine/10 px-2.5 py-0.5 text-[11px] font-semibold text-pine">
+                <span className="inline-flex items-center gap-1 rounded-[2px] bg-pine/10 px-2 py-0.5 text-[11px] font-semibold text-pine">
                   <span className="h-1.5 w-1.5 rounded-full bg-pine" />
                   {subscriptionState.planName}
                 </span>
               </div>
-              <p className="mt-0.5 truncate text-xs text-ink-soft">
+              <p className="mt-0.5 truncate text-[12px] text-ink-soft">
                 {profileForm.email}
                 {profileForm.phone ? ` · ${profileForm.phone}` : ""}
               </p>
@@ -1580,14 +1578,14 @@ export default function UserProfileMenu({
             <button
               type="button"
               onClick={onLogout}
-              className="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-danger/30 bg-card px-3.5 text-xs font-medium text-danger transition-colors hover:bg-danger-soft sm:text-sm"
+              className="inline-flex h-8 shrink-0 items-center gap-2 rounded-[3px] border border-danger/30 bg-card px-3 text-[12px] font-medium text-danger transition-colors hover:bg-danger-soft"
             >
               <span>Encerrar sessão</span>
             </button>
           ) : null}
         </section>
 
-        <section className="rounded-lg border border-line bg-card p-5 sm:p-6">
+        <section className="pt-6">
           {tabContent}
         </section>
       </div>

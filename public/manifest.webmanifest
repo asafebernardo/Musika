@@ -1,7 +1,7 @@
 {
   "name": "Musika",
   "short_name": "Musika",
-  "description": "Músicas cristãs, letras e cifras em um só aplicativo.",
+  "description": "Repertório musical, letras, vozes e cifras em um só aplicativo.",
   "lang": "pt-BR",
   "start_url": "./?pwa=1",
   "scope": "./",

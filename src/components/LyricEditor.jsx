@@ -109,6 +109,7 @@ export default function LyricEditor({
   onChange,
   showVoiceTools = true,
   minClass = "min-h-32",
+  editorClassName = "",
 }) {
   const editorRef = useRef(null);
   const lastRangeRef = useRef(null);
@@ -225,9 +226,10 @@ export default function LyricEditor({
       ) : null}
       <div
         ref={editorRef}
-        className={`lyric-editor ${minClass} w-full whitespace-pre-wrap rounded-xl border border-line bg-paper px-3 py-3 text-center font-lyric leading-relaxed outline-none focus:ring-2 focus:ring-pine ${
-          italic ? "italic" : ""
-        }`}
+        className={`lyric-editor ${minClass} w-full whitespace-pre-wrap border border-line leading-relaxed outline-none ${
+          editorClassName ||
+          "rounded-xl bg-paper px-3 py-3 text-center font-lyric focus:ring-2 focus:ring-pine"
+        } ${italic ? "italic" : ""}`}
         contentEditable
         role="textbox"
         aria-multiline="true"

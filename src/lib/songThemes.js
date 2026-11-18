@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { DEFAULT_THEMES } from "@/data/themes.js";
 
 const SONG_THEMES_KEY = "coletanea-song-themes";
 const SONG_THEMES_EVENT = "coletanea-song-themes-changed";
@@ -13,10 +14,27 @@ function createThemeId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+function buildDefaultSongThemes() {
+  return DEFAULT_THEMES.map((item, index) => ({
+    id: `default-theme-${index + 1}`,
+    name: item.label,
+    description: item.description || "",
+    songIds: [],
+  }));
+}
+
 export function readSongThemes() {
   try {
     const stored = localStorage.getItem(SONG_THEMES_KEY);
-    if (stored == null) return [];
+    if (stored == null) {
+      const defaults = buildDefaultSongThemes();
+      try {
+        localStorage.setItem(SONG_THEMES_KEY, JSON.stringify(defaults));
+      } catch {
+        /* ignore storage write error on seed */
+      }
+      return defaults;
+    }
     const parsed = JSON.parse(stored);
     if (!Array.isArray(parsed)) throw new Error("theme_storage_invalid");
 
@@ -160,6 +178,34 @@ export function removeSongFromTheme(themeId, songId) {
         : item,
     );
   });
+}
+
+export function syncSongSingleTheme(songId, themeName) {
+  const numericSongId = Number(songId);
+  if (!isValidSongId(numericSongId)) return;
+  const cleanThemeName = String(themeName ?? "").trim().toLocaleLowerCase("pt-BR");
+
+  try {
+    updateSongThemes((themes) =>
+      themes.map((theme) => {
+        const matches =
+          cleanThemeName && theme.name.toLocaleLowerCase("pt-BR") === cleanThemeName;
+        const hasSong = theme.songIds.includes(numericSongId);
+        if (matches && !hasSong) {
+          return { ...theme, songIds: [...theme.songIds, numericSongId] };
+        }
+        if (!matches && hasSong) {
+          return {
+            ...theme,
+            songIds: theme.songIds.filter((id) => id !== numericSongId),
+          };
+        }
+        return theme;
+      }),
+    );
+  } catch {
+    /* ignore storage error when syncing */
+  }
 }
 
 export function songThemeErrorMessage(error) {

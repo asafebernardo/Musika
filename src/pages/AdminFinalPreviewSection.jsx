@@ -15,7 +15,7 @@ const VIEWPORT_MODES = [
 
 const JOURNEY_STEPS = [
   { id: "inicio", label: "1. Início" },
-  { id: "catalogo", label: "2. Louvor (Catálogo)" },
+  { id: "catalogo", label: "2. Músicas (Catálogo)" },
   { id: "musica", label: "3. Música" },
   { id: "info", label: "4. Ficha técnica" },
   { id: "mais", label: "5. Menu Mais+" },
@@ -25,16 +25,16 @@ const FALLBACK_SONGS = [
   {
     id: 1,
     numero: 1,
-    titulo: "Cantai ao Senhor",
-    banda: "Ministério de Louvor",
-    compositor: "Domínio Público",
-    album: "Coletânea Cristã",
-    anoLancamento: "2020",
-    tema: "Louvor",
-    adicionais: "Canção de abertura e celebração.",
+    titulo: "Horizonte de Luz",
+    banda: "Banda Horizonte",
+    compositor: "Lucas Andrade",
+    album: "Sessão Acústica",
+    anoLancamento: "2024",
+    tema: "Abertura / Início",
+    adicionais: "Canção de abertura do repertório.",
     letra:
-      "Cantai ao Senhor um cântico novo\nCantai ao Senhor, cantai ao Senhor.\n\nPorque Ele fez, Ele faz maravilhas\nCantai ao Senhor, cantai ao Senhor.",
-    refrao: "Jesus é o Senhor, amém, aleluia!",
+      "Quando o som começa a ecoar\nCada acorde encontra o seu lugar.\n\nNossa voz se espalha pelo ar\nNa melodia que nos faz cantar.",
+    refrao: "A música nos move, do início ao fim!",
     cronologica: true,
     refraoPrimeiro: false,
     vozesLetra: [],
@@ -118,18 +118,18 @@ export default function AdminFinalPreviewSection({ songs = [] }) {
   const isCompactBar = viewport === "landscape";
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-5">
-      <section className="rounded-2xl border border-line bg-card p-5 shadow-sm sm:p-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6">
+      <section className="border-b border-line/80 pb-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-semibold">Prévia final interativa</h3>
-              <span className="rounded-full bg-pine/10 px-2.5 py-0.5 text-xs font-semibold text-pine">
-                Modo demonstração limitado
+              <h3 className="text-sm font-semibold text-ink">Simulador interativo do aplicativo</h3>
+              <span className="rounded-[2px] border border-line bg-card px-2 py-0.5 text-[11px] font-medium text-ink-soft">
+                Demonstração
               </span>
             </div>
-            <p className="mt-1 text-sm text-ink-soft">
-              Navegue pelo aplicativo do início ao fim mexendo nos menus em modo Retrato, Paisagem ou Web.
+            <p className="mt-0.5 text-xs text-ink-soft">
+              Navegue pelo aplicativo do início ao fim testando os menus nos formatos Retrato, Paisagem ou Web.
             </p>
           </div>
 
@@ -137,7 +137,7 @@ export default function AdminFinalPreviewSection({ songs = [] }) {
             <div
               role="group"
               aria-label="Modo de visualização da prévia final"
-              className="inline-flex rounded-xl border border-line bg-paper p-1"
+              className="inline-flex rounded-[3px] border border-line bg-card p-0.5"
             >
               {VIEWPORT_MODES.map((mode) => (
                 <button
@@ -145,9 +145,9 @@ export default function AdminFinalPreviewSection({ songs = [] }) {
                   type="button"
                   aria-pressed={viewport === mode.id}
                   onClick={() => setViewport(mode.id)}
-                  className={`h-8 rounded-lg px-3 text-xs font-semibold transition-colors ${
+                  className={`h-7.5 rounded-[2px] px-3 text-xs font-medium transition-colors ${
                     viewport === mode.id
-                      ? "bg-pine text-white shadow-sm"
+                      ? "bg-pine text-white"
                       : "text-ink-soft hover:text-ink"
                   }`}
                 >
@@ -158,15 +158,15 @@ export default function AdminFinalPreviewSection({ songs = [] }) {
             <button
               type="button"
               onClick={resetJourney}
-              className="h-10 rounded-xl border border-line px-3.5 text-xs font-medium hover:bg-paper"
+              className="h-8.5 rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper"
             >
-              Reiniciar do início
+              Reiniciar
             </button>
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-1.5 border-t border-line pt-4">
-          <span className="mr-1 text-xs font-medium text-ink-soft">Etapas rápidas:</span>
+        <div className="mt-4 flex flex-wrap items-center gap-1.5 pt-1">
+          <span className="mr-1 text-xs font-medium text-ink-soft">Etapas:</span>
           {JOURNEY_STEPS.map((step) => {
             const active = screen === step.id;
             return (
@@ -177,10 +177,10 @@ export default function AdminFinalPreviewSection({ songs = [] }) {
                   setMoreSubScreen(null);
                   setScreen(step.id);
                 }}
-                className={`h-8 rounded-full px-3 text-xs font-medium transition-colors ${
+                className={`h-7.5 rounded-[3px] border px-2.5 text-xs font-medium transition-colors ${
                   active
-                    ? "bg-pine/15 font-semibold text-pine"
-                    : "bg-paper text-ink-soft hover:text-ink"
+                    ? "border-pine bg-pine/10 font-semibold text-pine"
+                    : "border-line bg-card text-ink-soft hover:text-ink"
                 }`}
               >
                 {step.label}
@@ -681,7 +681,7 @@ export default function AdminFinalPreviewSection({ songs = [] }) {
                       }`}
                     >
                       <span>♪</span>
-                      <span>Louvor</span>
+                      <span>Músicas</span>
                     </button>
                     <button
                       type="button"

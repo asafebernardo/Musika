@@ -8,14 +8,15 @@ const PROJECT_MODES = [
     badge: "Nuvem gerenciada",
     subtitle: "Ambiente completo publicado e mantido automaticamente (App + Web).",
     summary:
-      "Ideal para igrejas, ministérios e grupos que desejam utilizar o aplicativo e o painel web imediatamente, sem precisar configurar servidores, domínio ou infraestrutura própria.",
+      "Ideal para bandas, cantores, grupos musicais, produtoras e empresas que desejam utilizar o aplicativo e o painel web imediatamente, sem precisar configurar servidores, domínio ou infraestrutura própria.",
     features: [
       "Publicação imediata do Aplicativo Mobile (PWA instalável) e da Versão Web em endereço dedicado.",
       "Sincronização em tempo real: qualquer música, cifra, arranjo de vozes ou áudio salvo no painel fica disponível na hora para todos os dispositivos.",
       "Armazenamento em nuvem incluso para o catálogo de letras, demonstrações de áudio e ícones personalizados.",
       "Backups automáticos, certificado de segurança (HTTPS/SSL) e atualizações contínuas do sistema.",
     ],
-    deliverables: "Link web oficial + Aplicativo instalável (Android, iOS e Desktop) + Painel administrativo online.",
+    deliverables:
+      "Link web oficial + Aplicativo instalável (Android, iOS e Desktop) + Painel administrativo online.",
   },
   {
     id: "arquivo-bruto",
@@ -30,7 +31,8 @@ const PROJECT_MODES = [
       "Pronto para execução em servidor próprio, VPS, rede local ou containers sem dependência externa.",
       "Controle total sobre os arquivos brutos do projeto para arquivamento ou implantação manual.",
     ],
-    deliverables: "Pacote compilado (.zip) com App + Web + Banco de músicas e áudios + Instruções de execução.",
+    deliverables:
+      "Pacote compilado (.zip) com App + Web + Banco de músicas e áudios + Instruções de execução.",
   },
 ];
 
@@ -40,30 +42,28 @@ export default function AdminProjectExportSection({ totalSongs = 0 }) {
   const currentMode = PROJECT_MODES.find((mode) => mode.id === selectedMode) ?? PROJECT_MODES[0];
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6">
-      <section className="rounded-2xl border border-line bg-card p-5 shadow-sm sm:p-6">
+    <div className="mx-auto w-full max-w-5xl divide-y divide-line/80">
+      <section className="pb-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-pine">
-              Entrega do projeto · App + Web
-            </p>
-            <h3 className="mt-1 text-xl font-semibold">
+            <h3 className="text-base font-semibold tracking-tight text-ink">
               Gerar projeto {appName}
             </h3>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-ink-soft">
-              Escolha como disponibilizar o projeto completo contendo o <strong>Aplicativo Mobile</strong> e a{" "}
-              <strong>Versão Web</strong> com as {totalSongs} músicas e personalizações configuradas no estúdio.
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-ink-soft">
+              Escolha a modalidade de disponibilização do projeto contendo o{" "}
+              <strong className="font-medium text-ink">Aplicativo Mobile</strong> e a{" "}
+              <strong className="font-medium text-ink">Versão Web</strong> com as {totalSongs} músicas configuradas.
             </p>
           </div>
-          <span className="inline-flex items-center rounded-full border border-pine/25 bg-pine/5 px-3 py-1 text-xs font-medium text-pine">
-            Somente descrição informativa
+          <span className="inline-flex items-center rounded-[3px] border border-line bg-card px-2.5 py-1 text-[11px] font-medium text-ink-soft">
+            Entrega · App + Web
           </span>
         </div>
 
         <div
           role="tablist"
           aria-label="Modos de geração do projeto"
-          className="mt-6 grid gap-3 sm:grid-cols-2"
+          className="mt-5 grid gap-3 sm:grid-cols-2"
         >
           {PROJECT_MODES.map((mode) => {
             const active = selectedMode === mode.id;
@@ -74,58 +74,49 @@ export default function AdminProjectExportSection({ totalSongs = 0 }) {
                 role="tab"
                 aria-selected={active}
                 onClick={() => setSelectedMode(mode.id)}
-                className={`flex flex-col items-start rounded-2xl border p-4 text-left transition-all ${
+                className={`flex flex-col items-start rounded-[3px] border p-4 text-left transition-colors ${
                   active
-                    ? "border-pine bg-pine/5 ring-2 ring-pine/25"
-                    : "border-line bg-paper hover:bg-card"
+                    ? "border-pine bg-card"
+                    : "border-line bg-card/50 hover:border-ink-soft/40 hover:bg-card"
                 }`}
               >
                 <div className="flex w-full items-center justify-between gap-2">
-                  <span className="text-base font-semibold text-ink">{mode.title}</span>
+                  <span className="text-sm font-semibold text-ink">{mode.title}</span>
                   <span
-                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                      active ? "bg-pine text-white" : "bg-card text-ink-soft"
+                    className={`rounded-[2px] px-2 py-0.5 text-[11px] font-medium ${
+                      active
+                        ? "bg-pine text-white"
+                        : "border border-line bg-paper text-ink-soft"
                     }`}
                   >
                     {mode.badge}
                   </span>
                 </div>
-                <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{mode.subtitle}</p>
+                <p className="mt-1 text-xs leading-relaxed text-ink-soft">{mode.subtitle}</p>
               </button>
             );
           })}
         </div>
       </section>
 
-      <section className="rounded-2xl border border-line bg-card p-5 shadow-sm sm:p-7">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
+      <section className="space-y-5 pt-7">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-pine">
-              Modo selecionado
-            </span>
-            <h4 className="mt-0.5 text-lg font-semibold text-ink">{currentMode.title}</h4>
+            <h4 className="text-sm font-semibold text-ink">{currentMode.title}</h4>
+            <p className="mt-1 text-xs leading-relaxed text-ink-soft">{currentMode.summary}</p>
           </div>
-          <span className="rounded-full bg-paper px-3 py-1 text-xs font-medium text-ink-soft">
-            {currentMode.badge}
-          </span>
+          <span className="text-xs font-medium text-pine">{currentMode.badge}</span>
         </div>
 
-        <p className="mt-4 text-sm leading-relaxed text-ink">{currentMode.summary}</p>
-
-        <div className="mt-5 space-y-2.5">
-          <h5 className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
-            Como funciona este modo
-          </h5>
-          <ul className="space-y-2.5">
+        <div className="space-y-2">
+          <h5 className="text-xs font-medium text-ink-soft">Especificações da modalidade</h5>
+          <ul className="divide-y divide-line/70 border-y border-line/80">
             {currentMode.features.map((feature) => (
               <li
                 key={feature}
-                className="flex items-start gap-3 rounded-xl border border-line bg-paper px-4 py-3 text-sm text-ink"
+                className="flex items-start gap-2.5 py-2.5 text-[13px] text-ink"
               >
-                <span
-                  aria-hidden
-                  className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-pine/15 text-xs font-bold text-pine"
-                >
+                <span aria-hidden className="mt-0.5 text-xs font-bold text-pine">
                   ✓
                 </span>
                 <span className="leading-relaxed">{feature}</span>
@@ -134,16 +125,12 @@ export default function AdminProjectExportSection({ totalSongs = 0 }) {
           </ul>
         </div>
 
-        <div className="mt-6 rounded-xl border border-line bg-paper p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
-            O que compõe a entrega (App + Web)
+        <div className="border-l-2 border-pine pl-3.5">
+          <p className="text-xs font-medium text-ink-soft">
+            Escopo da entrega (App + Web)
           </p>
-          <p className="mt-1 text-sm font-medium text-ink">{currentMode.deliverables}</p>
+          <p className="mt-0.5 text-[13px] font-medium text-ink">{currentMode.deliverables}</p>
         </div>
-
-        <p className="mt-4 text-xs text-ink-soft">
-          Nota: Esta seção apresenta a descrição das modalidades de disponibilização do projeto ({PROJECT_MODES[0].title} | {PROJECT_MODES[1].title}).
-        </p>
       </section>
     </div>
   );

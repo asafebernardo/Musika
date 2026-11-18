@@ -62,10 +62,10 @@ export default function HomeLayout() {
             end
             className={({ isActive }) => `${barItem} ${isActive ? barOn : barOff}`}
             style={({ isActive }) => (isActive ? { color: activeColor } : undefined)}
-            aria-label="Louvor"
+            aria-label="Músicas"
           >
             <PraiseIcon />
-            Louvor
+            Músicas
           </NavLink>
           <NavLink
             to="/mais"
