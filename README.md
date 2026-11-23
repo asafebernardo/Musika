@@ -37,9 +37,28 @@ administração e gerenciar o catálogo. O cadastro público está disponível e
 pessoa pode excluir a própria conta pelo painel da conta. O catálogo do app fica separado em
 `/app`.
 
-O estúdio administrativo oferece edição web em tela cheia, com seções laterais para Home, Letra,
-Vozes e Cifra. O catálogo pode ser criado, editado e excluído sem abrir a interface mobile; a prévia
-mobile acompanha as alterações antes de salvar.
+O estúdio administrativo oferece seções independentes para Letra & Áudio, Arranjo de Vozes e
+Cifras & Tons, cada uma com acesso ao mesmo catálogo. Ao editar vozes pela primeira vez, a letra e
+o refrão existentes são usados como ponto de partida; arranjos já salvos são preservados. As
+cifras são adicionadas às linhas da letra existente. O catálogo pode ser criado, editado e excluído
+sem abrir a interface mobile; a prévia mobile acompanha as alterações antes de salvar.
+Em cada seção, o catálogo indica se há áudio, vozes ou cifra; o botão Filtros permite filtrar os
+itens por conteúdo e indica quantos filtros estão ativos. A prévia ao vivo aparece somente durante a criação ou edição de músicas, temas e fichas
+técnicas. Nos editores de músicas, a prévia lateral pode ser recolhida e começa recolhida em telas menores.
+Em Temas & Listas e Fichas Técnicas, a criação e a edição acontecem na própria página, com prévia ao vivo.
+Em Edição Completa, crie uma música ou combine a busca com filtros de presença ou ausência de áudio, vozes e cifra.
+Ao criar uma música, inclusive a partir do aplicativo, o estúdio abre um assistente: preencha as
+informações e a letra base; vozes e cifras são etapas opcionais.
+O título e a letra base são obrigatórios: campos obrigatórios têm asterisco e ficam destacados em
+vermelho quando precisam ser preenchidos.
+Ao concluir, a música é salva e aberta em Edição Completa com abas de letra, vozes e cifra. Para músicas existentes,
+escolha uma das três opções de edição para abrir o editor e sua prévia; use o submenu para alternar
+entre os editores. As alterações permanecem no formulário até serem salvas ou descartadas.
+O menu Experimental reúne informações e áudio, letra, vozes, cifra e projeção em abas, com seleção
+de música e acesso ao cadastro; ao concluir o cadastro nesse menu, a música permanece nele.
+A projeção é demonstrativa: seus slides são temporários e não são
+salvos com a música; use "Restaurar da letra" para atualizar os slides após editar a letra.
+No topo do estúdio, o menu Minha Conta reúne perfil, plano, faturas, pagamentos e a opção Sair.
 Na seção Personalização, administradores definem os padrões globais de cor, visualização inicial,
 tamanho da letra, tema e cronologia. Preferências individuais salvas no app continuam prevalecendo;
 os padrões ficam em `data/app-settings.json`, arquivo local ignorado pelo Git.

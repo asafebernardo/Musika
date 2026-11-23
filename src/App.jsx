@@ -147,7 +147,7 @@ export default function App() {
             loading ? (
               <AuthLoading />
             ) : canManage ? (
-              <SongFormPage />
+              <RedirectToNewSongWizard />
             ) : (
               <Navigate to="/app" replace />
             )
@@ -178,6 +178,15 @@ function AuthLoading() {
 function RedirectToAdminSite() {
   useEffect(() => {
     window.location.replace(getAdminUrl());
+  }, []);
+  return null;
+}
+
+function RedirectToNewSongWizard() {
+  useEffect(() => {
+    const url = new URL(getAdminUrl(), window.location.origin);
+    url.searchParams.set("nova", "1");
+    window.location.replace(url.href);
   }, []);
   return null;
 }

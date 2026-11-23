@@ -288,6 +288,10 @@ export default function SongFormPage() {
               <VocalArrangementEditor
                 text={form.letraVozes}
                 marks={form.vozesArranjo}
+                letra={form.letra}
+                refrao={form.refrao}
+                cronologica={form.cronologica}
+                refraoPrimeiro={form.refraoPrimeiro}
                 somenteVozes={form.somenteVozes}
                 onChange={({ text, marks }) =>
                   setForm((current) => ({

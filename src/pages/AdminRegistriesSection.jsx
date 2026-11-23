@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import EditIcon from "@/components/EditIcon.jsx";
 import SongScroll from "@/components/SongScroll.jsx";
 import { DEFAULT_THEMES } from "@/data/themes.js";
 import {
@@ -25,6 +27,7 @@ function normalizeStr(value) {
 export default function AdminRegistriesSection({
   activeTab = "temas",
   songs = [],
+  onDirtyChange,
 }) {
   const currentTheme = useTheme();
   const currentAccentId = useAccent();
@@ -57,39 +60,46 @@ export default function AdminRegistriesSection({
     deleteEntry: deleteInfoEntry,
   } = useSongInfoRegistry(songs);
 
-  // Estado do Cadastro de Temas (com modal flutuante)
-  const [themeModalOpen, setThemeModalOpen] = useState(false);
+  const [themeEditorOpen, setThemeEditorOpen] = useState(false);
+  const [previewContainer, setPreviewContainer] = useState(null);
   const [editingThemeId, setEditingThemeId] = useState(null);
   const [themeForm, setThemeForm] = useState({ name: "", description: "" });
   const [themeNotice, setThemeNotice] = useState("");
-  const [selectedPreviewThemeId, setSelectedPreviewThemeId] = useState(null);
   const [themeToDelete, setThemeToDelete] = useState(null);
 
-  // Estado do Cadastro de Informações (com modal flutuante)
-  const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [infoEditorOpen, setInfoEditorOpen] = useState(false);
   const [editingInfoId, setEditingInfoId] = useState(null);
   const [infoComposer, setInfoComposer] = useState("");
   const [infoItems, setInfoItems] = useState(() => [createEmptyInfoItem()]);
   const [infoSearch, setInfoSearch] = useState("");
   const [infoNotice, setInfoNotice] = useState("");
-  const [selectedPreviewInfoId, setSelectedPreviewInfoId] = useState(null);
   const [infoEntryToDelete, setInfoEntryToDelete] = useState(null);
+  const initialDraft = useRef("");
+  const editorDirty = themeEditorOpen
+    ? JSON.stringify(themeForm) !== initialDraft.current
+    : infoEditorOpen
+      ? JSON.stringify({ compositor: infoComposer, items: infoItems }) !== initialDraft.current
+      : false;
 
   useEffect(() => {
-    if (!themeModalOpen && !infoModalOpen && !themeToDelete && !infoEntryToDelete) {
+    onDirtyChange?.(editorDirty);
+  }, [editorDirty, onDirtyChange]);
+
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
+
+  useEffect(() => {
+    if (!themeToDelete && !infoEntryToDelete) {
       return undefined;
     }
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
-        setThemeModalOpen(false);
-        setInfoModalOpen(false);
         setThemeToDelete(null);
         setInfoEntryToDelete(null);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [themeModalOpen, infoModalOpen, themeToDelete, infoEntryToDelete]);
+  }, [themeToDelete, infoEntryToDelete]);
 
   const getSongsForTheme = (theme) => {
     if (!theme) return [];
@@ -102,28 +112,37 @@ export default function AdminRegistriesSection({
     );
   };
 
-  const openNewThemeModal = () => {
+  const openNewThemeEditor = () => {
+    initialDraft.current = JSON.stringify({ name: "", description: "" });
     setEditingThemeId(null);
     setThemeForm({ name: "", description: "" });
     setThemeNotice("");
-    setThemeModalOpen(true);
+    setThemeEditorOpen(true);
   };
 
-  const openEditThemeModal = (theme) => {
+  const openEditThemeEditor = (theme) => {
+    initialDraft.current = JSON.stringify({
+      name: theme.name,
+      description: theme.description || "",
+    });
     setEditingThemeId(theme.id);
-    setSelectedPreviewThemeId(theme.id);
     setThemeForm({
       name: theme.name,
       description: theme.description || "",
     });
     setThemeNotice("");
-    setThemeModalOpen(true);
+    setThemeEditorOpen(true);
   };
 
-  const closeThemeModal = () => {
-    setThemeModalOpen(false);
+  const closeThemeEditor = () => {
+    setThemeEditorOpen(false);
     setEditingThemeId(null);
     setThemeForm({ name: "", description: "" });
+  };
+
+  const cancelThemeEditor = () => {
+    if (editorDirty && !window.confirm("Descartar as alterações não salvas?")) return;
+    closeThemeEditor();
   };
 
   const submitThemeForm = (event) => {
@@ -140,7 +159,7 @@ export default function AdminRegistriesSection({
         setThemeNotice(
           "Tema atualizado com sucesso. Ele já está disponível na caixa de opções ao editar uma música.",
         );
-        closeThemeModal();
+        closeThemeEditor();
       }
     } else {
       const ok = createTheme(themeForm.name, {
@@ -151,7 +170,7 @@ export default function AdminRegistriesSection({
         setThemeNotice(
           "Tema cadastrado com sucesso. Na edição da música, clique no campo Tema para selecioná-lo.",
         );
-        closeThemeModal();
+        closeThemeEditor();
       }
     }
   };
@@ -165,10 +184,7 @@ export default function AdminRegistriesSection({
     if (!themeToDelete) return;
     if (deleteTheme(themeToDelete.id)) {
       if (editingThemeId === themeToDelete.id) {
-        closeThemeModal();
-      }
-      if (selectedPreviewThemeId === themeToDelete.id) {
-        setSelectedPreviewThemeId(null);
+        closeThemeEditor();
       }
       setThemeNotice(`Tema “${themeToDelete.name}” removido do cadastro.`);
     }
@@ -192,33 +208,40 @@ export default function AdminRegistriesSection({
     );
   };
 
-  // Funções do Cadastro de Informações (modal flutuante)
-  const openNewInfoModal = () => {
+  const openNewInfoEditor = () => {
+    const items = [createEmptyInfoItem()];
+    initialDraft.current = JSON.stringify({ compositor: "", items });
     setEditingInfoId(null);
     setInfoComposer("");
-    setInfoItems([createEmptyInfoItem()]);
+    setInfoItems(items);
     setInfoNotice("");
-    setInfoModalOpen(true);
+    setInfoEditorOpen(true);
   };
 
-  const openEditInfoModal = (entry, addBlankRow = false) => {
+  const openEditInfoEditor = (entry, addBlankRow = false) => {
     setEditingInfoId(entry.id);
-    setSelectedPreviewInfoId(entry.id);
     setInfoComposer(entry.compositor);
     const baseItems =
       entry.items && entry.items.length > 0
         ? entry.items.map((item) => ({ ...item }))
         : [createEmptyInfoItem()];
-    setInfoItems(addBlankRow ? [...baseItems, createEmptyInfoItem()] : baseItems);
+    const items = addBlankRow ? [...baseItems, createEmptyInfoItem()] : baseItems;
+    initialDraft.current = JSON.stringify({ compositor: entry.compositor, items });
+    setInfoItems(items);
     setInfoNotice("");
-    setInfoModalOpen(true);
+    setInfoEditorOpen(true);
   };
 
-  const closeInfoModal = () => {
-    setInfoModalOpen(false);
+  const closeInfoEditor = () => {
+    setInfoEditorOpen(false);
     setEditingInfoId(null);
     setInfoComposer("");
     setInfoItems([createEmptyInfoItem()]);
+  };
+
+  const cancelInfoEditor = () => {
+    if (editorDirty && !window.confirm("Descartar as alterações não salvas?")) return;
+    closeInfoEditor();
   };
 
   const updateInfoItemField = (index, field, value) => {
@@ -249,7 +272,7 @@ export default function AdminRegistriesSection({
         setInfoNotice(
           "Cadastro de informações atualizado. As opções vinculadas a este compositor já estão atualizadas na edição da música.",
         );
-        closeInfoModal();
+        closeInfoEditor();
       }
     } else {
       const ok = createInfoEntry({
@@ -260,7 +283,7 @@ export default function AdminRegistriesSection({
         setInfoNotice(
           "Informações vinculadas ao compositor cadastradas com sucesso. Na edição da música, selecione o compositor para ver essas opções.",
         );
-        closeInfoModal();
+        closeInfoEditor();
       }
     }
   };
@@ -274,10 +297,7 @@ export default function AdminRegistriesSection({
     if (!infoEntryToDelete) return;
     if (deleteInfoEntry(infoEntryToDelete.id)) {
       if (editingInfoId === infoEntryToDelete.id) {
-        closeInfoModal();
-      }
-      if (selectedPreviewInfoId === infoEntryToDelete.id) {
-        setSelectedPreviewInfoId(null);
+        closeInfoEditor();
       }
       setInfoNotice(`Cadastro de “${infoEntryToDelete.compositor}” removido.`);
     }
@@ -317,21 +337,17 @@ export default function AdminRegistriesSection({
   }, [infoEntries, infoSearch]);
 
   const previewTheme = useMemo(() => {
-    if (themeModalOpen && (editingThemeId || themeForm.name.trim())) {
+    if (themeEditorOpen) {
       const existing = themes.find((item) => item.id === editingThemeId);
       return {
         id: editingThemeId || "draft",
-        name: themeForm.name.trim() || "Novo tema",
+        name: themeForm.name.trim(),
         description: themeForm.description.trim(),
         songIds: existing?.songIds || [],
       };
     }
-    return (
-      themes.find((item) => item.id === selectedPreviewThemeId) ||
-      themes[0] ||
-      null
-    );
-  }, [themeModalOpen, editingThemeId, themeForm, themes, selectedPreviewThemeId]);
+    return null;
+  }, [themeEditorOpen, editingThemeId, themeForm, themes]);
 
   const previewThemeSongs = useMemo(
     () => getSongsForTheme(previewTheme),
@@ -339,7 +355,7 @@ export default function AdminRegistriesSection({
   );
 
   const previewInfoEntry = useMemo(() => {
-    if (infoModalOpen && (editingInfoId || infoComposer.trim())) {
+    if (infoEditorOpen) {
       return {
         id: editingInfoId || "draft-info",
         compositor: infoComposer.trim() || "Novo Autor / Compositor",
@@ -352,15 +368,12 @@ export default function AdminRegistriesSection({
         ),
       };
     }
-    return (
-      infoEntries.find((item) => item.id === selectedPreviewInfoId) ||
-      infoEntries[0] ||
-      null
-    );
-  }, [infoModalOpen, editingInfoId, infoComposer, infoItems, infoEntries, selectedPreviewInfoId]);
+    return null;
+  }, [infoEditorOpen, editingInfoId, infoComposer, infoItems]);
 
   return (
-    <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+    <div>
+      {!themeEditorOpen && !infoEditorOpen ? (
       <div className="min-w-0 space-y-5">
         {activeTab === "temas" ? (
           <>
@@ -372,7 +385,7 @@ export default function AdminRegistriesSection({
                 {themeNotice}
               </p>
             ) : null}
-            {themeError && !themeModalOpen ? (
+            {themeError && !themeEditorOpen ? (
               <p
                 role="alert"
                 className="rounded-[3px] border border-danger/30 bg-danger-soft px-3.5 py-2.5 text-xs text-danger"
@@ -395,14 +408,14 @@ export default function AdminRegistriesSection({
                   <button
                     type="button"
                     onClick={loadSuggestedThemes}
-                    className="h-8.5 rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper"
+                    className="h-10 rounded-[3px] border border-line bg-card px-4 text-xs font-medium text-ink hover:bg-paper"
                   >
                     Carregar sugeridos
                   </button>
                   <button
                     type="button"
-                    onClick={openNewThemeModal}
-                    className="inline-flex h-8.5 items-center gap-1.5 rounded-[3px] bg-pine px-3.5 text-xs font-semibold text-white hover:bg-pine-dark"
+                    onClick={openNewThemeEditor}
+                    className="inline-flex h-10 items-center gap-1.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark"
                   >
                     <span aria-hidden className="text-sm leading-none">+</span>
                     Novo tema
@@ -417,8 +430,8 @@ export default function AdminRegistriesSection({
                   </p>
                   <button
                     type="button"
-                    onClick={openNewThemeModal}
-                    className="mt-3 inline-flex h-8.5 items-center gap-1.5 rounded-[3px] bg-pine px-3.5 text-xs font-semibold text-white hover:bg-pine-dark"
+                    onClick={openNewThemeEditor}
+                    className="mt-3 inline-flex h-10 items-center gap-1.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark"
                   >
                     + Cadastrar primeiro tema
                   </button>
@@ -426,18 +439,15 @@ export default function AdminRegistriesSection({
               ) : (
                 <ul className="divide-y divide-line/80 border-b border-line/80">
                   {themes.map((theme) => {
-                    const isSelected = previewTheme?.id === theme.id;
                     const linkedSongs = getSongsForTheme(theme);
                     return (
                       <li
                         key={theme.id}
-                        className={`flex flex-wrap items-center justify-between gap-3 px-2 py-3 ${
-                          isSelected ? "bg-card" : "hover:bg-card/60"
-                        }`}
+                        className="flex flex-wrap items-center justify-between gap-3 px-2 py-3 hover:bg-card/60"
                       >
                         <button
                           type="button"
-                          onClick={() => setSelectedPreviewThemeId(theme.id)}
+                          onClick={() => openEditThemeEditor(theme)}
                           className="min-w-0 flex-1 text-left"
                         >
                           <p className="truncate text-[13px] font-semibold text-ink">{theme.name}</p>
@@ -449,18 +459,19 @@ export default function AdminRegistriesSection({
                               : "músicas vinculadas"}
                           </p>
                         </button>
-                        <div className="flex shrink-0 items-center gap-1.5">
+                        <div className="flex max-w-full flex-wrap items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => openEditThemeModal(theme)}
-                            className="h-7.5 rounded-[3px] border border-line bg-card px-2.5 text-xs font-medium text-ink hover:bg-paper"
+                            onClick={() => openEditThemeEditor(theme)}
+                            className="inline-flex h-10 items-center gap-1.5 rounded-[3px] border border-line bg-card px-4 text-xs font-semibold text-pine transition-colors hover:border-pine hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
                           >
+                            <EditIcon className="h-4 w-4 shrink-0" />
                             Editar
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteTheme(theme)}
-                            className="h-7.5 rounded-[3px] border border-danger/30 bg-card px-2.5 text-xs font-medium text-danger hover:bg-danger-soft"
+                            className="h-10 rounded-[3px] border border-danger/30 bg-card px-4 text-xs font-medium text-danger hover:bg-danger-soft"
                           >
                             Excluir
                           </button>
@@ -482,7 +493,7 @@ export default function AdminRegistriesSection({
                 {infoNotice}
               </p>
             ) : null}
-            {infoRegistryError && !infoModalOpen ? (
+            {infoRegistryError && !infoEditorOpen ? (
               <p
                 role="alert"
                 className="rounded-[3px] border border-danger/30 bg-danger-soft px-3.5 py-2.5 text-xs text-danger"
@@ -506,14 +517,14 @@ export default function AdminRegistriesSection({
                     <button
                       type="button"
                       onClick={loadSuggestedInfoEntries}
-                      className="h-8.5 rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper"
+                      className="h-10 rounded-[3px] border border-line bg-card px-4 text-xs font-medium text-ink hover:bg-paper"
                     >
                       Carregar sugeridos
                     </button>
                     <button
                       type="button"
-                      onClick={openNewInfoModal}
-                      className="inline-flex h-8.5 items-center gap-1.5 rounded-[3px] bg-pine px-3.5 text-xs font-semibold text-white hover:bg-pine-dark"
+                      onClick={openNewInfoEditor}
+                      className="inline-flex h-10 items-center gap-1.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark"
                     >
                       <span aria-hidden className="text-sm leading-none">+</span>
                       Cadastrar informações
@@ -538,8 +549,8 @@ export default function AdminRegistriesSection({
                   </p>
                   <button
                     type="button"
-                    onClick={openNewInfoModal}
-                    className="mt-3 inline-flex h-8.5 items-center gap-1.5 rounded-[3px] bg-pine px-3.5 text-xs font-semibold text-white hover:bg-pine-dark"
+                    onClick={openNewInfoEditor}
+                    className="mt-3 inline-flex h-10 items-center gap-1.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark"
                   >
                     + Novo cadastro de informações
                   </button>
@@ -547,7 +558,6 @@ export default function AdminRegistriesSection({
               ) : (
                 <ul className="divide-y divide-line/80 border-b border-line/80">
                   {filteredInfoEntries.map((entry) => {
-                    const isSelected = previewInfoEntry?.id === entry.id;
                     const albums = [
                       ...new Set(entry.items.map((i) => i.album).filter(Boolean)),
                     ];
@@ -560,13 +570,11 @@ export default function AdminRegistriesSection({
                     return (
                       <li
                         key={entry.id}
-                        className={`flex flex-wrap items-start justify-between gap-3 px-2 py-3.5 ${
-                          isSelected ? "bg-card" : "hover:bg-card/60"
-                        }`}
+                        className="flex flex-wrap items-start justify-between gap-3 px-2 py-3.5 hover:bg-card/60"
                       >
                         <button
                           type="button"
-                          onClick={() => setSelectedPreviewInfoId(entry.id)}
+                          onClick={() => openEditInfoEditor(entry)}
                           className="min-w-0 flex-1 text-left"
                         >
                           <p className="truncate text-[13px] font-semibold text-ink">
@@ -582,25 +590,26 @@ export default function AdminRegistriesSection({
                               .join(" · ") || "Sem vínculos adicionais"}
                           </p>
                         </button>
-                        <div className="flex shrink-0 items-center gap-1.5">
+                        <div className="flex max-w-full flex-wrap items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => openEditInfoModal(entry, true)}
-                            className="h-7.5 rounded-[3px] border border-line bg-card px-2.5 text-xs font-medium text-pine hover:bg-paper"
+                            onClick={() => openEditInfoEditor(entry, true)}
+                            className="h-10 rounded-[3px] border border-line bg-card px-4 text-xs font-medium text-pine hover:bg-paper"
                           >
                             + Álbum / Ano
                           </button>
                           <button
                             type="button"
-                            onClick={() => openEditInfoModal(entry, false)}
-                            className="h-7.5 rounded-[3px] border border-line bg-card px-2.5 text-xs font-medium text-ink hover:bg-paper"
+                            onClick={() => openEditInfoEditor(entry, false)}
+                            className="inline-flex h-10 items-center gap-1.5 rounded-[3px] border border-line bg-card px-4 text-xs font-semibold text-pine transition-colors hover:border-pine hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
                           >
+                            <EditIcon className="h-4 w-4 shrink-0" />
                             Editar
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteInfoEntry(entry)}
-                            className="h-7.5 rounded-[3px] border border-danger/30 bg-card px-2.5 text-xs font-medium text-danger hover:bg-danger-soft"
+                            className="h-10 rounded-[3px] border border-danger/30 bg-card px-4 text-xs font-medium text-danger hover:bg-danger-soft"
                           >
                             Excluir
                           </button>
@@ -614,11 +623,13 @@ export default function AdminRegistriesSection({
           </>
         )}
       </div>
+      ) : null}
 
-      <aside className="border-t border-line/80 pt-5 xl:sticky xl:top-4 xl:self-start xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
+      {(themeEditorOpen || infoEditorOpen) && previewContainer ? createPortal(
+      <aside aria-label="Prévia ao vivo" className="border-t border-line/80 p-4 lg:border-l lg:border-t-0">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
-            Prévia mobile
+            Prévia ao vivo
           </p>
           <p className="mt-0.5 text-xs text-ink-soft">
             {activeTab === "temas"
@@ -651,7 +662,7 @@ export default function AdminRegistriesSection({
                 <div className="min-w-0 flex-1">
                   {activeTab === "temas" ? (
                     <p className="truncate text-sm font-semibold">
-                      {previewTheme ? previewTheme.name : "Temas"}
+                      {previewTheme?.name || "Novo tema"}
                     </p>
                   ) : (
                     <p className="truncate text-sm font-semibold">
@@ -673,7 +684,9 @@ export default function AdminRegistriesSection({
                         ) : null}
                         {previewThemeSongs.length === 0 ? (
                           <p className="py-12 text-center text-xs text-ink-soft">
-                            Nenhuma música está com o tema “{previewTheme.name}” selecionado no momento. Na edição da música, escolha este tema na caixa de opções.
+                            {previewTheme.name
+                              ? `Nenhuma música está com o tema “${previewTheme.name}” selecionado no momento. Na edição da música, escolha este tema na caixa de opções.`
+                              : "Informe o nome do tema para visualizar as músicas vinculadas."}
                           </p>
                         ) : (
                           <ul className="divide-y divide-line rounded-xl border border-line bg-card">
@@ -770,24 +783,17 @@ export default function AdminRegistriesSection({
               </div>
             </div>
           </div>
-      </aside>
+      </aside>, previewContainer) : null}
 
-      {/* Modal Flutuante: Cadastro / Edição de Tema */}
-      {themeModalOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px]"
-          onClick={closeThemeModal}
+      {themeEditorOpen ? (
+        <section
+          aria-labelledby="theme-editor-title"
+          className="mx-auto flex w-full max-w-5xl flex-col text-ink lg:flex-row"
         >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="theme-modal-title"
-            onClick={(event) => event.stopPropagation()}
-            className="flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-[4px] border border-line bg-card text-ink shadow-2xl"
-          >
-            <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+            <div className="min-w-0 lg:flex-1">
+            <div className="flex items-center justify-between gap-3 border-b border-line py-3.5">
               <div>
-                <h3 id="theme-modal-title" className="text-sm font-semibold">
+                <h3 id="theme-editor-title" className="text-sm font-semibold">
                   {editingThemeId ? "Editar tema de músicas" : "Novo tema de músicas"}
                 </h3>
                 <p className="mt-0.5 text-xs text-ink-soft">
@@ -796,15 +802,14 @@ export default function AdminRegistriesSection({
               </div>
               <button
                 type="button"
-                onClick={closeThemeModal}
-                aria-label="Fechar modal"
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[3px] border border-line bg-paper text-sm text-ink-soft hover:text-ink"
+                onClick={cancelThemeEditor}
+                className="inline-flex h-10 shrink-0 items-center rounded-[3px] border border-line bg-card px-4 text-xs font-medium text-ink hover:bg-paper"
               >
-                ×
+                Voltar à listagem
               </button>
             </div>
 
-            <form onSubmit={submitThemeForm} className="space-y-4 overflow-y-auto p-5">
+            <form onSubmit={submitThemeForm} className="space-y-4 py-5">
               <label className="block space-y-1.5">
                 <span className="text-xs font-medium text-ink-soft">Nome do tema</span>
                 <input
@@ -848,39 +853,33 @@ export default function AdminRegistriesSection({
               <div className="flex flex-wrap justify-end gap-2 border-t border-line pt-4">
                 <button
                   type="button"
-                  onClick={closeThemeModal}
-                  className="h-8.5 rounded-[3px] border border-line bg-card px-3.5 text-xs font-medium hover:bg-paper"
+                  onClick={cancelThemeEditor}
+                  className="h-10 rounded-[3px] border border-line bg-card px-4 text-xs font-medium hover:bg-paper"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="h-8.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark"
+                  className="h-10 rounded-[3px] bg-pine px-5 text-xs font-semibold text-white hover:bg-pine-dark"
                 >
                   {editingThemeId ? "Salvar alterações" : "Cadastrar tema"}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+            </div>
+            <div ref={setPreviewContainer} className="shrink-0 lg:w-[360px]" />
+        </section>
       ) : null}
 
-      {/* Modal Flutuante: Cadastro / Edição de Informações (Autor/Compositor e vínculos) */}
-      {infoModalOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px]"
-          onClick={closeInfoModal}
+      {infoEditorOpen ? (
+        <section
+          aria-labelledby="info-editor-title"
+          className="mx-auto flex w-full max-w-5xl flex-col text-ink lg:flex-row"
         >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="info-modal-title"
-            onClick={(event) => event.stopPropagation()}
-            className="flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden rounded-[4px] border border-line bg-card text-ink shadow-2xl"
-          >
-            <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+            <div className="min-w-0 lg:flex-1">
+            <div className="flex items-center justify-between gap-3 border-b border-line py-3.5">
               <div>
-                <h3 id="info-modal-title" className="text-sm font-semibold">
+                <h3 id="info-editor-title" className="text-sm font-semibold">
                   {editingInfoId
                     ? "Editar Autor / Compositor e vínculos"
                     : "Cadastrar Autor / Compositor e vínculos"}
@@ -891,19 +890,15 @@ export default function AdminRegistriesSection({
               </div>
               <button
                 type="button"
-                onClick={closeInfoModal}
-                aria-label="Fechar modal"
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[3px] border border-line bg-paper text-sm text-ink-soft hover:text-ink"
+                onClick={cancelInfoEditor}
+                className="inline-flex h-10 shrink-0 items-center rounded-[3px] border border-line bg-card px-4 text-xs font-medium text-ink hover:bg-paper"
               >
-                ×
+                Voltar à listagem
               </button>
             </div>
 
-            <form
-              onSubmit={submitInfoRegistryForm}
-              className="flex min-h-0 flex-1 flex-col overflow-hidden"
-            >
-              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
+            <form onSubmit={submitInfoRegistryForm}>
+              <div className="space-y-5 py-5">
                 <label className="block space-y-1.5">
                   <span className="text-xs font-medium text-ink-soft">
                     Autor / Compositor / Banda (chave principal)
@@ -935,7 +930,7 @@ export default function AdminRegistriesSection({
                     <button
                       type="button"
                       onClick={addInfoItemRow}
-                      className="inline-flex h-7.5 items-center gap-1 rounded-[3px] border border-line bg-card px-2.5 text-xs font-medium text-pine hover:bg-paper"
+                      className="inline-flex h-10 items-center gap-1 rounded-[3px] border border-line bg-card px-4 text-xs font-medium text-pine hover:bg-paper"
                     >
                       <span aria-hidden className="text-sm leading-none">+</span>
                       Adicionar vínculo
@@ -1036,17 +1031,17 @@ export default function AdminRegistriesSection({
                 ) : null}
               </div>
 
-              <div className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-line bg-card px-5 py-3.5">
+              <div className="flex flex-wrap justify-end gap-2 border-t border-line py-3.5">
                 <button
                   type="button"
-                  onClick={closeInfoModal}
-                  className="h-8.5 rounded-[3px] border border-line bg-card px-3.5 text-xs font-medium hover:bg-paper"
+                  onClick={cancelInfoEditor}
+                  className="h-10 rounded-[3px] border border-line bg-card px-4 text-xs font-medium hover:bg-paper"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="h-8.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark"
+                  className="min-h-10 rounded-[3px] bg-pine px-5 py-2 text-xs font-semibold text-white hover:bg-pine-dark"
                 >
                   {editingInfoId
                     ? "Salvar alterações"
@@ -1054,8 +1049,9 @@ export default function AdminRegistriesSection({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+            </div>
+            <div ref={setPreviewContainer} className="shrink-0 lg:w-[360px]" />
+        </section>
       ) : null}
 
       {/* Modal Flutuante de Confirmação de Exclusão de Tema */}
@@ -1097,14 +1093,14 @@ export default function AdminRegistriesSection({
               <button
                 type="button"
                 onClick={() => setThemeToDelete(null)}
-                className="h-8.5 rounded-[3px] border border-line bg-card px-3.5 text-xs font-medium hover:bg-paper"
+                className="h-10 rounded-[3px] border border-line bg-card px-4 text-xs font-medium hover:bg-paper"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={confirmDeleteTheme}
-                className="h-8.5 rounded-[3px] bg-danger px-4 text-xs font-semibold text-white hover:brightness-95"
+                className="h-10 rounded-[3px] bg-danger px-5 text-xs font-semibold text-white hover:brightness-95"
               >
                 Confirmar exclusão
               </button>
@@ -1152,14 +1148,14 @@ export default function AdminRegistriesSection({
               <button
                 type="button"
                 onClick={() => setInfoEntryToDelete(null)}
-                className="h-8.5 rounded-[3px] border border-line bg-card px-3.5 text-xs font-medium hover:bg-paper"
+                className="h-10 rounded-[3px] border border-line bg-card px-4 text-xs font-medium hover:bg-paper"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={confirmDeleteInfoEntry}
-                className="h-8.5 rounded-[3px] bg-danger px-4 text-xs font-semibold text-white hover:brightness-95"
+                className="h-10 rounded-[3px] bg-danger px-5 text-xs font-semibold text-white hover:brightness-95"
               >
                 Confirmar exclusão
               </button>

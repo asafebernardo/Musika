@@ -106,6 +106,10 @@ export default function LyricEditor({
   placeholder,
   italic,
   label,
+  id,
+  required = false,
+  invalid = false,
+  describedBy,
   onChange,
   showVoiceTools = true,
   minClass = "min-h-32",
@@ -225,15 +229,19 @@ export default function LyricEditor({
         </>
       ) : null}
       <div
+        id={id}
         ref={editorRef}
         className={`lyric-editor ${minClass} w-full whitespace-pre-wrap border border-line leading-relaxed outline-none ${
           editorClassName ||
           "rounded-xl bg-paper px-3 py-3 text-center font-lyric focus:ring-2 focus:ring-pine"
-        } ${italic ? "italic" : ""}`}
+        } ${italic ? "italic" : ""} ${invalid ? "!border-danger bg-danger-soft/30 focus:!border-danger focus:!ring-danger" : ""}`}
         contentEditable
         role="textbox"
         aria-multiline="true"
         aria-label={label}
+        aria-required={required || undefined}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
         data-placeholder={placeholder}
         suppressContentEditableWarning
         onInput={publish}

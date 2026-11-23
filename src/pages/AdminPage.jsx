@@ -18,6 +18,7 @@ export default function AdminPage() {
   const [form, setForm] = useState(emptyAccessForm);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [logoutError, setLogoutError] = useState("");
   const [people, setPeople] = useState([]);
   const [peopleLoading, setPeopleLoading] = useState(false);
   const [peopleError, setPeopleError] = useState("");
@@ -93,18 +94,18 @@ export default function AdminPage() {
   };
 
   const signOut = async () => {
-    setFormError("");
+    setLogoutError("");
     try {
       await logout();
     } catch {
-      setFormError("Não foi possível encerrar a sessão. Tente novamente.");
+      setLogoutError("Não foi possível encerrar a sessão. Tente novamente.");
     }
   };
 
   const showSetup = setupRequired === true;
   const showRegistration = showSetup;
   const accessPanel = (
-    <section className="max-w-4xl">
+    <section className="mx-auto w-full max-w-7xl">
       <div className="border-b border-line/80 pb-4">
         <h2 className="text-sm font-semibold text-ink">Equipe & Acessos</h2>
         <p className="mt-1 text-xs text-ink-soft">
@@ -177,6 +178,7 @@ export default function AdminPage() {
         <AdminContentPage
           user={user}
           onLogout={signOut}
+          logoutError={logoutError}
           accessPanel={accessPanel}
         />
       </div>
@@ -237,7 +239,7 @@ export default function AdminPage() {
               >
                 Sair
               </button>
-              {formError ? <p role="alert" className="mt-3 text-sm text-danger">{formError}</p> : null}
+              {logoutError ? <p role="alert" className="mt-3 text-sm text-danger">{logoutError}</p> : null}
             </section>
         ) : setupError ? (
           <p role="alert" className="rounded-lg border border-line bg-card p-4 text-sm text-danger">

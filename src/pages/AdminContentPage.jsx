@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createSong,
   deleteSong,
@@ -8,11 +8,13 @@ import {
   updateSong,
 } from "@/api/songs.js";
 import ChordEditor from "@/components/ChordEditor.jsx";
+import EditIcon from "@/components/EditIcon.jsx";
 import Lyrics from "@/components/Lyrics.jsx";
 import LyricEditor from "@/components/LyricEditor.jsx";
 import MarqueeText from "@/components/MarqueeText.jsx";
 import SongScroll from "@/components/SongScroll.jsx";
 import VocalArrangementEditor from "@/components/VocalArrangementEditor.jsx";
+import { songHasChords } from "@/lib/chords.js";
 import { emptySongForm, fieldsFromSong, payloadFromSongForm } from "@/lib/songEditor.js";
 import {
   buildUpdatesForAlbumSelection,
@@ -24,12 +26,13 @@ import { filterSongs, withNumbers } from "@/lib/songs.js";
 import { syncSongSingleTheme, useSongThemes } from "@/lib/songThemes.js";
 import { getAppSettings } from "@/lib/appSettings.js";
 import { ACCENT_OPTIONS, toggleTheme, useAccent, useTheme } from "@/lib/theme.js";
+import { songHasVoices } from "@/lib/voices.js";
 import AdminPersonalizationSection from "@/pages/AdminPersonalizationSection.jsx";
 import AdminRegistriesSection from "@/pages/AdminRegistriesSection.jsx";
 import AdminFinalPreviewSection from "@/pages/AdminFinalPreviewSection.jsx";
 import AdminProjectExportSection from "@/pages/AdminProjectExportSection.jsx";
 import AdminSlidesEditorSection from "@/pages/AdminSlidesEditorSection.jsx";
-import UserProfileMenu from "@/components/UserProfileMenu.jsx";
+import UserProfileMenu, { USER_ACCOUNT_SECTIONS } from "@/components/UserProfileMenu.jsx";
 
 const PERSONALIZATION_SECTIONS = [
   { id: "identidade", label: "Identidade" },
@@ -38,23 +41,17 @@ const PERSONALIZATION_SECTIONS = [
   { id: "acoes", label: "Permissões e Menus" },
 ];
 
-const USER_ACCOUNT_SECTIONS = [
-  { id: "perfil", label: "Meu Perfil e Contato" },
-  { id: "plano", label: "Plano Pago Atual" },
-  { id: "faturas", label: "Faturas e Recibos" },
-  { id: "dados-pagamento", label: "Dados de Pagamento" },
-  { id: "forma-pagamento", label: "Forma de Pagamento" },
-];
-
 const SIDEBAR_GROUPS = [
   {
     id: "edicao",
     label: "Edição",
     items: [
+      { id: "completa", label: "Edição Completa", icon: SongMetadataIcon },
       { id: "letra", label: "Letra & Áudio", icon: LyricIcon },
       { id: "vozes", label: "Arranjo de Vozes", icon: VoicesPartsIcon },
       { id: "cifra", label: "Cifras & Tons", icon: ChordIcon },
       { id: "slides", label: "Projeção (Slides)", icon: SlidesIcon },
+      { id: "experimental", label: "Experimental", icon: SongMetadataIcon },
     ],
   },
   {
@@ -65,7 +62,6 @@ const SIDEBAR_GROUPS = [
       { id: "ficha-tecnica", label: "Fichas Técnicas", icon: SongMetadataIcon },
       { id: "personalizacao", label: "Aparência do App", icon: SettingsIcon },
       { id: "acessos", label: "Equipe & Acessos", icon: PeopleIcon },
-      { id: "minha-conta", label: "Minha Conta", icon: UserAccountIcon },
     ],
   },
   {
@@ -85,6 +81,8 @@ const PREVIEW_MODES = [
 ];
 
 const SECTION_TITLES = {
+  completa: "Edição Completa",
+  experimental: "Experimental",
   letra: "Letra & Áudio",
   vozes: "Arranjo de Vozes",
   cifra: "Cifras & Tons",
@@ -98,7 +96,36 @@ const SECTION_TITLES = {
   "minha-conta": "Minha Conta",
 };
 
-export default function AdminContentPage({ user, onLogout, accessPanel }) {
+const CONTENT_LABELS = { letra: "áudio", vozes: "vozes", cifra: "cifra" };
+const EDITOR_SECTIONS = ["letra", "vozes", "cifra"];
+const EDITOR_OPTIONS = SIDEBAR_GROUPS[0].items.filter((item) => EDITOR_SECTIONS.includes(item.id));
+const EDITOR_DESCRIPTIONS = {
+  letra: "Edite a letra, o refrão e o áudio.",
+  vozes: "Organize as partes e harmonias vocais.",
+  cifra: "Edite as cifras e os tons da música.",
+};
+const NEW_SONG_STEPS = [
+  { id: "informacoes", label: "Informações" },
+  { id: "letra-base", label: "Letra base" },
+  { id: "vozes", label: "Vozes", optional: true },
+  { id: "cifra", label: "Cifras", optional: true },
+];
+const EXPERIMENTAL_TABS = [
+  { id: "informacoes", label: "Informações & Áudio" },
+  { id: "letra-base", label: "Letra" },
+  { id: "vozes", label: "Vozes" },
+  { id: "cifra", label: "Cifra" },
+  { id: "slides", label: "Projeção" },
+];
+const EMPTY_CONTENT_FILTERS = { letra: "all", vozes: "all", cifra: "all" };
+
+function hasSectionContent(song, section) {
+  if (section === "vozes") return songHasVoices(song);
+  if (section === "cifra") return songHasChords(song);
+  return Boolean(String(song.audioArquivo ?? "").trim());
+}
+
+export default function AdminContentPage({ user, onLogout, logoutError, accessPanel }) {
   const { appName } = getAppSettings();
   const panelTheme = useTheme();
   const isPanelDark = panelTheme === "dark";
@@ -109,7 +136,9 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
   const [activePersonalizationSection, setActivePersonalizationSection] = useState("identidade");
   const [activeUserAccountSection, setActiveUserAccountSection] = useState("perfil");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidePreviewCollapsed, setSidePreviewCollapsed] = useState(false);
+  const [sidePreviewCollapsed, setSidePreviewCollapsed] = useState(
+    () => window.matchMedia("(max-width: 1023px)").matches,
+  );
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewOrientation, setPreviewOrientation] = useState("portrait");
   const [customPreviewMode, setCustomPreviewMode] = useState(null);
@@ -117,10 +146,19 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
   const [selectedId, setSelectedId] = useState(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ ...emptySongForm });
+  const [editorRevision, setEditorRevision] = useState(0);
   const [dirty, setDirty] = useState(false);
+  const [registryDirty, setRegistryDirty] = useState(false);
   const [search, setSearch] = useState("");
+  const [pendingOnly, setPendingOnly] = useState(false);
+  const [contentFilters, setContentFilters] = useState(EMPTY_CONTENT_FILTERS);
+  const [completeTab, setCompleteTab] = useState(null);
+  const [experimentalTab, setExperimentalTab] = useState("informacoes");
+  const [experimentalPickerOpen, setExperimentalPickerOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [invalidFields, setInvalidFields] = useState({});
   const [notice, setNotice] = useState("");
   const [songToDelete, setSongToDelete] = useState(null);
   const [deletingSong, setDeletingSong] = useState(false);
@@ -174,16 +212,52 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
     isSlidesSection ||
     isFinalPreviewSection ||
     isProjectExportSection;
-  const isSongSection = ["letra", "vozes", "cifra"].includes(activeSection);
-  const hasSideMobilePreview = isSongSection;
-  const previewMode = customPreviewMode || (isSongSection ? activeSection : "letra");
+  const isCompleteSection = activeSection === "completa";
+  const isExperimentalSection = activeSection === "experimental";
+  const isSongSection = isCompleteSection || isExperimentalSection || EDITOR_SECTIONS.includes(activeSection);
+  const isWizard = wizardStep !== null;
+  const editorSection = isWizard
+    ? NEW_SONG_STEPS[wizardStep].id
+    : isCompleteSection ? completeTab : isExperimentalSection ? experimentalTab : activeSection;
+  const hasContentFilters = Object.values(contentFilters).some((value) => value !== "all");
+  const catalogSongs = useMemo(
+    () => {
+      if (isCompleteSection || isExperimentalSection) {
+        return visibleSongs.filter((song) =>
+          EDITOR_SECTIONS.every((section) => {
+            const filter = contentFilters[section];
+            return filter === "all" || hasSectionContent(song, section) === (filter === "present");
+          }),
+        );
+      }
+      return pendingOnly && isSongSection
+        ? visibleSongs.filter((song) => !hasSectionContent(song, activeSection))
+        : visibleSongs;
+    },
+    [visibleSongs, pendingOnly, isSongSection, isCompleteSection, isExperimentalSection, activeSection, contentFilters],
+  );
+  const isCompleteChooser = isCompleteSection && editing && !completeTab && !isWizard;
+  const hasSideMobilePreview = isSongSection && editing && !isCompleteChooser &&
+    !(isExperimentalSection && !isWizard && (experimentalTab === "slides" || experimentalPickerOpen));
+  const previewMode = customPreviewMode || (
+    editorSection === "vozes" || editorSection === "cifra" ? editorSection : "letra"
+  );
   const number = withNumbers(songs).find((song) => song.id === selectedId)?.numero;
 
   useEffect(() => {
-    if (["letra", "vozes", "cifra"].includes(activeSection)) {
+    const field = invalidFields.titulo ? "admin-song-title" : invalidFields.letra ? "admin-song-lyrics" : null;
+    if (field) document.getElementById(field)?.focus();
+  }, [invalidFields, editorSection]);
+
+  useEffect(() => {
+    if (!hasSideMobilePreview) setPreviewOpen(false);
+  }, [hasSideMobilePreview]);
+
+  useEffect(() => {
+    if (isSongSection) {
       setCustomPreviewMode(null);
     }
-  }, [activeSection]);
+  }, [activeSection, completeTab, experimentalTab, wizardStep, isSongSection]);
 
   const handleSongSavedFromRegistry = (savedSong) => {
     setSongs((current) =>
@@ -199,6 +273,13 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
 
   const updateForm = (updates) => {
     setForm((current) => ({ ...current, ...updates }));
+    if ((invalidFields.titulo && updates.titulo?.trim()) || (invalidFields.letra && updates.letra?.trim())) {
+      setInvalidFields((current) => ({
+        ...current,
+        ...(updates.titulo?.trim() ? { titulo: false } : {}),
+        ...(updates.letra?.trim() ? { letra: false } : {}),
+      }));
+    }
     setDirty(true);
     setError("");
     setNotice("");
@@ -211,30 +292,92 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
     setForm({ ...emptySongForm });
     setDirty(false);
     setError("");
+    setInvalidFields({});
     setNotice("");
-    setActiveSection("letra");
+    setPendingOnly(false);
+    setCompleteTab(null);
+    setExperimentalPickerOpen(false);
+    setExperimentalTab("informacoes");
+    setWizardStep(0);
+    if (!isCompleteSection && !isExperimentalSection) setActiveSection("letra");
   };
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("nova") !== "1") return;
+    url.searchParams.delete("nova");
+    window.history.replaceState(window.history.state, "", url);
+    startNewSong();
+  }, []);
 
   const backToSongList = () => {
     if (dirty && !window.confirm("Descartar as alterações não salvas?")) return;
     setSelectedId(null);
     setEditing(false);
+    setCompleteTab(null);
+    setExperimentalPickerOpen(false);
+    setWizardStep(null);
     setForm({ ...emptySongForm });
     setDirty(false);
     setError("");
+    setInvalidFields({});
     setNotice("");
-    setActiveSection("letra");
   };
 
   const selectSong = (song) => {
     if (dirty && !window.confirm("Descartar as alterações não salvas?")) return;
     setSelectedId(song.id);
     setEditing(true);
+    setCompleteTab(null);
+    setExperimentalPickerOpen(false);
+    setExperimentalTab("informacoes");
+    setWizardStep(null);
     setForm(fieldsFromSong(song));
     setDirty(false);
     setError("");
+    setInvalidFields({});
     setNotice("");
-    setActiveSection("letra");
+  };
+
+  const openSection = (section) => {
+    if (saving) return;
+    if (
+      isRegistrySection &&
+      section !== activeSection &&
+      registryDirty &&
+      !window.confirm("Descartar as alterações não salvas?")
+    ) return;
+    if (isWizard && section !== activeSection) {
+      if (dirty && !window.confirm("Descartar as alterações não salvas?")) return;
+      setWizardStep(null);
+      setSelectedId(null);
+      setEditing(false);
+      setCompleteTab(null);
+      setForm({ ...emptySongForm });
+      setDirty(false);
+      setError("");
+      setInvalidFields({});
+      setNotice("");
+      setPendingOnly(false);
+      setActiveSection(section);
+      return;
+    }
+    if (section !== activeSection && (isExperimentalSection || section === "experimental" || section === "completa" || EDITOR_SECTIONS.includes(section))) {
+      if (dirty && !window.confirm("Descartar as alterações não salvas?")) return;
+      setSelectedId(null);
+      setEditing(false);
+      setCompleteTab(null);
+      setExperimentalPickerOpen(false);
+      setExperimentalTab("informacoes");
+      setWizardStep(null);
+      setForm({ ...emptySongForm });
+      setDirty(false);
+      setError("");
+      setInvalidFields({});
+      setNotice("");
+      setPendingOnly(false);
+    }
+    setActiveSection(section);
   };
 
   const discardChanges = () => {
@@ -244,21 +387,43 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
     } else {
       setForm({ ...emptySongForm });
       setEditing(false);
-      setActiveSection("letra");
+      setCompleteTab(null);
+      setWizardStep(null);
+      if (!isCompleteSection) setActiveSection("letra");
     }
+    setEditorRevision((revision) => revision + 1);
     setDirty(false);
     setError("");
+    setInvalidFields({});
     setNotice("");
   };
 
   const saveSong = async () => {
     if (!form.titulo.trim()) {
-      setActiveSection("letra");
-      setError("Informe o título antes de salvar a música.");
+      if (isWizard) setWizardStep(0);
+      else if (isExperimentalSection) {
+        setExperimentalPickerOpen(false);
+        setExperimentalTab("informacoes");
+      } else if (isCompleteSection) setCompleteTab("letra");
+      else setActiveSection("letra");
+      setError("");
+      setInvalidFields({ titulo: true });
+      return;
+    }
+    if (!form.letra.trim() && (isWizard || !form.letraVozes.trim())) {
+      if (isWizard) setWizardStep(1);
+      else if (isExperimentalSection) {
+        setExperimentalPickerOpen(false);
+        setExperimentalTab("letra-base");
+      } else if (isCompleteSection) setCompleteTab("letra");
+      else setActiveSection("letra");
+      setError("");
+      setInvalidFields({ letra: true });
       return;
     }
     setSaving(true);
     setError("");
+    setInvalidFields({});
     setNotice("");
     try {
       const payload = payloadFromSongForm(form);
@@ -276,13 +441,41 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
       setSelectedId(saved.id);
       setEditing(true);
       setForm(fieldsFromSong(saved));
+      setEditorRevision((revision) => revision + 1);
       setDirty(false);
-      setNotice("Alterações salvas. A prévia já reflete o resultado.");
+      if (isWizard) {
+        setWizardStep(null);
+        if (isExperimentalSection) {
+          setExperimentalTab("informacoes");
+        } else {
+          setActiveSection("completa");
+          setCompleteTab("letra");
+        }
+        setNotice("Música cadastrada. Use as abas para continuar editando.");
+      } else {
+        setNotice("Alterações salvas. A prévia já reflete o resultado.");
+      }
     } catch (saveError) {
       setError(messageForSongError(saveError));
     } finally {
       setSaving(false);
     }
+  };
+
+  const nextWizardStep = () => {
+    if (wizardStep === 0 && !form.titulo.trim()) {
+      setError("");
+      setInvalidFields({ titulo: true });
+      return;
+    }
+    if (wizardStep === 1 && !form.letra.trim()) {
+      setError("");
+      setInvalidFields({ letra: true });
+      return;
+    }
+    setError("");
+    setInvalidFields({});
+    setWizardStep((step) => Math.min(step + 1, NEW_SONG_STEPS.length - 1));
   };
 
   const removeSong = (song) => {
@@ -303,9 +496,10 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
       if (selectedId === songToDelete.id) {
         setSelectedId(null);
         setEditing(false);
+        setCompleteTab(null);
         setForm({ ...emptySongForm });
         setDirty(false);
-        setActiveSection("letra");
+        if (activeSection !== "completa" && activeSection !== "experimental") setActiveSection("letra");
       }
       setNotice(`Música “${songToDelete.titulo}” excluída do catálogo.`);
       setSongToDelete(null);
@@ -411,7 +605,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                     collapsed={sidebarCollapsed}
                     icon={item.icon}
                     label={item.label}
-                    onClick={() => setActiveSection(item.id)}
+                    onClick={() => openSection(item.id)}
                   >
                     {item.label}
                   </SidebarButton>
@@ -438,8 +632,10 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
       </aside>
 
       <section className="flex min-w-0 flex-1 flex-col">
-        <header className="shrink-0 border-b border-line bg-card">
-          <div className="flex min-h-14 items-center gap-2 px-3 sm:gap-4 sm:px-7">
+        <header className="relative z-20 shrink-0 border-b border-line bg-card">
+          <div className={`flex items-center gap-2 px-3 sm:gap-4 sm:px-7 ${
+            isExperimentalSection ? "min-h-12 py-1" : "min-h-14 py-2"
+          }`}>
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-medium text-ink-soft">
                 Administração{activeGroup ? ` / ${activeGroup.label}` : ""} /{" "}
@@ -448,83 +644,52 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                   ? ` / ${selectedId ? "Editar música" : "Cadastro de nova música"}`
                   : ""}
               </p>
-              <h2 className="truncate text-base font-semibold tracking-tight text-ink">
-                {editing && !isUtilitySection
-                  ? form.titulo || "Cadastro de nova música"
-                  : SECTION_TITLES[activeSection]}
-              </h2>
+              {!isExperimentalSection ? (
+                <h2 className="truncate text-lg font-bold tracking-tight text-ink">
+                  {editing && !isUtilitySection
+                    ? form.titulo || "Cadastro de nova música"
+                    : SECTION_TITLES[activeSection]}
+                </h2>
+              ) : null}
             </div>
-            {editing && !isUtilitySection ? (
-              <div className="flex shrink-0 items-center gap-2">
-                <button
-                  type="button"
-                  onClick={backToSongList}
-                  className="inline-flex h-8.5 items-center rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink transition-colors hover:bg-paper"
-                >
-                  ‹ Voltar à listagem
-                </button>
-                {dirty ? (
-                  <button
-                    type="button"
-                    onClick={discardChanges}
-                    className="hidden h-8.5 rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper sm:inline-flex sm:items-center"
-                  >
-                    Descartar
-                  </button>
-                ) : null}
-                {selectedId ? (
-                  <button
-                    type="button"
-                    onClick={() => selectedSong && removeSong(selectedSong)}
-                    className="hidden h-8.5 rounded-[3px] border border-danger/30 bg-card px-3 text-xs font-medium text-danger hover:bg-danger-soft sm:inline-flex sm:items-center"
-                  >
-                    Excluir
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={saveSong}
-                  disabled={saving || !dirty}
-                  className="h-8.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {saving ? "Salvando…" : "Salvar"}
-                </button>
-              </div>
-            ) : !isUtilitySection ? (
-              <button
-                type="button"
-                onClick={startNewSong}
-                className="inline-flex h-8.5 shrink-0 items-center gap-1.5 rounded-[3px] bg-pine px-3.5 text-xs font-semibold text-white transition-colors hover:bg-pine-dark focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-pine"
-              >
-                <span aria-hidden className="text-sm leading-none">
-                  +
-                </span>
-                Nova música
-              </button>
-            ) : null}
-            {isSongSection ? (
-              <button
-                type="button"
-                onClick={() => setPreviewOpen(true)}
-                aria-haspopup="dialog"
-                className="h-8.5 shrink-0 rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper"
-              >
-                Prévia
-              </button>
-            ) : null}
+            <AccountOptionsMenu
+              compact={isExperimentalSection}
+              activeSection={isUserAccountSection ? activeUserAccountSection : null}
+              onSelect={(section) => {
+                setActiveUserAccountSection(section);
+                openSection("minha-conta");
+              }}
+              onLogout={() => {
+                if (saving) return;
+                if (isWizard && dirty && !window.confirm("Descartar as alterações não salvas?")) return;
+                onLogout();
+              }}
+            />
             <button
               type="button"
+              role="switch"
+              aria-checked={isPanelDark}
               onClick={() => toggleTheme({ force: true })}
-              aria-label={isPanelDark ? "Alternar painel para modo claro" : "Alternar painel para modo escuro"}
+              aria-label="Tema escuro"
               title={isPanelDark ? "Mudar para modo claro" : "Mudar para modo escuro"}
-              className="inline-flex h-8.5 shrink-0 items-center gap-1.5 rounded-[3px] border border-line bg-paper px-2.5 text-xs font-medium text-ink-soft transition-colors hover:border-ink-soft/40 hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-pine sm:px-3"
+              className={`inline-flex shrink-0 items-center gap-2 rounded-md text-xs font-semibold text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine ${
+                isExperimentalSection
+                  ? "h-9 px-1 hover:text-pine"
+                  : "h-11 border border-line bg-paper px-2.5 hover:border-pine/60 sm:px-3"
+              }`}
             >
-              {isPanelDark ? (
-                <SunMiniIcon className="h-4 w-4 text-ink" />
-              ) : (
-                <MoonMiniIcon className="h-4 w-4 text-ink" />
-              )}
-              <span className="hidden sm:inline">{isPanelDark ? "Claro" : "Escuro"}</span>
+              <span aria-hidden="true" className={`relative rounded-full p-0.5 transition-colors ${
+                isExperimentalSection ? "h-6 w-11" : "h-7 w-14"
+              } ${isPanelDark ? "bg-pine" : "bg-line"}`}>
+                <span className={`flex items-center justify-center rounded-full bg-card text-ink shadow-sm transition-transform ${
+                  isExperimentalSection
+                    ? `h-5 w-5 ${isPanelDark ? "translate-x-5" : ""}`
+                    : `h-6 w-6 ${isPanelDark ? "translate-x-7" : ""}`
+                }`}>
+                  {isPanelDark ? <MoonMiniIcon className="h-3.5 w-3.5" /> : <SunMiniIcon className="h-3.5 w-3.5" />}
+                </span>
+              </span>
+              <span aria-hidden="true" className="hidden sm:inline">{isPanelDark ? "Escuro" : "Claro"}</span>
             </button>
           </div>
           <nav
@@ -535,7 +700,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
               <button
                 key={section.id}
                 type="button"
-                onClick={() => setActiveSection(section.id)}
+                onClick={() => openSection(section.id)}
                 className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium ${
                   activeSection === section.id
                     ? "bg-pine text-white"
@@ -568,42 +733,25 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
               ))}
             </nav>
           ) : null}
-          {isUserAccountSection ? (
-            <nav
-              className="flex gap-1.5 overflow-x-auto border-t border-line bg-paper/40 px-3 py-2 sm:px-7"
-              aria-label="Submenus da minha conta"
-            >
-              {USER_ACCOUNT_SECTIONS.map((section) => (
-                <button
-                  key={section.id}
-                  type="button"
-                  onClick={() => setActiveUserAccountSection(section.id)}
-                  aria-current={activeUserAccountSection === section.id ? "page" : undefined}
-                  className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    activeUserAccountSection === section.id
-                      ? "bg-pine text-white"
-                      : "text-ink-soft hover:bg-card hover:text-ink"
-                  }`}
-                >
-                  {section.label}
-                </button>
-              ))}
-            </nav>
+          {logoutError ? (
+            <p role="alert" className="border-t border-line px-3 py-2 text-xs text-danger sm:px-7">
+              {logoutError}
+            </p>
           ) : null}
         </header>
 
         <div
           className={`grid min-h-0 flex-1 ${
-            isUtilitySection
+            !hasSideMobilePreview
               ? "grid-cols-1 overflow-y-auto"
               : sidePreviewCollapsed
                 ? "grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_48px] lg:overflow-hidden"
-                : "grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_380px] lg:overflow-hidden"
+                : "grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_320px] lg:overflow-hidden xl:grid-cols-[minmax(0,1fr)_380px]"
           }`}
         >
           <main
             className={`min-w-0 p-4 sm:p-6 lg:min-h-0 lg:p-8 ${
-              activeSection === "letra" && !editing
+              isSongSection && !editing && !isExperimentalSection
                 ? "flex min-h-0 flex-col overflow-hidden lg:overflow-hidden"
                 : "lg:overflow-y-auto"
             }`}
@@ -613,15 +761,16 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
             ) : isUserAccountSection ? (
               <UserProfileMenu
                 user={user}
-                onLogout={onLogout}
                 inline
                 activeTab={activeUserAccountSection}
                 onTabChange={setActiveUserAccountSection}
               />
             ) : isRegistrySection ? (
               <AdminRegistriesSection
+                key={activeRegistryTab}
                 activeTab={activeRegistryTab}
                 songs={visibleSongs}
+                onDirtyChange={setRegistryDirty}
               />
             ) : isPersonalizationSection ? (
               <AdminPersonalizationSection activeTab={activePersonalizationSection} />
@@ -633,12 +782,118 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
               <AdminProjectExportSection totalSongs={songs.length} />
             ) : (
               <div
-                className={`mx-auto w-full max-w-5xl ${
-                  activeSection === "letra" && !editing
+                className={`mx-auto w-full max-w-7xl ${
+                  isSongSection && !editing && !isExperimentalSection
                     ? "flex min-h-0 flex-1 flex-col"
-                    : "space-y-5"
+                    : isCompleteChooser
+                      ? "flex min-h-full flex-col space-y-5"
+                      : "space-y-5"
                 }`}
               >
+                {isExperimentalSection && !isWizard ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/80 pb-4">
+                    <div>
+                      <h3 className="text-sm font-semibold text-ink">
+                        {selectedSong ? `Música: ${form.titulo || selectedSong.titulo}` : "Escolha uma música para editar"}
+                      </h3>
+                      <p className="mt-1 text-xs text-ink-soft">
+                        Alterne entre as abas para editar a música selecionada.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setExperimentalPickerOpen((open) => !open)}
+                        aria-expanded={experimentalPickerOpen}
+                        disabled={saving}
+                        className="inline-flex h-10 items-center rounded-[3px] border border-line bg-card px-4 text-xs font-semibold text-pine hover:border-pine hover:bg-paper disabled:opacity-50"
+                      >
+                        {experimentalPickerOpen ? "Fechar catálogo" : "Escolher música"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={startNewSong}
+                        disabled={saving}
+                        className="inline-flex h-10 items-center gap-1.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark disabled:opacity-50"
+                      >
+                        <span aria-hidden="true" className="text-sm leading-none">+</span>
+                        Nova música
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+                {editing && !isWizard ? (
+                  <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 border-b border-line/80 bg-paper py-3">
+                    <p className="text-xs text-ink-soft" aria-live="polite">
+                      {dirty ? "Alterações não salvas" : "Sem alterações pendentes"}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {!isExperimentalSection ? (
+                        <button
+                          type="button"
+                          onClick={backToSongList}
+                          className="inline-flex h-10 items-center gap-1.5 rounded-[3px] border border-line bg-card px-4 text-xs font-medium text-ink transition-colors hover:bg-paper"
+                        >
+                          <svg
+                            viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 shrink-0"
+                            fill="none" stroke="currentColor" strokeWidth="1.8"
+                            strokeLinecap="round" strokeLinejoin="round"
+                          >
+                            <path d="M19 12H5m7-7-7 7 7 7" />
+                          </svg>
+                          Voltar à listagem
+                        </button>
+                      ) : null}
+                      {dirty ? (
+                        <button
+                          type="button"
+                          onClick={discardChanges}
+                          className="inline-flex h-10 items-center gap-1.5 rounded-[3px] border border-line bg-card px-4 text-xs font-medium text-ink hover:bg-paper"
+                        >
+                          <svg
+                            viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 shrink-0"
+                            fill="none" stroke="currentColor" strokeWidth="1.8"
+                            strokeLinecap="round" strokeLinejoin="round"
+                          >
+                            <path d="M3 7v5h5M4 12a8 8 0 1 1 2.4 5.7" />
+                          </svg>
+                          Descartar
+                        </button>
+                      ) : null}
+                      {selectedId ? (
+                        <button
+                          type="button"
+                          onClick={() => selectedSong && removeSong(selectedSong)}
+                          className="inline-flex h-10 items-center gap-1.5 rounded-[3px] border border-danger/30 bg-card px-4 text-xs font-medium text-danger hover:bg-danger-soft"
+                        >
+                          <svg
+                            viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 shrink-0"
+                            fill="none" stroke="currentColor" strokeWidth="1.8"
+                            strokeLinecap="round" strokeLinejoin="round"
+                          >
+                            <path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5" />
+                          </svg>
+                          Excluir
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={saveSong}
+                        disabled={saving || !dirty}
+                        className="inline-flex h-10 items-center gap-1.5 rounded-[3px] bg-pine px-5 text-xs font-semibold text-white hover:bg-pine-dark disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <svg
+                          viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 shrink-0"
+                          fill="none" stroke="currentColor" strokeWidth="1.8"
+                          strokeLinecap="round" strokeLinejoin="round"
+                        >
+                          <path d="M5 3h12l3 3v15H4V3h1Zm3 0v6h8V3M8 21v-8h8v8" />
+                        </svg>
+                        {saving ? "Salvando…" : isExperimentalSection ? "Salvar música" : "Salvar"}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
                 {error ? (
                   <p role="alert" className="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
                     {error}
@@ -654,45 +909,245 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                     Não foi possível carregar o catálogo: {loadError}
                   </p>
                 ) : null}
-                {activeSection === "letra" ? (
-                  !editing ? (
-                    <SongPickerSection
-                      songs={visibleSongs}
-                      totalSongs={songs.length}
-                      loading={loadingSongs}
-                      search={search}
-                      onSearch={setSearch}
-                      selectedId={selectedId}
-                      onSelect={selectSong}
-                      fillHeight
-                    />
-                  ) : (
+                {isWizard ? (
+                  <div className="space-y-4 border-b border-line/80 pb-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-ink">Cadastro de nova música</h3>
+                        <p className="mt-1 text-xs text-ink-soft">
+                          Etapa {wizardStep + 1} de {NEW_SONG_STEPS.length}. A música será salva ao concluir.
+                        </p>
+                        <p className="mt-1 text-xs text-ink-soft">
+                          <span className="font-semibold text-danger" aria-hidden="true">*</span> Campos obrigatórios
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={backToSongList}
+                        disabled={saving}
+                        className="inline-flex h-10 items-center rounded-[3px] border border-line bg-card px-4 text-xs font-medium text-ink hover:bg-paper disabled:opacity-50"
+                      >
+                        Cancelar cadastro
+                      </button>
+                    </div>
+                    <ol aria-label="Etapas do cadastro" className="grid gap-2 sm:grid-cols-4">
+                      {NEW_SONG_STEPS.map((step, index) => (
+                        <li
+                          key={step.id}
+                          aria-current={wizardStep === index ? "step" : undefined}
+                          className={`rounded-[3px] border px-3 py-2 text-xs ${
+                            wizardStep === index
+                              ? "border-pine bg-pine/10 font-semibold text-pine"
+                              : "border-line text-ink-soft"
+                          }`}
+                        >
+                          {index + 1}. {step.label}{step.optional ? " (opcional)" : ""}
+                        </li>
+                      ))}
+                    </ol>
+                    {NEW_SONG_STEPS[wizardStep].optional ? (
+                      <p className="text-xs text-ink-soft">
+                        Esta etapa é opcional. Você pode continuar sem preencher e editar depois.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+                {isExperimentalSection && !isWizard && !experimentalPickerOpen ? (
+                  <nav className="flex flex-wrap gap-2 border-b border-line/80 pb-4" aria-label="Abas de edição da música">
+                    {EXPERIMENTAL_TABS.map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setExperimentalTab(tab.id)}
+                        disabled={!editing}
+                        aria-pressed={experimentalTab === tab.id}
+                        className={`min-h-10 rounded-[3px] border px-4 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-pine disabled:cursor-not-allowed disabled:opacity-50 ${
+                          experimentalTab === tab.id
+                            ? "border-pine bg-pine text-white"
+                            : "border-line bg-card text-ink hover:border-pine hover:text-pine"
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </nav>
+                ) : isCompleteChooser ? (
+                  <nav
+                    className="flex flex-1 items-center justify-center py-8"
+                    aria-label="Opções de edição da música"
+                  >
+                    <div className="w-full">
+                      <h3 className="text-center text-lg font-semibold text-ink">
+                        Escolha o que deseja editar
+                      </h3>
+                      <p className="mt-1 text-center text-sm text-ink-soft">
+                        Selecione uma opção para começar.
+                      </p>
+                      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                        {EDITOR_OPTIONS.map(({ id, icon: Icon }) => (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => setCompleteTab(id)}
+                            className="flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-md border border-line bg-card px-5 py-6 text-center transition-colors hover:border-pine hover:text-pine focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
+                          >
+                            <Icon className="h-9 w-9" />
+                            <span className="text-sm font-semibold">{SECTION_TITLES[id]}</span>
+                            <span className="text-xs leading-relaxed text-ink-soft">{EDITOR_DESCRIPTIONS[id]}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </nav>
+                ) : editing && isCompleteSection && !isWizard ? (
+                  <nav
+                    className="space-y-2 border-b border-line/80 pb-4"
+                    aria-label="Opções de edição da música"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-ink">Escolha o que deseja editar</p>
+                      <button
+                        type="button"
+                        onClick={() => setCompleteTab(null)}
+                        className="text-xs font-semibold text-pine hover:underline"
+                      >
+                        Voltar às opções
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {EDITOR_SECTIONS.map((section) => (
+                        <button
+                          key={section}
+                          type="button"
+                          onClick={() => setCompleteTab(section)}
+                          aria-pressed={completeTab === section}
+                          className={`min-h-10 rounded-[3px] border px-4 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-pine ${
+                            completeTab === section
+                              ? "border-pine bg-pine text-white"
+                              : "border-line bg-card text-ink hover:border-pine hover:text-pine"
+                          }`}
+                        >
+                          {SECTION_TITLES[section]}
+                        </button>
+                      ))}
+                    </div>
+                  </nav>
+                ) : null}
+                {isExperimentalSection && !isWizard ? (
+                  experimentalPickerOpen ? (
+                    <div id="experimental-song-picker">
+                      <SongPickerSection
+                        songs={catalogSongs}
+                        totalSongs={songs.length}
+                        loading={loadingSongs}
+                        search={search}
+                        onSearch={setSearch}
+                        pendingOnly={pendingOnly}
+                        onPendingOnlyChange={setPendingOnly}
+                        contentFilters={contentFilters}
+                        onContentFiltersChange={setContentFilters}
+                        hasContentFilters={hasContentFilters}
+                        onCreate={startNewSong}
+                        selectedId={selectedId}
+                        onSelect={selectSong}
+                        section="completa"
+                      />
+                    </div>
+                  ) : editing && experimentalTab !== "slides" ? (
                     <SongEditorSection
-                      section={activeSection}
+                      key={`${selectedId}-${editorSection}-${editorRevision}`}
+                      section={editorSection}
                       form={form}
                       songs={songs}
                       onUpdate={updateForm}
                       onAudioChange={handleAudioChange}
                       onClearAudio={clearAudio}
-                      onOpenSection={setActiveSection}
+                      onOpenSection={openSection}
+                      invalidFields={invalidFields}
+                      requireBaseLyrics={!form.letraVozes.trim()}
                     />
-                  )
-                ) : editing ? (
-                  <SongEditorSection
-                    section={activeSection}
-                    form={form}
-                    songs={songs}
-                    onUpdate={updateForm}
-                    onOpenSection={setActiveSection}
-                  />
-                ) : (
-                  <EmptyEditorSection
-                    section={activeSection}
-                    onCreate={startNewSong}
-                    onGoToLyrics={() => setActiveSection("letra")}
-                    hasSongs={songs.length > 0}
-                  />
-                )}
+                  ) : null
+                ) : !editing ? (
+                    <SongPickerSection
+                      songs={catalogSongs}
+                      totalSongs={songs.length}
+                      loading={loadingSongs}
+                      search={search}
+                      onSearch={setSearch}
+                      pendingOnly={pendingOnly}
+                      onPendingOnlyChange={setPendingOnly}
+                      contentFilters={contentFilters}
+                      onContentFiltersChange={setContentFilters}
+                      hasContentFilters={hasContentFilters}
+                      onCreate={startNewSong}
+                      selectedId={selectedId}
+                      onSelect={selectSong}
+                      fillHeight
+                      section={activeSection}
+                    />
+                ) : editorSection ? (
+                  <fieldset disabled={isWizard && saving} className="min-w-0">
+                    <SongEditorSection
+                      key={`${selectedId}-${editorSection}-${editorRevision}`}
+                      section={editorSection}
+                      form={form}
+                      songs={songs}
+                      onUpdate={updateForm}
+                      onAudioChange={handleAudioChange}
+                      onClearAudio={clearAudio}
+                      onOpenSection={openSection}
+                      invalidFields={invalidFields}
+                      requireBaseLyrics={isWizard || !form.letraVozes.trim()}
+                    />
+                  </fieldset>
+                ) : null}
+                {isExperimentalSection && editing && !isWizard && selectedSong ? (
+                  <div hidden={experimentalTab !== "slides" || experimentalPickerOpen}>
+                    <p className="mb-4 text-xs text-ink-soft">
+                      As alterações na projeção são temporárias e serão perdidas ao trocar de música ou sair deste menu. Use “Restaurar da letra” para atualizar os slides após editar a letra.
+                    </p>
+                    <AdminSlidesEditorSection
+                      key={selectedId}
+                      songs={[{ ...selectedSong, ...form, numero: number }]}
+                      singleSong
+                    />
+                  </div>
+                ) : null}
+                {isWizard ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line/80 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setError("");
+                        setWizardStep((step) => step - 1);
+                      }}
+                      disabled={wizardStep === 0 || saving}
+                      className="h-10 rounded-[3px] border border-line bg-card px-4 text-xs font-medium text-ink hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Etapa anterior
+                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      {wizardStep === 2 && !songHasVoices(form) ? (
+                        <button
+                          type="button"
+                          onClick={nextWizardStep}
+                          disabled={saving}
+                          className="h-10 rounded-[3px] border border-line bg-card px-4 text-xs font-medium text-ink hover:bg-paper disabled:opacity-50"
+                        >
+                          Pular vozes
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={wizardStep === NEW_SONG_STEPS.length - 1 ? saveSong : nextWizardStep}
+                        disabled={saving}
+                        className="h-10 rounded-[3px] bg-pine px-5 text-xs font-semibold text-white hover:bg-pine-dark disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {saving ? "Salvando…" : wizardStep === NEW_SONG_STEPS.length - 1 ? "Concluir cadastro" : "Próxima etapa"}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
           </main>
@@ -735,7 +1190,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
           ) : null}
         </div>
       </section>
-      {previewOpen ? (
+      {previewOpen && hasSideMobilePreview ? (
         <PreviewModal
           form={form}
           number={number}
@@ -789,7 +1244,7 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                 type="button"
                 disabled={deletingSong}
                 onClick={() => setSongToDelete(null)}
-                className="h-9.5 rounded-lg border border-line bg-card px-4 text-sm font-medium hover:bg-paper disabled:opacity-50"
+                className="h-10 rounded-lg border border-line bg-card px-5 text-sm font-medium hover:bg-paper disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -797,13 +1252,106 @@ export default function AdminContentPage({ user, onLogout, accessPanel }) {
                 type="button"
                 disabled={deletingSong}
                 onClick={confirmRemoveSong}
-                className="h-9.5 rounded-lg bg-danger px-4 text-sm font-semibold text-white hover:brightness-95 disabled:opacity-60"
+                className="h-10 rounded-lg bg-danger px-5 text-sm font-semibold text-white hover:brightness-95 disabled:opacity-60"
               >
                 {deletingSong ? "Excluindo…" : "Confirmar exclusão"}
               </button>
             </div>
           </div>
         </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AccountOptionsMenu({ activeSection, onSelect, onLogout, compact = false }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+  const buttonRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const closeOnOutsideClick = (event) => {
+      if (!containerRef.current?.contains(event.target)) setOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="relative shrink-0">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+        aria-controls="admin-account-options"
+        className={`inline-flex items-center gap-2 rounded-md text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine ${
+          compact
+            ? `h-9 px-1 ${open || activeSection ? "text-pine" : "text-ink-soft hover:text-ink"}`
+            : `h-11 border px-3 sm:px-4 ${
+                open || activeSection
+                  ? "border-pine bg-pine/10 text-pine"
+                  : "border-line bg-paper text-ink-soft hover:border-ink-soft/40 hover:text-ink"
+              }`
+        }`}
+      >
+        <UserAccountIcon className="h-4 w-4 shrink-0" />
+        Minha Conta
+        <span aria-hidden="true" className={`transition-transform ${open ? "rotate-180" : ""}`}>⌄</span>
+      </button>
+      {open ? (
+        <nav
+          id="admin-account-options"
+          aria-label="Opções da minha conta"
+          className="absolute right-[-4.5rem] top-full z-30 mt-2 max-h-[calc(100dvh-6rem)] w-64 max-w-[calc(100vw-4.5rem)] overflow-y-auto rounded-md border border-line bg-card p-1.5 shadow-xl sm:right-0"
+        >
+          {USER_ACCOUNT_SECTIONS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => {
+                onSelect(id);
+                setOpen(false);
+                buttonRef.current?.focus();
+              }}
+              aria-current={activeSection === id ? "page" : undefined}
+              className={`flex w-full items-center gap-2.5 rounded px-3 py-2.5 text-left text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine ${
+                activeSection === id ? "bg-pine/10 text-pine" : "text-ink hover:bg-paper"
+              }`}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              {label}
+            </button>
+          ))}
+          {onLogout ? (
+            <div className="mt-1 border-t border-line pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  onLogout();
+                }}
+                className="flex w-full items-center gap-2.5 rounded px-3 py-2.5 text-left text-xs font-medium text-danger hover:bg-danger-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 17v3H4V4h6v3m5 1 4 4-4 4m4-4H9" />
+                </svg>
+                Sair
+              </button>
+            </div>
+          ) : null}
+        </nav>
       ) : null}
     </div>
   );
@@ -1090,10 +1638,28 @@ function SongPickerSection({
   loading,
   search,
   onSearch,
+  pendingOnly,
+  onPendingOnlyChange,
+  contentFilters,
+  onContentFiltersChange,
+  hasContentFilters,
+  onCreate,
   selectedId,
   onSelect,
   fillHeight,
+  section,
 }) {
+  const isComplete = section === "completa";
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const activeFilterCount = isComplete
+    ? EDITOR_SECTIONS.filter((filterSection) => contentFilters[filterSection] !== "all").length
+    : Number(pendingOnly);
+  const filtersActive = Boolean(search) || (isComplete ? hasContentFilters : pendingOnly);
+
+  useEffect(() => {
+    setFiltersOpen(false);
+  }, [section]);
+
   return (
     <section
       className={`${
@@ -1106,51 +1672,152 @@ function SongPickerSection({
             <h3 className="text-sm font-semibold tracking-tight text-ink">Catálogo de músicas</h3>
             {!loading ? (
               <span className="inline-flex items-center rounded-[3px] border border-line bg-card px-1.5 py-0.5 font-mono text-[11px] font-medium tabular-nums text-ink-soft">
-                {totalSongs}
+                {filtersActive ? `${songs.length} / ${totalSongs}` : totalSongs}
               </span>
             ) : null}
           </div>
           <p className="mt-0.5 text-xs text-ink-soft">
-            Selecione um registro para abrir o editor ou utilize o botão + Nova música na barra superior.
+            {isComplete
+              ? "Selecione uma música para escolher o que editar."
+              : `Selecione uma música para trabalhar em ${SECTION_TITLES[section].toLocaleLowerCase("pt-BR")}.`}
           </p>
         </div>
 
-        {totalSongs ? (
-          <div className="relative flex w-full items-center sm:w-80">
-            <svg
-              viewBox="0 0 24 24"
-              aria-hidden
-              className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-ink-soft"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3.8-3.8" />
-            </svg>
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => onSearch(event.target.value)}
-              placeholder="Filtrar por número, título ou letra…"
-              aria-label="Buscar músicas"
-              className="h-9 w-full rounded-[3px] border border-line bg-card pl-8 pr-7 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
-            />
-            {search ? (
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          {totalSongs ? (
+            <>
+              <div className="relative flex w-full items-center sm:w-64">
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                  className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-ink-soft"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.8-3.8" />
+                </svg>
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(event) => onSearch(event.target.value)}
+                  placeholder="Filtrar por número, título ou letra…"
+                  aria-label="Buscar músicas"
+                  className="h-9 w-full rounded-[3px] border border-line bg-card pl-8 pr-7 text-[13px] text-ink outline-none focus:border-pine focus:ring-1 focus:ring-pine"
+                />
+                {search ? (
+                  <button
+                    type="button"
+                    onClick={() => onSearch("")}
+                    aria-label="Limpar busca"
+                    className="absolute right-1.5 inline-flex h-6 w-6 items-center justify-center rounded-[2px] text-ink-soft hover:text-ink"
+                  >
+                    ×
+                  </button>
+                ) : null}
+              </div>
               <button
                 type="button"
-                onClick={() => onSearch("")}
-                aria-label="Limpar busca"
-                className="absolute right-1.5 inline-flex h-6 w-6 items-center justify-center rounded-[2px] text-ink-soft hover:text-ink"
+                onClick={() => setFiltersOpen((current) => !current)}
+                aria-expanded={filtersOpen}
+                aria-controls="song-catalog-filters"
+                className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-[3px] border px-4 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine ${
+                  filtersOpen || activeFilterCount
+                    ? "border-pine bg-pine/10 text-pine"
+                    : "border-line bg-card text-ink hover:border-pine hover:text-pine"
+                }`}
               >
-                ×
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 5h16l-6.5 7.5V19l-3 1v-7.5L4 5Z" />
+                </svg>
+                Filtros
+                {activeFilterCount ? (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-pine px-1 text-[10px] text-white">
+                    {activeFilterCount}
+                  </span>
+                ) : null}
+              </button>
+            </>
+          ) : null}
+          {section === "letra" || isComplete ? (
+            <button
+              type="button"
+              onClick={onCreate}
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white transition-colors hover:bg-pine-dark focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-pine"
+            >
+              <span aria-hidden className="text-sm leading-none">+</span>
+              Nova música
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      {totalSongs && filtersOpen ? (
+        <div id="song-catalog-filters" className="space-y-4 border-b border-line/80 bg-card/60 px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-ink">Filtrar músicas</p>
+            {activeFilterCount ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (isComplete) onContentFiltersChange(EMPTY_CONTENT_FILTERS);
+                  else onPendingOnlyChange(false);
+                }}
+                className="text-xs font-semibold text-pine hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
+              >
+                Limpar filtros
               </button>
             ) : null}
           </div>
-        ) : null}
-      </div>
+          <div className="flex flex-wrap gap-x-8 gap-y-4">
+            {(isComplete ? EDITOR_SECTIONS : [section]).map((filterSection) => {
+              const label = CONTENT_LABELS[filterSection];
+              const selected = isComplete
+                ? contentFilters[filterSection]
+                : pendingOnly ? "missing" : "all";
+              const options = [
+                { value: "all", label: "Todos" },
+                ...(isComplete ? [{ value: "present", label: `Com ${label}` }] : []),
+                { value: "missing", label: `Sem ${label}` },
+              ];
+              return (
+                <div key={filterSection} className="space-y-2">
+                  <p className="text-xs font-semibold capitalize text-ink-soft">{label}</p>
+                  <div role="group" aria-label={`Filtrar por ${label}`} className="flex flex-wrap gap-1.5">
+                    {options.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={selected === option.value}
+                        onClick={() => {
+                          if (isComplete) {
+                            onContentFiltersChange((current) => ({
+                              ...current,
+                              [filterSection]: option.value,
+                            }));
+                          } else {
+                            onPendingOnlyChange(option.value === "missing");
+                          }
+                        }}
+                        className={`min-h-9 rounded-[3px] border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine ${
+                          selected === option.value
+                            ? "border-pine bg-pine text-white"
+                            : "border-line bg-card text-ink hover:border-pine hover:text-pine"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {loading ? (
         <p className="py-6 text-sm text-ink-soft">Carregando catálogo…</p>
@@ -1162,6 +1829,11 @@ function SongPickerSection({
         >
           {songs.map((song) => {
             const isSelected = selectedId === song.id;
+            const hasContent = !isComplete && hasSectionContent(song, section);
+            const needsCreation = !isComplete && section !== "letra" && !hasContent;
+            const contentStatus = isComplete
+              ? ""
+              : `${hasContent ? "Com" : "Sem"} ${CONTENT_LABELS[section]}`;
             return (
               <li key={song.id}>
                 <button
@@ -1184,35 +1856,51 @@ function SongPickerSection({
                     {String(song.numero).padStart(3, "0")}
                   </span>
 
-                  <span
-                    className={`min-w-0 flex-1 truncate text-[13px] ${
-                      isSelected ? "font-semibold text-ink" : "font-medium text-ink"
-                    }`}
-                  >
-                    {song.titulo}
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={`block truncate text-[13px] ${
+                        isSelected ? "font-semibold text-ink" : "font-medium text-ink"
+                      }`}
+                    >
+                      {song.titulo}
+                    </span>
+                    {isComplete ? (
+                      <span className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-ink-soft">
+                        {EDITOR_SECTIONS.map((statusSection) => (
+                          <span key={statusSection}>
+                            {hasSectionContent(song, statusSection) ? "Com" : "Sem"}{" "}
+                            {CONTENT_LABELS[statusSection]}
+                          </span>
+                        ))}
+                      </span>
+                    ) : null}
                   </span>
 
-                  {song.audioArquivo ? (
+                  {!isComplete ? (
                     <span
-                      title="Com demonstração de áudio"
-                      className="inline-flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-ink-soft"
+                      className={`inline-flex shrink-0 items-center gap-1.5 text-[11px] ${
+                        hasContent ? "font-medium text-ink-soft" : "text-ink-soft/70"
+                      }`}
                     >
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      <span className="hidden sm:inline">Com áudio</span>
+                      <span
+                        aria-hidden
+                        className={`h-1.5 w-1.5 rounded-full ${hasContent ? "bg-emerald-500" : "bg-ink-soft/30"}`}
+                      />
+                      {contentStatus}
                     </span>
-                  ) : (
-                    <span
-                      title="Sem demonstração de áudio"
-                      className="inline-flex shrink-0 items-center gap-1.5 text-[11px] text-ink-soft/60"
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-ink-soft/30" />
-                      <span className="hidden sm:inline">Sem áudio</span>
-                    </span>
-                  )}
+                  ) : null}
 
-                  <span className="inline-flex shrink-0 items-center gap-1 pl-2 text-xs font-medium text-ink-soft group-hover:text-pine">
-                    <span>{isSelected ? "Editando" : "Editar"}</span>
-                    <span aria-hidden>›</span>
+                  <span className={`inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-[3px] px-3 text-xs font-semibold transition-colors ${
+                    needsCreation && !isSelected
+                      ? "bg-pine text-white group-hover:bg-pine-dark"
+                      : "border border-line bg-card text-pine group-hover:border-pine group-hover:bg-paper"
+                  }`}>
+                    {needsCreation ? (
+                      <span aria-hidden="true" className="text-base leading-none">+</span>
+                    ) : (
+                      <EditIcon className="h-4 w-4 shrink-0" />
+                    )}
+                    <span>{isSelected ? "Editando" : needsCreation ? "Criar" : "Editar"}</span>
                   </span>
                 </button>
               </li>
@@ -1221,7 +1909,9 @@ function SongPickerSection({
         </ul>
       ) : (
         <p className="py-6 text-sm text-ink-soft">
-          {search ? "Nenhuma música encontrada." : "O catálogo ainda está vazio."}
+          {filtersActive
+            ? "Nenhuma música encontrada para os filtros selecionados."
+            : "O catálogo ainda está vazio."}
         </p>
       )}
     </section>
@@ -1236,6 +1926,8 @@ function SongEditorSection({
   onAudioChange,
   onClearAudio,
   onOpenSection,
+  invalidFields,
+  requireBaseLyrics,
 }) {
   const { themes } = useSongThemes();
   const { mergedEntries: infoEntries } = useSongInfoRegistry(songs);
@@ -1266,7 +1958,7 @@ function SongEditorSection({
     );
   };
 
-  if (section === "letra") {
+  if (section === "letra" || section === "informacoes" || section === "letra-base") {
     const bandOptions =
       form.banda && !relatedInfo.bands.includes(form.banda)
         ? [form.banda, ...relatedInfo.bands]
@@ -1290,7 +1982,8 @@ function SongEditorSection({
 
     return (
       <div className="divide-y divide-line/80">
-        {/* Bloco 1: Dados Principais e Ficha Técnica */}
+        {section !== "letra-base" ? (
+        <>
         <section className="pb-7">
           <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
             <h3 className="text-sm font-semibold tracking-tight text-ink">
@@ -1322,14 +2015,25 @@ function SongEditorSection({
           <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2 lg:grid-cols-12">
             {/* Linha 1: Título, Tema e Autor/Compositor */}
             <label className="block space-y-1.5 sm:col-span-2 lg:col-span-5">
-              <span className={desktopLabelClass}>Título</span>
+              <span className={`text-xs font-semibold ${invalidFields.titulo ? "text-danger" : "text-ink"}`}>
+                Título da música <span className="text-danger" aria-hidden="true">*</span>
+              </span>
               <input
+                id="admin-song-title"
                 value={form.titulo}
                 onChange={(event) => onUpdate({ titulo: event.target.value })}
                 maxLength={200}
                 placeholder="Informe o título da música"
-                className={desktopFieldClass}
+                required
+                aria-invalid={invalidFields.titulo || undefined}
+                aria-describedby={invalidFields.titulo ? "admin-song-title-required" : undefined}
+                className={`${desktopFieldClass} h-11 text-sm font-semibold ${
+                  invalidFields.titulo ? "!border-danger bg-danger-soft/30 focus:!border-danger focus:!ring-danger" : ""
+                }`}
               />
+              {invalidFields.titulo ? (
+                <span id="admin-song-title-required" className="sr-only">Campo obrigatório.</span>
+              ) : null}
             </label>
 
             <label className="block space-y-1.5 lg:col-span-3">
@@ -1460,7 +2164,6 @@ function SongEditorSection({
           </div>
         </section>
 
-        {/* Bloco 2: Demonstração de Áudio */}
         <section className="py-7">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -1513,7 +2216,7 @@ function SongEditorSection({
                 />
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <label className="inline-flex h-8 cursor-pointer items-center rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper">
+                <label className="inline-flex h-10 cursor-pointer items-center rounded-[3px] border border-line bg-card px-4 text-xs font-medium text-ink hover:bg-paper">
                   Substituir
                   <input
                     type="file"
@@ -1525,7 +2228,7 @@ function SongEditorSection({
                 <button
                   type="button"
                   onClick={onClearAudio}
-                  className="h-8 rounded-[3px] border border-danger/30 bg-card px-3 text-xs font-medium text-danger hover:bg-danger-soft"
+                  className="h-10 rounded-[3px] border border-danger/30 bg-card px-4 text-xs font-medium text-danger hover:bg-danger-soft"
                 >
                   Remover
                 </button>
@@ -1534,7 +2237,9 @@ function SongEditorSection({
           ) : null}
         </section>
 
-        {/* Bloco 3: Letra e Refrão */}
+        </>
+        ) : null}
+        {section !== "informacoes" ? (
         <section className="space-y-5 pt-7">
           <div>
             <h3 className="text-sm font-semibold tracking-tight text-ink">Letra e refrão</h3>
@@ -1542,9 +2247,15 @@ function SongEditorSection({
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
             <div className="space-y-1.5 lg:col-span-7">
-              <label className={desktopLabelClass}>Letra</label>
+              <span className={invalidFields.letra ? "text-xs font-medium text-danger" : desktopLabelClass}>
+                Letra {requireBaseLyrics ? <span className="text-danger" aria-hidden="true">*</span> : null}
+              </span>
               <LyricEditor
+                id="admin-song-lyrics"
                 label="Letra"
+                required={requireBaseLyrics}
+                invalid={Boolean(invalidFields.letra)}
+                describedBy={invalidFields.letra ? "admin-song-lyrics-required" : undefined}
                 text={form.letra}
                 marks={[]}
                 showVoiceTools={false}
@@ -1553,6 +2264,9 @@ function SongEditorSection({
                 editorClassName="rounded-[3px] bg-card px-3.5 py-2.5 text-left text-[13px] text-ink focus:border-pine focus:ring-1 focus:ring-pine"
                 onChange={({ text }) => onUpdate({ letra: text })}
               />
+              {invalidFields.letra ? (
+                <span id="admin-song-lyrics-required" className="sr-only">Campo obrigatório.</span>
+              ) : null}
             </div>
 
             <div className="space-y-4 lg:col-span-5">
@@ -1590,6 +2304,7 @@ function SongEditorSection({
             </div>
           </div>
         </section>
+        ) : null}
       </div>
     );
   }
@@ -1600,12 +2315,16 @@ function SongEditorSection({
         <div className="border-b border-line/80 pb-4">
           <h3 className="text-sm font-semibold tracking-tight text-ink">Arranjo de vozes</h3>
           <p className="mt-1 text-xs text-ink-soft">
-            Selecione trechos do texto para marcar cada voz. A prévia à direita atualiza em tempo real.
+            Selecione trechos do texto para marcar cada voz. A prévia atualiza em tempo real.
           </p>
         </div>
         <VocalArrangementEditor
           text={form.letraVozes}
           marks={form.vozesArranjo}
+          letra={form.letra}
+          refrao={form.refrao}
+          cronologica={form.cronologica}
+          refraoPrimeiro={form.refraoPrimeiro}
           somenteVozes={form.somenteVozes}
           onChange={({ text, marks }) => onUpdate({ letraVozes: text, vozesArranjo: marks })}
           onSomenteVozesChange={(somenteVozes) => onUpdate({ somenteVozes })}
@@ -1658,29 +2377,6 @@ function CheckOption({ checked, onChange, title, description }) {
         {description ? <span className="text-ink-soft"> — {description}</span> : null}
       </span>
     </label>
-  );
-}
-
-function EmptyEditorSection({ section, onCreate, onGoToLyrics, hasSongs }) {
-  return (
-    <section className="border-b border-line/80 pb-10 pt-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
-        {SECTION_TITLES[section]}
-      </p>
-      <h3 className="mt-1.5 text-base font-semibold text-ink">Selecione uma música para editar</h3>
-      <p className="mt-1 max-w-lg text-xs leading-5 text-ink-soft">
-        {hasSongs
-          ? "Escolha uma música na aba Letra & Áudio para editar o arranjo ou as cifras."
-          : "Crie a primeira música para começar a editar arranjos e cifras."}
-      </p>
-      <button
-        type="button"
-        onClick={hasSongs ? onGoToLyrics : onCreate}
-        className="mt-5 h-8.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark"
-      >
-        {hasSongs ? "Selecionar na listagem" : "Criar primeira música"}
-      </button>
-    </section>
   );
 }
 
@@ -1843,12 +2539,13 @@ function MobilePreview({
             <button
               type="button"
               onClick={() => onOpenExpand("landscape")}
-              aria-label="Expandir prévia para testar modo paisagem"
+              aria-label="Abrir prévia ampliada"
+              aria-haspopup="dialog"
               title="Expandir simulador (Retrato / Paisagem)"
               className="inline-flex h-7 items-center gap-1 rounded-md border border-line bg-paper px-2 text-xs font-medium text-ink-soft transition-colors hover:border-ink-soft/40 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine"
             >
               <ExpandMiniIcon className="h-3.5 w-3.5" />
-              <span>Paisagem</span>
+              <span>Prévia</span>
             </button>
           ) : null}
         </div>

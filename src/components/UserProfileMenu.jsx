@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth.jsx";
 import { getAppSettings } from "@/lib/appSettings.js";
 
-const MENU_OPTIONS = [
+export const USER_ACCOUNT_SECTIONS = [
   {
     id: "perfil",
     label: "Meu Perfil e Contato",
@@ -293,6 +293,13 @@ export default function UserProfileMenu({
       if (onExternalSectionHandled) onExternalSectionHandled();
     }
   }, [externalOpenSection, onExternalSectionHandled]);
+
+  useEffect(() => {
+    if (inline && controlledActiveTab) {
+      setFeedback({ type: "", text: "" });
+      setSelectedInvoice(null);
+    }
+  }, [inline, controlledActiveTab]);
 
   // Fecha a caixa de opções ao clicar fora ou apertar Escape
   useEffect(() => {
@@ -642,7 +649,7 @@ export default function UserProfileMenu({
                           Envie uma imagem do seu computador ou celular (JPG, PNG ou WebP).
                         </p>
                         <div className="flex flex-wrap items-center gap-2 pt-1">
-                          <label className="inline-flex h-8 cursor-pointer items-center rounded-[3px] bg-pine px-3 text-[12px] font-semibold text-white hover:bg-pine-dark">
+                          <label className={`inline-flex cursor-pointer items-center rounded-[3px] bg-pine text-[12px] font-semibold text-white hover:bg-pine-dark ${inline ? "h-10 px-4" : "h-8 px-3"}`}>
                             <span>Alterar foto</span>
                             <input
                               type="file"
@@ -657,7 +664,7 @@ export default function UserProfileMenu({
                               onClick={() =>
                                 setProfileForm((curr) => ({ ...curr, avatarUrl: "" }))
                               }
-                              className="inline-flex h-8 items-center rounded-[3px] border border-line bg-card px-3 text-[12px] font-medium text-ink hover:bg-paper"
+                              className={`inline-flex items-center rounded-[3px] border border-line bg-card text-[12px] font-medium text-ink hover:bg-paper ${inline ? "h-10 px-4" : "h-8 px-3"}`}
                             >
                               Remover foto
                             </button>
@@ -733,7 +740,7 @@ export default function UserProfileMenu({
                       <button
                         type="submit"
                         disabled={saving}
-                        className="inline-flex h-9 items-center rounded-[3px] bg-pine px-5 text-[12px] font-semibold text-white hover:bg-pine-dark disabled:opacity-60"
+                        className={`inline-flex items-center rounded-[3px] bg-pine text-[12px] font-semibold text-white hover:bg-pine-dark disabled:opacity-60 ${inline ? "h-10 px-6" : "h-9 px-5"}`}
                       >
                         {saving ? "Salvando…" : "Salvar dados do perfil"}
                       </button>
@@ -1276,7 +1283,7 @@ export default function UserProfileMenu({
                       <button
                         type="submit"
                         disabled={saving}
-                        className="inline-flex h-9 items-center rounded-[3px] bg-pine px-5 text-[12px] font-semibold text-white hover:bg-pine-dark disabled:opacity-60"
+                        className={`inline-flex items-center rounded-[3px] bg-pine text-[12px] font-semibold text-white hover:bg-pine-dark disabled:opacity-60 ${inline ? "h-10 px-6" : "h-9 px-5"}`}
                       >
                         {saving ? "Salvando…" : "Salvar dados de pagamento"}
                       </button>
@@ -1362,7 +1369,7 @@ export default function UserProfileMenu({
                         <button
                           type="button"
                           onClick={() => setShowAddCard((prev) => !prev)}
-                          className="inline-flex h-8 items-center rounded-[3px] bg-pine px-3 text-[12px] font-semibold text-white hover:bg-pine-dark"
+                          className={`inline-flex items-center rounded-[3px] bg-pine text-[12px] font-semibold text-white hover:bg-pine-dark ${inline ? "h-10 px-4" : "h-8 px-3"}`}
                         >
                           {showAddCard ? "Cancelar novo cartão" : "+ Adicionar cartão"}
                         </button>
@@ -1447,7 +1454,7 @@ export default function UserProfileMenu({
                           <div className="flex justify-end gap-2 pt-2">
                             <button
                               type="submit"
-                              className="inline-flex h-9 items-center rounded-[3px] bg-pine px-4 text-[12px] font-semibold text-white hover:bg-pine-dark"
+                              className={`inline-flex items-center rounded-[3px] bg-pine text-[12px] font-semibold text-white hover:bg-pine-dark ${inline ? "h-10 px-5" : "h-9 px-4"}`}
                             >
                               Salvar cartão
                             </button>
@@ -1496,7 +1503,7 @@ export default function UserProfileMenu({
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveCard(card.id)}
-                                  className="h-8 rounded-[3px] border border-danger/30 px-2.5 text-[12px] font-medium text-danger hover:bg-danger-soft"
+                                  className={`rounded-[3px] border border-danger/30 text-[12px] font-medium text-danger hover:bg-danger-soft ${inline ? "h-10 px-4" : "h-8 px-2.5"}`}
                                 >
                                   Remover
                                 </button>
@@ -1681,7 +1688,7 @@ export default function UserProfileMenu({
             <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-soft">
               Configurações da Minha Conta
             </p>
-            {MENU_OPTIONS.map((option) => {
+            {USER_ACCOUNT_SECTIONS.map((option) => {
               const Icon = option.icon;
               return (
                 <button
@@ -1775,7 +1782,7 @@ export default function UserProfileMenu({
                 aria-label="Seções da conta"
                 className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-line bg-paper/40 p-3 md:flex-col md:overflow-y-auto md:border-b-0 md:border-r"
               >
-                {MENU_OPTIONS.map((item) => {
+                {USER_ACCOUNT_SECTIONS.map((item) => {
                   const Icon = item.icon;
                   const active = activeModalTab === item.id;
                   return (

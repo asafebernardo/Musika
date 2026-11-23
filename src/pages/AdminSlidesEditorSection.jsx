@@ -169,7 +169,7 @@ function buildSlidesFromSong(song, options) {
   return slides;
 }
 
-export default function AdminSlidesEditorSection({ songs = [], loadingSongs = false }) {
+export default function AdminSlidesEditorSection({ songs = [], loadingSongs = false, singleSong = false }) {
   const catalog = songs.length > 0 ? songs : FALLBACK_SONGS;
   const [search, setSearch] = useState("");
   const [selectedSongId, setSelectedSongId] = useState(() => catalog[0]?.id ?? null);
@@ -364,7 +364,9 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
               </span>
             </div>
             <p className="mt-0.5 text-xs text-ink-soft">
-              Escolha uma música para visualizar a letra à esquerda e organizar ou projetar os slides à direita.
+              {singleSong
+                ? "Visualize a letra à esquerda e organize ou projete os slides à direita."
+                : "Escolha uma música para visualizar a letra à esquerda e organizar ou projetar os slides à direita."}
             </p>
           </div>
           <button
@@ -379,7 +381,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
         </div>
 
         {/* Barra de seleção da música */}
-        <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
+        {!singleSong ? <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
           <label className="block space-y-1">
             <span className="text-xs font-medium text-ink-soft">Filtrar música</span>
             <input
@@ -417,7 +419,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
               )}
             </select>
           </label>
-        </div>
+        </div> : null}
       </section>
 
       {/* Corpo principal: Esquerda (Toda a letra) | Direita (Configurações simples + Prévia/Tela cheia) */}
@@ -510,7 +512,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                         "capa",
                       )
                     }
-                    className="h-7.5 rounded-[3px] border border-line bg-card px-2.5 text-xs font-medium text-ink hover:border-pine hover:text-pine"
+                    className="h-10 rounded-[3px] border border-line bg-card px-4 text-xs font-medium text-ink hover:border-pine hover:text-pine"
                   >
                     + Slide de título
                   </button>
@@ -525,7 +527,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                       <button
                         type="button"
                         onClick={() => handleQuickAddChunk("Refrão", songParts.refrao, "refrao")}
-                        className="inline-flex h-7 items-center rounded-[3px] bg-pine px-2.5 text-xs font-semibold text-white hover:bg-pine-dark"
+                        className="inline-flex h-10 items-center rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark"
                       >
                         + Adicionar slide
                       </button>
@@ -549,7 +551,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                             onClick={() =>
                               handleQuickAddChunk(`Estrofe ${idx + 1}`, verse, "estrofe")
                             }
-                            className="inline-flex h-7 items-center rounded-[3px] border border-line bg-card px-2.5 text-xs font-medium text-pine hover:border-pine"
+                            className="inline-flex h-10 items-center rounded-[3px] border border-line bg-card px-4 text-xs font-medium text-pine hover:border-pine"
                           >
                             + Adicionar slide
                           </button>
@@ -765,7 +767,7 @@ export default function AdminSlidesEditorSection({ songs = [], loadingSongs = fa
                 <button
                   type="submit"
                   disabled={!newSlideText.trim()}
-                  className="h-8.5 flex-1 rounded-[3px] bg-pine px-3 text-xs font-semibold text-white hover:bg-pine-dark disabled:opacity-50"
+                  className="h-10 flex-1 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark disabled:opacity-50"
                 >
                   + Adicionar slide
                 </button>

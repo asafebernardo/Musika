@@ -205,7 +205,7 @@ export default function AdminPersonalizationSection({ activeTab }) {
               setNotice("");
             }}
             disabled={loading || saving}
-            className="h-8.5 rounded-[3px] border border-line bg-card px-3 text-xs font-medium text-ink hover:bg-paper disabled:opacity-50"
+            className="h-10 rounded-[3px] border border-line bg-card px-4 text-xs font-medium text-ink hover:bg-paper disabled:opacity-50"
           >
             Restaurar padrão
           </button>
@@ -213,7 +213,7 @@ export default function AdminPersonalizationSection({ activeTab }) {
             type="submit"
             form="admin-personalization-form"
             disabled={loading || saving}
-            className="h-8.5 rounded-[3px] bg-pine px-4 text-xs font-semibold text-white hover:bg-pine-dark disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-10 rounded-[3px] bg-pine px-5 text-xs font-semibold text-white hover:bg-pine-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? "Salvando…" : "Salvar"}
           </button>
@@ -971,7 +971,7 @@ function ImageSetting({ label, description, value, fallbackSrc, onChange, onClea
             />
           </label>
           {value ? (
-            <button type="button" onClick={onClear} className="h-8.5 rounded-[3px] border border-danger/30 bg-card px-3 text-xs font-medium text-danger hover:bg-danger-soft">
+            <button type="button" onClick={onClear} className="h-10 rounded-[3px] border border-danger/30 bg-card px-4 text-xs font-medium text-danger hover:bg-danger-soft">
               Remover
             </button>
           ) : null}
